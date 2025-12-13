@@ -8,6 +8,7 @@ import {
   Text,
   Box,
 } from "@radix-ui/themes";
+import { Icon } from "@iconify/react";
 
 export default function Home() {
   return (
@@ -29,6 +30,8 @@ export default function Home() {
         >
           <Flex direction="column" gap="6" p="6">
             <Heading size="8" weight="bold">
+              <Icon icon={"mdi:home"} width={30} height={30} />
+              <Icon icon="material-symbols-light:3d-rounded" width="24" height="24"  style={{color: "#de264a"}} />
               Hello World!
             </Heading>
 
@@ -84,7 +87,7 @@ export default function Home() {
         <Text size="2" color="gray" align="center">
           Background dan warna akan otomatis menyesuaikan dengan sistem OS.
         </Text>
-        <UserActions/>
+        <UserActions />
       </Flex>
     </Container>
   );
