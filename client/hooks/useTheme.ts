@@ -16,14 +16,14 @@ export function useTheme() {
   const isSystem = theme === "system";
 
   return {
-    theme, // Current theme (light/dark/system)
-    setTheme, // Function to set theme
-    systemTheme, // OS system theme
-    resolvedTheme, // Actual theme after system resolution
+    theme,
+    setTheme,
+    systemTheme, 
+    resolvedTheme, 
     isDark,
     isLight,
     isSystem,
     toggleTheme,
-    themes, // Available themes ["light", "dark", "system"]
+    themes,
   };
 }

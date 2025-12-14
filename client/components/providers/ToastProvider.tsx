@@ -1,6 +1,6 @@
 "use client";
 
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme } from "@client/hooks/useTheme";
 import { Toaster } from "sonner";
 
 export function ToastProvider() {

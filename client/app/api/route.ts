@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/server/lib/supabaseClient";
+import { supabase } from "@/server/helpers/supabaseClient";
 
 // GET → fetch semua profiles
 export async function GET(req: NextRequest) {

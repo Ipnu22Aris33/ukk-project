@@ -1,4 +1,4 @@
-import { UserActions } from "@/components/features/UserAction";
+import { UserActions } from "@client/components/features/UserAction";
 import {
   Button,
   Card,
