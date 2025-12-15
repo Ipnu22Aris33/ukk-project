@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "clean": "rimraf .next",
+    "dev:clean": "rimraf .next && next dev",
+    "build:clean": "rimraf .next && next build",
+    "start:clean": "rimraf .next && next start"
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",
@@ -27,6 +31,7 @@
     "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
+    "rimraf": "^6.1.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
