@@ -1,29 +1,34 @@
-// hooks/use-theme.ts
-"use client";
+'use client';
 
-import { useTheme as useNextTheme } from "next-themes";
+import { useTheme as useNextTheme } from 'next-themes';
 
 export function useTheme() {
-  const { theme, setTheme, systemTheme, themes, resolvedTheme } =
-    useNextTheme();
+  const { theme, setTheme, resolvedTheme, systemTheme, themes } = useNextTheme();
+
+  const isDark = resolvedTheme === 'dark';
+  const isLight = resolvedTheme === 'light';
+  const isSystem = theme === 'system';
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    setTheme(isDark ? 'light' : 'dark');
   };
 
-  const isDark = resolvedTheme === "dark";
-  const isLight = resolvedTheme === "light";
-  const isSystem = theme === "system";
+  const setThemeByChecked = (checked: boolean) => {
+    setTheme(checked ? 'dark' : 'light');
+  };
 
   return {
     theme,
-    setTheme,
-    systemTheme, 
-    resolvedTheme, 
+    themes,
+    systemTheme,
+    resolvedTheme,
+
     isDark,
     isLight,
     isSystem,
+
     toggleTheme,
-    themes,
+    setThemeByChecked,
+    setTheme,
   };
 }
