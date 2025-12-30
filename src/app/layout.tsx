@@ -11,7 +11,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <Header />
-          {children}
+          <main>{children}</main>
+          <footer />
           <ToastProvider />
         </ThemeProvider>
       </body>

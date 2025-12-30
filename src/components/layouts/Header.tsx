@@ -1,250 +1,148 @@
 'use client';
 
-import { Box, Container, Flex, Text } from '@radix-ui/themes';
-import Link from 'next/link';
-import { ThemeSwitch } from '@/components/ui/ThemeSwitch';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import * as NavigationMenu from '@radix-ui/react-navigation-menu';
+import NextLink from 'next/link';
 import { Icon } from '@iconify/react';
+import { ThemeSwitch } from '@/components/ui/ThemeSwitch';
+import {
+  Box,
+  Container,
+  Flex,
+  Text,
+  Link,
+  IconButton,
+} from '@radix-ui/themes';
+import { AppIcon } from '../ui/AppIcon';
+
+const NAV_ITEMS = [
+  { label: 'Home', href: '/' , icon: 'carbon:home'},
+  { label: 'Blog', href: '/blog', icon: 'carbon:menu' },
+  { label: 'About', href: '/about', icon: 'carbon:information' },
+];
 
 export function Header() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  const navItems = [
-    { label: 'Docs', href: '/docs', icon: 'mdi:book-open' },
-    { label: 'Blog', href: '/blog', icon: 'mdi:pencil' },
-    { label: 'About', href: '/about', icon: 'mdi:information' },
-  ];
-
-  // Check if mobile
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkIfMobile();
-    window.addEventListener('resize', checkIfMobile);
-    return () => window.removeEventListener('resize', checkIfMobile);
-  }, []);
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileOpen && isMobile) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [mobileOpen, isMobile]);
+  const [open, setOpen] = useState(false);
 
   return (
-    <Box
-      asChild
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        borderBottom: '1px solid var(--gray-a6)',
-        backgroundColor: 'var(--color-background)',
-        backdropFilter: 'blur(8px)',
-      }}
-    >
-      <header>
-        <Container size='4'>
-          <Flex height='64px' align='center' justify='between'>
-            {/* Logo - LEFT */}
-            <Link 
-              href='/' 
-              onClick={() => setMobileOpen(false)}
-              style={{ 
-                display: 'flex',
-                alignItems: 'center',
-                textDecoration: 'none'
-              }}
-            >
-              <Flex align='center' gap='2'>
-                <Icon
-                  icon='mdi:cube'
-                  width='24'
-                  height='24'
-                  style={{ color: 'var(--accent-9)' }}
-                />
-                <Box>
-                  <Text weight='bold' size='4' style={{ color: 'var(--gray-12)' }}>
-                    MyApp
-                  </Text>
-                  <Text size='1' color='gray' className='hidden sm:block'>
-                    Modern Solutions
-                  </Text>
-                </Box>
-              </Flex>
-            </Link>
-
-            {/* Desktop Navigation - CENTER */}
-            <Box 
-              style={{ 
-                flex: 1,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-              className='hidden md:flex'
-            >
-              <Flex gap='4' align='center'>
-                {navItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      textDecoration: 'none'
-                    }}
-                    className='hover:bg-gray-a3'
+    <>
+      {/* HEADER */}
+      <Box asChild style={{ borderBottom: '1px solid var(--gray-a6)' }}>
+        <header>
+          <Container size="4">
+            <Flex height="64px" align="center" justify="between">
+              {/* LEFT */}
+              <Flex align="center" gap="3">
+                {/* BURGER – MOBILE ONLY */}
+                <Box display={{ initial: 'block', md: 'none' }}>
+                  <IconButton
+                    variant="ghost"
+                    onClick={() => setOpen(true)}
                   >
-                    <Icon
-                      icon={item.icon}
-                      width='16'
-                      height='16'
-                      style={{ color: 'var(--gray-10)' }}
-                    />
-                    <Text
-                      size='2'
-                      weight='medium'
-                      style={{ color: 'var(--gray-11)' }}
-                    >
-                      {item.label}
+                    <AppIcon icon="carbon:menu" width={20} />
+                  </IconButton>
+                </Box>
+
+                {/* LOGO */}
+                <Link asChild underline="none">
+                  <NextLink href="/">
+                    <Text size="4" weight="bold">
+                      MyApp
                     </Text>
-                  </Link>
-                ))}
+                  </NextLink>
+                </Link>
               </Flex>
-            </Box>
 
-            {/* Right Side Actions */}
-            <Flex align='center' gap='3'>
-              <ThemeSwitch />
-
-              {/* Desktop Get Started Button */}
-              <Link
-                href='/get-started'
-                className='hidden md:block'
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--accent-9)',
-                  color: 'white',
-                  fontWeight: '500',
-                  fontSize: '14px',
-                  transition: 'background-color 0.2s ease',
-                  whiteSpace: 'nowrap',
-                  textDecoration: 'none'
-                }}
-              >
-                Get Started
-              </Link>
-
-              {/* Mobile Menu Button */}
-              <Box
-                className='md:hidden'
-                onClick={() => setMobileOpen(!mobileOpen)}
-                style={{
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  backgroundColor: mobileOpen ? 'var(--gray-a3)' : 'transparent',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginLeft: '8px',
-                }}
-              >
-                <Icon
-                  icon={mobileOpen ? 'mdi:close' : 'mdi:menu'}
-                  width='20'
-                  height='20'
-                  style={{ color: 'var(--gray-11)' }}
-                />
+              {/* NAV – TABLET & DESKTOP */}
+              <Box display={{ initial: 'none', md: 'block' }}>
+                <NavigationMenu.Root>
+                  <NavigationMenu.List
+                    style={{
+                      display: 'flex',
+                      gap: '24px',
+                      listStyle: 'none',
+                    }}
+                  >
+                    {NAV_ITEMS.map((item) => (
+                      <NavigationMenu.Item key={item.href}>
+                        <Link asChild underline="none">
+                          <NextLink href={item.href}>
+                            <Text size="2" weight="medium">
+                              <AppIcon icon={item.icon} />
+                               {item.label}
+                            </Text>
+                          </NextLink>
+                        </Link>
+                      </NavigationMenu.Item>
+                    ))}
+                  </NavigationMenu.List>
+                </NavigationMenu.Root>
               </Box>
+
+              {/* RIGHT */}
+              <ThemeSwitch />
             </Flex>
+          </Container>
+        </header>
+      </Box>
+
+      {/* OVERLAY – MOBILE ONLY */}
+      {open && (
+        <Box
+          onClick={() => setOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'var(--black-a8)',
+            zIndex: 40,
+          }}
+        />
+      )}
+
+      {/* SIDEBAR – MOBILE ONLY */}
+      <Box
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100%',
+          width: '260px',
+          backgroundColor: 'var(--panel)',
+          transform: open ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 200ms ease',
+          zIndex: 50,
+          padding: '16px',
+        }}
+        display={{ initial: 'block', md: 'none' }}
+      >
+        <Flex direction="column" gap="4">
+          {/* HEADER SIDEBAR */}
+          <Flex justify="between" align="center">
+            <Text weight="bold">Menu</Text>
+            <IconButton
+              variant="ghost"
+              onClick={() => setOpen(false)}
+            >
+              <Icon icon="mdi:close" width="18" />
+            </IconButton>
           </Flex>
 
-          {/* Mobile Menu */}
-          {mobileOpen && (
-            <Box
-              className='md:hidden'
-              style={{
-                position: 'fixed',
-                top: '64px',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'var(--color-background)',
-                padding: '1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-                borderTop: '1px solid var(--gray-a6)',
-                overflowY: 'auto',
-              }}
+          {/* LINKS */}
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              asChild
+              underline="none"
+              onClick={() => setOpen(false)}
             >
-              {navItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '8px',
-                    transition: 'background-color 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    textDecoration: 'none'
-                  }}
-                  className='hover:bg-gray-a3'
-                >
-                  <Icon
-                    icon={item.icon}
-                    width='20'
-                    height='20'
-                    style={{ color: 'var(--accent-9)' }}
-                  />
-                  <Text size='3' weight='medium' style={{ color: 'var(--gray-12)' }}>
-                    {item.label}
-                  </Text>
-                </Link>
-              ))}
-              
-              <Link
-                href='/get-started'
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  marginTop: '1rem',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--accent-9)',
-                  color: 'white',
-                  fontWeight: '500',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  transition: 'background-color 0.2s ease',
-                  textDecoration: 'none'
-                }}
-                className='hover:bg-accent-10'
-              >
-                Get Started
-              </Link>
-            </Box>
-          )}
-        </Container>
-      </header>
-    </Box>
+              <NextLink href={item.href}>
+                <Text size="3">{item.label}</Text>
+              </NextLink>
+            </Link>
+          ))}
+        </Flex>
+      </Box>
+    </>
   );
 }
+

@@ -1,6 +1,7 @@
 import { Button, Container, Flex, Heading, Text, Box } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AppIcon } from '@/components/ui/AppIcon';
 
 export default function Home() {
   return (
@@ -25,7 +26,8 @@ export default function Home() {
             color: 'white',
           }}
         >
-          <Icon icon='mdi:home' width={32} height={32} />
+          <AppIcon icon="carbon:4k" width="24" height="24"/>
+          <AppIcon icon="carbon:settings" width="24" height="24"/>
         </Box>
 
         {/* Title */}
