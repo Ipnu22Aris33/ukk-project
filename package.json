@@ -13,8 +13,6 @@
     "start:clean": "rimraf .next && next start"
   },
   "dependencies": {
-    "@iconify-json/carbon": "^1.2.15",
-    "@iconify/icons-carbon": "^1.2.20",
     "@iconify/react": "^6.0.2",
     "@radix-ui/react-navigation-menu": "^1.2.14",
     "@radix-ui/react-switch": "^1.2.6",
@@ -30,7 +28,6 @@
     "sonner": "^2.0.7"
   },
   "devDependencies": {
-    "@iconify/types": "^2.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -40,7 +37,6 @@
     "eslint-config-next": "16.0.10",
     "rimraf": "^6.1.2",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "unplugin-icons": "^22.5.0"
+    "typescript": "^5"
   }
 }

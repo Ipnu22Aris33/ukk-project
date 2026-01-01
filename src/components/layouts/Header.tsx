@@ -39,7 +39,7 @@ export function Header() {
                     variant="ghost"
                     onClick={() => setOpen(true)}
                   >
-                    <AppIcon icon="carbon:menu" width={20} />
+                    {/* <AppIcon icon="carbon:menu" width={20} /> */}
                   </IconButton>
                 </Box>
 
@@ -68,7 +68,7 @@ export function Header() {
                         <Link asChild underline="none">
                           <NextLink href={item.href}>
                             <Text size="2" weight="medium">
-                              <AppIcon icon={item.icon} />
+                              {/* <AppIcon icon={item.icon} /> */}
                                {item.label}
                             </Text>
                           </NextLink>

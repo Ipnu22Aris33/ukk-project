@@ -2,6 +2,7 @@ import { Button, Container, Flex, Heading, Text, Box } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { AppIcon } from '@/components/ui/AppIcon';
+import Spinner from '@/components/icons/SvgSpinnersBlocksShuffle3';
 
 export default function Home() {
   return (
@@ -26,13 +27,13 @@ export default function Home() {
             color: 'white',
           }}
         >
-          <AppIcon icon="carbon:4k" width="24" height="24"/>
-          <AppIcon icon="carbon:settings" width="24" height="24"/>
+          <Spinner width='24' height='24' />
         </Box>
 
         {/* Title */}
         <Heading size='8' align='center'>
           Welcome 👋
+          <AppIcon name='SvgSpinnersBlocksShuffle3' size={32} />
         </Heading>
 
         {/* Description */}

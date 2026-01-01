@@ -1,18 +1,22 @@
 'use client';
 
-import { Icon } from '@iconify/react';
-import type { ComponentProps } from 'react';
-import { iconSets } from 'public/icons';
+import type { SVGProps } from 'react';
+import * as Icons from '@/components/icons';
 
-type AppIconProps = ComponentProps<typeof Icon> & { icon: string };
+export type IconName = keyof typeof Icons;
 
-export function AppIcon({ icon, ...props }: AppIconProps) {
-  const [set, name] = icon.split(':');
+type AppIconProps = {
+  name: IconName;
+  size?: number;
+  className?: string;
+} & SVGProps<SVGSVGElement>;
 
-  const resolvedIcon =
-    iconSets[set as keyof typeof iconSets]?.[
-      name as keyof (typeof iconSets)[keyof typeof iconSets]
-    ] as any;
+export function AppIcon({ name, size = 24, className, ...props }: AppIconProps) {
+  const IconComponent = Icons[name];
 
-  return <Icon icon={resolvedIcon} {...props} />;
+  if (!IconComponent) {
+    throw new Error(`AppIcon: icon "${name}" not Found`);
+  }
+
+  return <IconComponent width={size} height={size} className={className} {...props} />;
 }
