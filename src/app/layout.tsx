@@ -1,20 +1,27 @@
 import '@/style/globals.css';
-import '@radix-ui/themes/styles.css';
 
-import { ThemeProvider } from '@/components/providers/ThemeProvider';
-import { ToastProvider } from '@/components/providers/ToastProvider';
 import { Header } from '@/components/layouts/Header';
+import { AppProvider } from './provider';
+import { Main } from '@/components/layouts/Main';
+import { Footer } from '@/components/layouts/Footer';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'My App',
+  icons: {
+    icon: './svg/globe.svg',
+  },
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang='en'>
       <body>
-        <ThemeProvider>
+        <AppProvider>
           <Header />
-          <main>{children}</main>
-          <footer />
-          <ToastProvider />
-        </ThemeProvider>
+          <Main>{children}</Main>
+          <Footer />
+        </AppProvider>
       </body>
     </html>
   );
