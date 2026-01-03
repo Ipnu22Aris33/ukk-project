@@ -1,9 +1,9 @@
 import '@/style/globals.css';
 
-import { Header } from '@/components/layouts/Header';
+import { Header } from '@/components/templates/Header';
 import { AppProvider } from './provider';
-import { Main } from '@/components/layouts/Main';
-import { Footer } from '@/components/layouts/Footer';
+import { Main } from '@/components/templates/Main';
+import { Footer } from '@/components/templates/Footer';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
