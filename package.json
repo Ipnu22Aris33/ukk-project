@@ -1,6 +1,8 @@
 {
   "name": "ukk-project",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "author": "Ipnu Aris Saputra",
+  "description": "",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -35,7 +37,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/ui": "^4.0.16",
-    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
     "rimraf": "^6.1.2",

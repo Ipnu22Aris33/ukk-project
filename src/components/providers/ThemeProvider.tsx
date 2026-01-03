@@ -9,7 +9,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   if (!mounted) {
     return (
-      <Theme appearance="light" accentColor="violet">
+      <Theme appearance="light" accentColor="indigo">
         <div style={{ visibility: "hidden" }}>{children}</div>
       </Theme>
     );
@@ -17,7 +17,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
-      <Theme appearance="inherit" accentColor="violet">
+      <Theme appearance="inherit" accentColor="indigo">
         {children}
       </Theme>
     </NextThemesProvider>
