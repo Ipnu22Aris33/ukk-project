@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import * as NavigationMenu from '@radix-ui/react-navigation-menu';
 import NextLink from 'next/link';
 import { Icon } from '@iconify/react';
-import { ThemeSwitch } from '@/components/ui/ThemeSwitch';
+import { ThemeSwitch } from '@/components/ui/ThemeSwitcher';
 import { Box, Container, Flex, Text, Link, IconButton, Button } from '@radix-ui/themes';
 
 export function Header() {

@@ -12,10 +12,21 @@ export function ThemeToggle() {
       pressed={isDark}
       onPressedChange={toggleTheme}
       aria-label='Toggle theme'
-      className='inline-flex items-center justify-center rounded-md p-2 hover:bg-muted transition'
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '6px',
+        padding: '8px',
+        backgroundColor: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        transition: 'background-color 0.2s ease',
+        color: 'var(--gray-12)',
+      }}
     >
       <Icon
-        icon={isDark ? 'mdi:white-balance-sunny' : 'mdi:moon-waning-crescent'}
+        icon={isDark ? 'radix-icons:sun' : 'radix-icons:moon'}
         width={18}
         height={18}
       />

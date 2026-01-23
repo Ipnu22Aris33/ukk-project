@@ -3,7 +3,7 @@
 import { Switch } from '@radix-ui/themes';
 import { useTheme } from '@/hooks/useTheme';
 
-export function ThemeSwitch() {
+export function ThemeSwitcher() {
   const { isDark, setThemeByChecked } = useTheme();
 
   return (

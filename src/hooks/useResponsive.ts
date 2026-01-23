@@ -1,44 +1,46 @@
-'use client';
+import { useState, useEffect } from 'react';
 
-import { useEffect, useState } from 'react';
-
-type ResponsiveState = {
-  isMobile: boolean;
-  isTablet: boolean;
-  isDesktop: boolean;
-};
-
-export function useResponsive(): ResponsiveState {
-  const [state, setState] = useState<ResponsiveState>({
-    isMobile: false,
-    isTablet: false,
-    isDesktop: false,
-  });
+export const useResponsive = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const tabletQuery = window.matchMedia('(min-width: 768px)');
-    const desktopQuery = window.matchMedia('(min-width: 1024px)');
-
-    const update = () => {
-      const isDesktop = desktopQuery.matches;
-      const isTablet = tabletQuery.matches;
-      const isMobile = !isTablet;
-
-      setState({ isMobile, isTablet, isDesktop });
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+        setSidebarCollapsed(false);
+      }
     };
 
-    update();
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
 
-    tabletQuery.addEventListener('change', update);
-    desktopQuery.addEventListener('change', update);
-
-    return () => {
-      tabletQuery.removeEventListener('change', update);
-      desktopQuery.removeEventListener('change', update);
-    };
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  return state;
-}
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setSidebarOpen(!sidebarOpen);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
+
+  const closeMobileSidebar = () => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  };
+
+  return {
+    isMobile,
+    sidebarOpen,
+    sidebarCollapsed,
+    setSidebarOpen,
+    toggleSidebar,
+    closeMobileSidebar,
+  };
+};
