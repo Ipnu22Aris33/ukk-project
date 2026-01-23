@@ -6,9 +6,34 @@ import { ThemeToggle } from '../ui/ThemeToggle';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
+  sidebarCollapsed?: boolean; // Tambahkan prop ini
+  isMobile?: boolean; // Tambahkan prop ini
 }
 
-export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onToggleSidebar, 
+  sidebarCollapsed = false,
+  isMobile = false 
+}) => {
+  // Tentukan icon berdasarkan state
+  const getToggleIcon = () => {
+    if (isMobile) {
+      // Mobile: selalu hamburger menu
+      return 'radix-icons:hamburger-menu';
+    } else {
+      // Desktop: arrow kiri/kanan berdasarkan collapsed state
+      return sidebarCollapsed ? 'radix-icons:chevron-right' : 'radix-icons:chevron-left';
+    }
+  };
+
+  const getToggleTitle = () => {
+    if (isMobile) {
+      return sidebarCollapsed ? 'Open menu' : 'Close menu';
+    } else {
+      return sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    }
+  };
+
   return (
     <Flex
       align='center'
@@ -21,8 +46,19 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       }}
     >
       <Flex align='center' gap='3'>
-        <Button variant='ghost' onClick={onToggleSidebar}>
-          <Icon icon='radix-icons:hamburger-menu' width='20' height='20' />
+        <Button 
+          variant='ghost' 
+          onClick={onToggleSidebar}
+          title={getToggleTitle()}
+          style={{
+            transition: 'transform 0.2s ease',
+          }}
+        >
+          <Icon 
+            icon={getToggleIcon()} 
+            width='20' 
+            height='20' 
+          />
         </Button>
         <Heading size='4'>Dashboard</Heading>
       </Flex>
@@ -31,7 +67,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         <Button variant='ghost'>
           <Icon icon='radix-icons:magnifying-glass' width='18' height='18' />
         </Button>
+        
         <ThemeToggle />
+
         <Button variant='ghost' style={{ position: 'relative' }}>
           <Icon icon='radix-icons:bell' width='18' height='18' />
           <Badge

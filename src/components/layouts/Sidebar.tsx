@@ -1,7 +1,17 @@
 'use client';
 
 import { Icon } from '@iconify/react';
-import { Flex, Text, Heading, Avatar, Button, Separator, Box } from '@radix-ui/themes';
+import {
+  Flex,
+  Text,
+  Heading,
+  Avatar,
+  Button,
+  Separator,
+  Box,
+  DropdownMenu,
+  Badge,
+} from '@radix-ui/themes';
 import Link from 'next/link';
 
 interface SidebarProps {
@@ -39,31 +49,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
           marginBottom: '30px',
           justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
           height: '32px',
+          position: 'relative',
+          width: '100%',
         }}
       >
         <Icon icon='radix-icons:cube' width='24' height='24' />
+
+        {/* Heading dengan absolute positioning saat expanded */}
         <Box
           style={{
+            position: sidebarCollapsed ? 'absolute' : 'relative',
+            left: sidebarCollapsed ? '100%' : '0',
             opacity: sidebarCollapsed ? 0 : 1,
             width: sidebarCollapsed ? '0' : 'auto',
             overflow: 'hidden',
-            transition: 'opacity 0.3s ease, width 0.3s ease',
+            transition: 'opacity 0.3s ease, width 0.3s ease, left 0.3s ease',
             whiteSpace: 'nowrap',
+            marginLeft: '12px',
           }}
         >
-          <Heading size='4' style={{ marginLeft: '12px' }}>
-            Dashboard
-          </Heading>
+          <Heading size='4'>Dashboard</Heading>
         </Box>
       </Flex>
 
       {/* Menu Items */}
       <Flex direction='column' gap='3' style={{ flex: 1 }}>
         {menuItems.map((item) => (
-          <Link 
-            key={item.id} 
-            href={item.href} 
-            style={{ 
+          <Link
+            key={item.id}
+            href={item.href}
+            style={{
               textDecoration: 'none',
               display: 'block',
             }}
@@ -73,66 +88,157 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               variant='ghost'
               style={{
                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                padding: '10px 12px',
+                padding: sidebarCollapsed ? '10px' : '10px 12px',
                 height: '36px',
                 width: '100%',
                 overflow: 'hidden',
               }}
               title={sidebarCollapsed ? item.label : undefined}
             >
-              <Icon icon={item.icon} width='18' height='18' />
+              {/* Icon Container - untuk alignment yang lebih baik */}
               <Box
                 style={{
-                  opacity: sidebarCollapsed ? 0 : 1,
-                  width: sidebarCollapsed ? '0' : 'auto',
-                  overflow: 'hidden',
-                  transition: 'opacity 0.3s ease, width 0.3s ease',
-                  whiteSpace: 'nowrap',
-                  marginLeft: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                  width: sidebarCollapsed ? '100%' : 'auto',
                 }}
               >
-                <Text>{item.label}</Text>
+                <Icon icon={item.icon} width='18' height='18' />
+                {!sidebarCollapsed && <Text style={{ marginLeft: '10px' }}>{item.label}</Text>}
               </Box>
             </Button>
           </Link>
         ))}
       </Flex>
 
-      {/* User Profile */}
+      {/* User Profile - tetap seperti sebelumnya */}
       <Flex direction='column' gap='2' style={{ marginTop: 'auto' }}>
         <Separator size='4' />
-        <Flex
-          align='center'
-          gap='3'
-          style={{
-            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-            padding: '8px 0',
-            height: '40px',
-            overflow: 'hidden',
-          }}
-        >
-          <Avatar
-            size='2'
-            src='https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
-            fallback='A'
-          />
-          <Box
+
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <Flex
+              align='center'
+              style={{
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                padding: '8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+                width: '100%',
+                minHeight: '40px',
+              }}
+            >
+              <Box
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  width: sidebarCollapsed ? '100%' : 'auto',
+                }}
+              >
+                <Avatar
+                  size='2'
+                  src='https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
+                  fallback='A'
+                  style={{
+                    transition: 'transform 0.3s ease',
+                  }}
+                />
+                <Box
+                  style={{
+                    position: 'absolute',
+                    bottom: '0',
+                    right: sidebarCollapsed ? 'calc(50% - 18px)' : '0',
+                    width: '8px',
+                    height: '8px',
+                    backgroundColor: 'var(--green-9)',
+                    borderRadius: '50%',
+                    border: '2px solid var(--gray-1)',
+                    transition: 'right 0.3s ease',
+                  }}
+                />
+              </Box>
+
+              {/* User Info - hanya muncul saat expanded */}
+              {!sidebarCollapsed && (
+                <Box
+                  style={{
+                    opacity: 1,
+                    width: '140px',
+                    overflow: 'hidden',
+                    transition: 'opacity 0.3s ease, width 0.3s ease',
+                    whiteSpace: 'nowrap',
+                    marginLeft: '12px',
+                  }}
+                >
+                  <Flex direction='column' gap='1'>
+                    <Flex align='center' gap='1'>
+                      <Text size='2' weight='bold' style={{ lineHeight: '1.2' }}>
+                        Admin User
+                      </Text>
+                      <Badge color='green' size='1' style={{ padding: '0 4px' }}>
+                        Admin
+                      </Badge>
+                    </Flex>
+                    <Text size='1' color='gray' style={{ lineHeight: '1.2' }}>
+                      admin@example.com
+                    </Text>
+                  </Flex>
+                </Box>
+              )}
+
+              {/* Chevron Icon - hanya muncul saat expanded */}
+              {!sidebarCollapsed && (
+                <Icon
+                  icon='radix-icons:chevron-down'
+                  width='14'
+                  height='14'
+                  style={{
+                    marginLeft: 'auto',
+                    color: 'var(--gray-10)',
+                  }}
+                />
+              )}
+            </Flex>
+          </DropdownMenu.Trigger>
+
+          {/* Dropdown Content */}
+          <DropdownMenu.Content
+            sideOffset={5}
+            align='center'
             style={{
-              opacity: sidebarCollapsed ? 0 : 1,
-              width: sidebarCollapsed ? '0' : 'auto',
-              overflow: 'hidden',
-              transition: 'opacity 0.3s ease, width 0.3s ease',
-              whiteSpace: 'nowrap',
+              minWidth: '200px',
             }}
           >
-            <Text size='2' weight='bold'>
-              Admin User
-            </Text>
-            <Text size='1' color='gray'>
-              admin@example.com
-            </Text>
-          </Box>
-        </Flex>
+            <DropdownMenu.Item>
+              <Flex align='center' gap='2'>
+                <Icon icon='radix-icons:person' width='14' height='14' />
+                <Text size='2'>My Profile</Text>
+              </Flex>
+            </DropdownMenu.Item>
+            <DropdownMenu.Item>
+              <Flex align='center' gap='2'>
+                <Icon icon='radix-icons:gear' width='14' height='14' />
+                <Text size='2'>Settings</Text>
+              </Flex>
+            </DropdownMenu.Item>
+            <DropdownMenu.Item>
+              <Flex align='center' gap='2'>
+                <Icon icon='radix-icons:question-mark' width='14' height='14' />
+                <Text size='2'>Help & Support</Text>
+              </Flex>
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item color='red'>
+              <Flex align='center' gap='2'>
+                <Icon icon='radix-icons:exit' width='14' height='14' />
+                <Text size='2'>Logout</Text>
+              </Flex>
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </Flex>
     </Flex>
   );
