@@ -1,9 +1,6 @@
 import '@/style/globals.css';
 
-import { Header } from '@/components/templates/Header';
 import { AppProvider } from './provider';
-import { Main } from '@/components/templates/Main';
-import { Footer } from '@/components/templates/Footer';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -19,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AppProvider>
           {/* <Header /> */}
-          <Main>{children}</Main>
+          {children}
           {/* <Footer /> */}
         </AppProvider>
       </body>
