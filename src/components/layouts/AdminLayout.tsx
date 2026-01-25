@@ -1,6 +1,5 @@
 'use client';
 
-import { Theme } from '@radix-ui/themes';
 import { Box, Flex, Container } from '@radix-ui/themes';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Sidebar } from './AdminSidebar';

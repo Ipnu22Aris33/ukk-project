@@ -1,4 +1,6 @@
 import '@/style/globals.css';
+import "@radix-ui/themes/styles.css";
+
 
 import { AppProvider } from './provider';
 import type { Metadata } from 'next';
@@ -6,7 +8,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'My App',
   icons: {
-    icon: './svg/globe.svg',
+    icon: 'next.svg',
   },
 };
 
@@ -15,9 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang='en'>
       <body>
         <AppProvider>
-          {/* <Header /> */}
           {children}
-          {/* <Footer /> */}
         </AppProvider>
       </body>
     </html>

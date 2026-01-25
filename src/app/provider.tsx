@@ -6,12 +6,10 @@ import { AuthProvider } from '@/components/providers/AuthProvider';
 export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryProvider>
-      <AuthProvider>
         <ThemeProvider>
           <ToastProvider />
           {children}
         </ThemeProvider>
-      </AuthProvider>
     </QueryProvider>
   );
 }
