@@ -2,7 +2,7 @@ import '@/style/globals.css';
 import "@radix-ui/themes/styles.css";
 
 
-import { AppProvider } from './provider';
+import { AppProvider } from '@/components/providers/AppProvider';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

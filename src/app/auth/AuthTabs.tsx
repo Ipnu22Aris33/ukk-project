@@ -123,10 +123,13 @@ export default function AuthPage() {
                               minLength={8}
                               maxLength={20}
                               validate={(value) => {
-                                if (!/[A-Z]/.test(value)) return 'Must contain at least one uppercase letter';
-                                if (!/[a-z]/.test(value)) return 'Must contain at least one lowercase letter';
+                                if (!/[A-Z]/.test(value))
+                                  return 'Must contain at least one uppercase letter';
+                                if (!/[a-z]/.test(value))
+                                  return 'Must contain at least one lowercase letter';
                                 if (!/[0-9]/.test(value)) return 'Must contain at least one number';
-                                if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return 'Must contain at least one special character';
+                                if (!/[!@#$%^&*(),.?":{}|<>]/.test(value))
+                                  return 'Must contain at least one special character';
                                 return true;
                               }}
                               icon='mdi:lock-outline'
@@ -321,10 +324,14 @@ export default function AuthPage() {
                                 minLength={8}
                                 maxLength={20}
                                 validate={(value) => {
-                                  if (!/[A-Z]/.test(value)) return 'Must contain at least one uppercase letter';
-                                  if (!/[a-z]/.test(value)) return 'Must contain at least one lowercase letter';
-                                  if (!/[0-9]/.test(value)) return 'Must contain at least one number';
-                                  if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return 'Must contain at least one special character';
+                                  if (!/[A-Z]/.test(value))
+                                    return 'Must contain at least one uppercase letter';
+                                  if (!/[a-z]/.test(value))
+                                    return 'Must contain at least one lowercase letter';
+                                  if (!/[0-9]/.test(value))
+                                    return 'Must contain at least one number';
+                                  if (!/[!@#$%^&*(),.?":{}|<>]/.test(value))
+                                    return 'Must contain at least one special character';
                                   return true;
                                 }}
                               />
@@ -345,11 +352,7 @@ export default function AuthPage() {
 
                             <div className='mt-4'>
                               <label className='flex items-start gap-2 cursor-pointer'>
-                                <input
-                                  type='checkbox'
-                                  className='mt-1'
-                                  required
-                                />
+                                <input type='checkbox' className='mt-1' required />
                                 <Text size='2' className='text-(--gray-11)'>
                                   I agree to the{' '}
                                   <a href='#' className='text-(--accent-11) hover:underline'>
