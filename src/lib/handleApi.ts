@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ApiResponse, fail } from '@/lib/apiResponse';
-import { HttpError } from '@/lib/http-error';
+import { HttpError } from '@/lib/httpErrors';
 
 type Handler<T = any> = () => Promise<ApiResponse<T>>;
 

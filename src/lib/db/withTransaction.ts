@@ -1,4 +1,4 @@
-import { mysqlPool } from '@/lib/mysql';
+import { mysqlPool } from '@/lib/db/mysql';
 
 export async function withTransaction<T>(fn: (conn: any) => Promise<T>): Promise<T> {
   const conn = await mysqlPool.getConnection();

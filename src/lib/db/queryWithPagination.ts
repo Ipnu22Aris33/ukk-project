@@ -1,4 +1,4 @@
-import { mysqlPool } from '@/lib/mysql';
+import { mysqlPool } from '@/lib/db/mysql';
 
 type JoinType = 'INNER' | 'LEFT' | 'RIGHT';
 
@@ -23,6 +23,7 @@ type QueryWithPaginationOptions = {
   limitParam?: string;
   searchParam?: string;
   maxLimit?: number;
+  where?: Record<string, any>;
 };
 
 export async function queryWithPagination<T = any>({
@@ -30,11 +31,12 @@ export async function queryWithPagination<T = any>({
   base,
   joins = [],
   searchable = [],
-  orderBy = 'id DESC',
+  orderBy,
   pageParam = 'page',
   limitParam = 'limit',
   searchParam = 'q',
   maxLimit = 100,
+  where = {},
 }: QueryWithPaginationOptions) {
   const { searchParams } = new URL(req.url);
 
@@ -43,10 +45,20 @@ export async function queryWithPagination<T = any>({
   const offset = (page - 1) * limit;
   const keyword = searchParams.get(searchParam)?.trim();
   const hasSearch = keyword && searchable.length > 0;
-  const whereClause = hasSearch ? `WHERE ${searchable.map((f) => `${f} LIKE ?`).join(' OR ')}` : '';
-  const whereParams = hasSearch ? searchable.map(() => `%${keyword}%`) : [];
+
+  // --- Tambahan where dari object ---
+  const whereKeys = Object.keys(where);
+  const whereClauseBase = whereKeys.length ? 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ') : '';
+  const whereParamsBase = whereKeys.map((k) => where[k]);
+
+  // Search clause tetap sama, tapi digabung dengan where base
+  const searchClause = hasSearch ? (whereClauseBase ? ' AND ' : 'WHERE ') + `(${searchable.map((f) => `${f} LIKE ?`).join(' OR ')})` : '';
+  const whereClause = whereClauseBase + searchClause;
+  const whereParams = [...whereParamsBase, ...(hasSearch ? searchable.map(() => `%${keyword}%`) : [])];
+
   const joinClause = joins.map((j) => `${j.type ?? 'INNER'} JOIN ${j.table} ON ${j.on}`).join(' ');
   const selectClause = base.select ?? '*';
+  const orderClause = orderBy ? `ORDER BY ${orderBy}` : '';
 
   const [[{ total }]]: any = await mysqlPool.query(
     `
@@ -64,7 +76,7 @@ export async function queryWithPagination<T = any>({
     FROM ${base.table}
     ${joinClause}
     ${whereClause}
-    ORDER BY ${orderBy}
+    ${orderClause}
     LIMIT ? OFFSET ?
     `,
     [...whereParams, limit, offset]

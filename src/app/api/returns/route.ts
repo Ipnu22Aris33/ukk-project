@@ -1,7 +1,8 @@
 import { queryWithPagination, withTransaction } from '@/lib/db';
 import { handleApi } from '@/lib/handleApi';
 import { ok } from '@/lib/apiResponse';
-import { NotFound, UnprocessableEntity } from '@/lib/http-error';
+import { NotFound, UnprocessableEntity } from '@/lib/httpErrors';
+import { crudHelper } from '@/lib/db/crudHelper';
 
 export interface ReturnModel {
   id_return: string;
@@ -10,6 +11,11 @@ export interface ReturnModel {
   penalty_fee: number;
   status: string;
 }
+
+const returnCrud = crudHelper({
+  table: 'returns',
+  key: 'id_return',
+});
 
 export async function POST(req: Request) {
   return handleApi(async () => {
@@ -20,6 +26,7 @@ export async function POST(req: Request) {
     }
 
     const result = await withTransaction(async (conn) => {
+      const returnRepo = crudHelper({ table: 'returns', key: 'id_return' }, conn);
       const [rows]: any = await conn.query(
         `
         SELECT 
@@ -46,47 +53,27 @@ export async function POST(req: Request) {
         throw new UnprocessableEntity('Buku sudah dikembalikan');
       }
 
-      // 2. Hitung denda
       const now = new Date();
       const dueDate = new Date(loan.due_date);
 
-      const lateDays =
-        now > dueDate ? Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+      const lateDays = now > dueDate ? Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
       const penaltyFee = lateDays * 1000;
       const returnStatus = penaltyFee > 0 ? 'unpaid' : 'paid';
 
-      await conn.execute(
-        `
-        INSERT INTO returns (loan_id, return_date, penalty_fee, status)
-        VALUES (?, ?, ?, ?)
-        `,
+      const [insertRes]: any = await conn.execute(
+        `INSERT INTO returns (loan_id, return_date, penalty_fee, status)
+          VALUES (?, ?, ?, ?)`,
         [loan.id_loan, now, penaltyFee, returnStatus]
       );
 
-      await conn.execute(
-        `
-        UPDATE loans
-        SET return_date = ?, status = 'returned'
-        WHERE id_loan = ?
-        `,
-        [now, loan.id_loan]
-      );
+      const returnId = insertRes.insertId;
 
-      await conn.execute(
-        `
-        UPDATE books
-        SET stock = stock + ?
-        WHERE id_book = ?
-        `,
-        [loan.count, loan.book_id]
-      );
+      await conn.execute(`UPDATE loans SET return_date = ?, status = 'returned' WHERE id_loan = ?`, [now, loan.id_loan]);
 
-      const [returnRows]: any = await conn.query(`SELECT * FROM returns WHERE loan_id = ?`, [
-        loan.id_loan,
-      ]);
+      await conn.execute(`UPDATE books SET stock = stock + ? WHERE id_book = ?`, [loan.count, loan.book_id]);
 
-      return returnRows[0] as ReturnModel;
+      return (await returnRepo.getById(returnId)) as ReturnModel;
     });
 
     return ok(result, {
@@ -97,39 +84,42 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   return handleApi(async () => {
-    const { data, meta } = await queryWithPagination<ReturnModel>({
-      req,
-      base: {
-        table: 'returns r',
-        select: `
-      r.id_return,
-      r.loan_id,
-      r.return_date,
-      r.penalty_fee,
-      r.status AS return_status,
+    const url = new URL(req.url);
 
-      l.id_loan,
-      l.loan_date,
-      l.due_date,
-      l.status AS loan_status,
+    const { data, meta } = await returnCrud.paginate({
+      page: Number(url.searchParams.get('page') ?? 1),
+      limit: Number(url.searchParams.get('limit') ?? 10),
+      search: url.searchParams.get('q') ?? undefined,
+      searchable: ['r.id_return', 'r.status', 'm.name', 'm.email', 'b.title'],
+      orderBy: 'r.id_return DESC',
+      select: `
+        r.id_return,
+        r.loan_id,
+        r.return_date,
+        r.penalty_fee,
+        r.status AS return_status,
 
-      m.id_member,
-      m.name AS member_name,
-      m.email AS member_email,
-      m.phone AS member_phone,
-      m.class AS member_class,
-      m.major AS member_major,
+        l.id_loan,
+        l.loan_date,
+        l.due_date,
+        l.status AS loan_status,
 
-      b.id_book,
-      b.title AS book_title,
-      b.author AS book_author,
-      b.publisher AS book_publisher,
-      b.category AS book_category,
+        m.id_member,
+        m.name AS member_name,
+        m.email AS member_email,
+        m.phone AS member_phone,
+        m.class AS member_class,
+        m.major AS member_major,
 
-      a.id_admin,
-      a.username AS admin_name
-    `,
-      },
+        b.id_book,
+        b.title AS book_title,
+        b.author AS book_author,
+        b.publisher AS book_publisher,
+        b.category AS book_category,
+
+        a.id_admin,
+        a.username AS admin_name
+      `,
       joins: [
         {
           type: 'INNER',
@@ -152,9 +142,8 @@ export async function GET(req: Request) {
           on: 'a.id_admin = l.admin_id',
         },
       ],
-      searchable: ['r.id_return', 'r.status', 'm.name', 'm.email', 'b.title'],
-      orderBy: 'r.id_return DESC',
     });
+
     return ok(data, {
       message: 'Returns retrieved successfully',
       meta,
