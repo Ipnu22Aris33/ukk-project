@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               >
                 <Avatar
                   size='2'
-                  src='https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
+                  src='https://api.dicebear.com/7.x/avataaars/svg'
                   fallback='A'
                   style={{
                     transition: 'transform 0.3s ease',
@@ -231,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               </Flex>
             </DropdownMenu.Item>
             <DropdownMenu.Separator />
-            <DropdownMenu.Item color='red'>
+            <DropdownMenu.Item color='red' onClick={() => console.log('Logout')}>
               <Flex align='center' gap='2'>
                 <Icon icon='radix-icons:exit' width='14' height='14' />
                 <Text size='2'>Logout</Text>
