@@ -1,4 +1,3 @@
-import { queryWithPagination, withTransaction } from '@/lib/db';
 import { handleApi } from '@/lib/handleApi';
 import { ok } from '@/lib/apiResponse';
 import { NotFound, UnprocessableEntity } from '@/lib/httpErrors';
@@ -18,7 +17,6 @@ const returnCrud = crudHelper({
   alias: 'r',
 });
 
-
 export async function POST(req: Request) {
   return handleApi(async () => {
     const { loan_id } = await req.json();
@@ -28,7 +26,6 @@ export async function POST(req: Request) {
     }
 
     const result = await returnCrud.transaction(async ({ current: returnRepo, createRepo }) => {
-      // Buat repository untuk table lain
       const loanRepo = createRepo({
         table: 'loans',
         key: 'id_loan',
@@ -39,7 +36,6 @@ export async function POST(req: Request) {
         key: 'id_book',
       });
 
-      // GET loan data with lock menggunakan rawQuery
       const loans: any[] = await returnRepo.rawQuery(
         `
         SELECT 
@@ -74,7 +70,6 @@ export async function POST(req: Request) {
       const penaltyFee = lateDays * 1000;
       const returnStatus = penaltyFee > 0 ? 'unpaid' : 'paid';
 
-      // INSERT menggunakan create method dari returnRepo
       const insertResult = await returnRepo.create({
         loan_id: loan.id_loan,
         return_date: now,
@@ -84,16 +79,13 @@ export async function POST(req: Request) {
 
       const returnId = insertResult.insertId;
 
-      // UPDATE loans menggunakan updateById dari loanRepo
       await loanRepo.updateById(loan.id_loan, {
         return_date: now,
         status: 'returned',
       });
 
-      // UPDATE books stock menggunakan rawQuery dari bookRepo
       await bookRepo.rawQuery(`UPDATE books SET stock = stock + ? WHERE id_book = ?`, [loan.count, loan.book_id]);
 
-      // GET created return record
       return (await returnRepo.getById(returnId)) as ReturnModel;
     });
 

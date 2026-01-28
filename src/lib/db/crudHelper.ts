@@ -17,6 +17,35 @@ type CrudConfig = {
   alias?: string;
 };
 
+type PaginateOptions = {
+  page?: number;
+  limit?: number;
+  select?: string;
+  orderBy?: string;
+  where?: Record<string, any>;
+  joins?: JoinOption[];
+  search?: string;
+  searchable?: string[];
+};
+
+type PaginateResult<T> = {
+  data: T[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasPrev: boolean;
+    hasNext: boolean;
+    search: string | null;
+  };
+};
+
+type TransactionRepos = {
+  current: any;
+  createRepo: (config: CrudConfig) => any;
+};
+
 export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
   const { table, key, alias } = config;
 
@@ -41,27 +70,52 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
       return result;
     },
 
+    /**
+     * CREATE MANY - insert multiple rows
+     * @param items
+     * @returns
+     */
     async createMany(items: Partial<T>[]): Promise<ResultSetHeader> {
       if (!items.length) {
-        throw new Error('No items to insert');
+        throw new Error('createMany: items is empty');
       }
 
-      const columns = Object.keys(items[0]).join(', ');
-      const placeholders = items
-        .map(
-          () =>
-            `(${Object.keys(items[0])
-              .map(() => '?')
-              .join(', ')})`
-        )
-        .join(', ');
+      const columns = Object.keys(items[0]);
 
-      const values = items.flatMap((item) => Object.values(item));
+      if (!columns.length) {
+        throw new Error('createMany: no columns provided');
+      }
 
-      const [result] = await db.query<ResultSetHeader>(`INSERT INTO ${table} (${columns}) VALUES ${placeholders}`, values);
+      for (const [index, item] of items.entries()) {
+        const keys = Object.keys(item);
+
+        if (keys.length !== columns.length) {
+          throw new Error(`createMany: inconsistent columns at index ${index}`);
+        }
+
+        for (const col of columns) {
+          if (!keys.includes(col)) {
+            throw new Error(`createMany: missing column "${col}" at index ${index}`);
+          }
+        }
+      }
+
+      const columnSQL = columns.map((col) => `\`${col}\``).join(', ');
+
+      const placeholders = items.map(() => `(${columns.map(() => '?').join(', ')})`).join(', ');
+
+      const values = items.flatMap((item) => columns.map((col) => item[col as keyof T]));
+
+      const [result] = await db.query<ResultSetHeader>(`INSERT INTO \`${table}\` (${columnSQL}) VALUES ${placeholders}`, values);
       return result;
     },
 
+    /**
+     * UPDATE BY ID - update row by primary key
+     * @param id 
+     * @param data
+     * @returns
+     */
     async updateById(id: number | string, data: Partial<T>): Promise<ResultSetHeader> {
       const keys = Object.keys(data);
       if (!keys.length) {
@@ -76,6 +130,12 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
       return res;
     },
 
+    /**
+     * UPDATE BY - update rows by where condition
+     * @param where 
+     * @param data
+     * @returns
+     */
     async updateBy(where: Record<string, any>, data: Partial<T>): Promise<ResultSetHeader> {
       const whereKeys = Object.keys(where);
       const dataKeys = Object.keys(data);
@@ -94,6 +154,11 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
       return res;
     },
 
+    /**
+     * LOCK BY ID - get row by primary key with FOR UPDATE
+     * @param id
+     * @returns
+     */
     async lockById(id: number | string): Promise<T | null> {
       const [rows] = await db.query<RowDataPacket[]>(`SELECT * FROM ${fromTable} WHERE ${keyColumn} = ? FOR UPDATE`, [id]);
 
@@ -238,12 +303,22 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
       return count;
     },
 
+    /**
+     * EXISTS BY ID - check if record exists by primary key
+     * @param id
+     * @returns
+     */
     async existsById(id: number | string): Promise<boolean> {
       const [[row]]: any = await db.query(`SELECT 1 FROM ${fromTable} WHERE ${keyColumn} = ? LIMIT 1`, [id]);
 
       return !!row;
     },
 
+    /**
+     * EXISTS - check if record exists by where condition
+     * @param where
+     * @returns
+     */
     async exists(where: Record<string, any>): Promise<boolean> {
       const keys = Object.keys(where);
       if (!keys.length) return false;
@@ -272,36 +347,24 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
      * @param callback
      * @returns
      */
-    async transaction<R>(
-      callback: (repos: {
-        current: any; // Repository untuk table utama (table dari config)
-        createRepo: <U>(config: CrudConfig) => any; // Factory untuk buat repo lain
-      }) => Promise<R>
-    ): Promise<R> {
-      // Jika sudah dalam transaction (db adalah connection, bukan pool)
+    async transaction<R>(callback: (repos: TransactionRepos) => Promise<R>): Promise<R> {
       if (db !== mysqlPool) {
-        // Buat factory yang pakai connection yang sama (db)
         const createRepo = <U>(repoConfig: CrudConfig) => crudHelper<U>(repoConfig, db);
-        // Panggil callback dengan repository saat ini dan factory
         return callback({
-          current: this, // this = repository saat ini
-          createRepo, // factory untuk buat repo baru
+          current: this,
+          createRepo,
         });
       }
 
-      // Jika belum dalam transaction, mulai transaction baru
       const connection = await mysqlPool.getConnection();
 
       try {
         await connection.beginTransaction();
 
-        // Buat repository untuk table utama dengan connection transaction
         const current = crudHelper<T>(config, connection);
 
-        // Buat factory yang selalu pakai connection transaction yang sama
         const createRepo = <U>(repoConfig: CrudConfig) => crudHelper<U>(repoConfig, connection);
 
-        // Execute callback dengan semua yang dibutuhkan
         const result = await callback({ current, createRepo });
 
         await connection.commit();
@@ -319,28 +382,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
      * @param options
      * @returns
      */
-    async paginate(options: {
-      page?: number;
-      limit?: number;
-      select?: string;
-      orderBy?: string;
-      where?: Record<string, any>;
-      joins?: JoinOption[];
-
-      search?: string;
-      searchable?: string[];
-    }): Promise<{
-      data: T[];
-      meta: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasPrev: boolean;
-        hasNext: boolean;
-        search: string | null;
-      };
-    }> {
+    async paginate(options: PaginateOptions): Promise<PaginateResult<T>> {
       const page = Math.max(1, options.page ?? 1);
       const limit = Math.max(1, options.limit ?? 10);
       const offset = (page - 1) * limit;
@@ -361,7 +403,6 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
       const orderClause = `ORDER BY ${options.orderBy ?? keyColumn}`;
 
-      /** COUNT */
       const [[{ total }]]: any = await db.query(`SELECT COUNT(*) AS total FROM ${fromTable} ${joinClause} ${whereClause} ${searchClause}`, [
         ...whereParams,
         ...searchParams,
@@ -369,17 +410,16 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
       const totalPages = Math.ceil(total / limit);
 
-      /** DATA */
       const [rows] = await db.query<RowDataPacket[]>(
         `
-    SELECT ${selectClause}
-    FROM ${fromTable}
-    ${joinClause}
-    ${whereClause}
-    ${searchClause}
-    ${orderClause}
-    LIMIT ? OFFSET ?
-    `,
+        SELECT ${selectClause}
+        FROM ${fromTable}
+        ${joinClause}
+        ${whereClause}
+        ${searchClause}
+        ${orderClause}
+        LIMIT ? OFFSET ?
+        `,
         [...whereParams, ...searchParams, limit, offset]
       );
 
