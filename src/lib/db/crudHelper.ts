@@ -41,10 +41,12 @@ type PaginateResult<T> = {
   };
 };
 
-type TransactionRepos = {
-  current: any;
-  createRepo: (config: CrudConfig) => any;
+type TransactionRepos<T> = {
+  current: CrudHelper<T>;
+  createRepo<U>(config: CrudConfig): CrudHelper<U>;
 };
+
+type CrudHelper<T> = ReturnType<typeof crudHelper<T>>;
 
 export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
   const { table, key, alias } = config;
@@ -58,7 +60,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
      * @param data
      * @returns
      */
-    async create(data: Partial<T>): Promise<ResultSetHeader> {
+    async create(data: Partial<T>): Promise<T> {
       const columns = Object.keys(data).join(', ');
       const placeholders = Object.keys(data)
         .map(() => '?')
@@ -67,7 +69,10 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
       const [result] = await db.query<ResultSetHeader>(`INSERT INTO ${table} (${columns}) VALUES (${placeholders})`, values);
 
-      return result;
+      return {
+        ...data,
+        [key]: result.insertId,
+      } as T;
     },
 
     /**
@@ -112,7 +117,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
     /**
      * UPDATE BY ID - update row by primary key
-     * @param id 
+     * @param id
      * @param data
      * @returns
      */
@@ -132,7 +137,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
     /**
      * UPDATE BY - update rows by where condition
-     * @param where 
+     * @param where
      * @param data
      * @returns
      */
@@ -347,11 +352,12 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
      * @param callback
      * @returns
      */
-    async transaction<R>(callback: (repos: TransactionRepos) => Promise<R>): Promise<R> {
+    async transaction<R>(callback: (repos: TransactionRepos<T>) => Promise<R>): Promise<R> {
       if (db !== mysqlPool) {
         const createRepo = <U>(repoConfig: CrudConfig) => crudHelper<U>(repoConfig, db);
+
         return callback({
-          current: this,
+          current: this as CrudHelper<T>,
           createRepo,
         });
       }
@@ -376,7 +382,6 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
         connection.release();
       }
     },
-
     /**
      * PAGINATE - with search and joins
      * @param options

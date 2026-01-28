@@ -9,20 +9,18 @@ const bookCrud = crudHelper({
   key: 'id_book',
 });
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  return handleApi(async () => {
-    const { id } = await params;
+export const GET = handleApi(async ({ params }) => {
+  const id = params?.id;
 
-    if (!id || isNaN(parseInt(id))) {
-      throw new NotFound('Invalid book ID');
-    }
+  if (!id || isNaN(parseInt(id))) {
+    throw new NotFound('Invalid book ID');
+  }
 
-    const book = await bookCrud.getById(id);
+  const book = await bookCrud.getById(id);
 
-    if (!book) {
-      throw new NotFound('Book not found');
-    }
+  if (!book) {
+    throw new NotFound('Book not found');
+  }
 
-    return ok(book, { message: 'Book retrieved successfully' });
-  });
-}
+  return ok(book, { message: 'Book retrieved successfully' });
+});
