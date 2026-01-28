@@ -15,7 +15,9 @@ export interface ReturnModel {
 const returnCrud = crudHelper({
   table: 'returns',
   key: 'id_return',
+  alias: 'r',
 });
+
 
 export async function POST(req: Request) {
   return handleApi(async () => {
@@ -25,9 +27,20 @@ export async function POST(req: Request) {
       throw new NotFound('loan_id is required');
     }
 
-    const result = await withTransaction(async (conn) => {
-      const returnRepo = crudHelper({ table: 'returns', key: 'id_return' }, conn);
-      const [rows]: any = await conn.query(
+    const result = await returnCrud.transaction(async ({ current: returnRepo, createRepo }) => {
+      // Buat repository untuk table lain
+      const loanRepo = createRepo({
+        table: 'loans',
+        key: 'id_loan',
+      });
+
+      const bookRepo = createRepo({
+        table: 'books',
+        key: 'id_book',
+      });
+
+      // GET loan data with lock menggunakan rawQuery
+      const loans: any[] = await returnRepo.rawQuery(
         `
         SELECT 
           l.id_loan,
@@ -43,11 +56,11 @@ export async function POST(req: Request) {
         [loan_id]
       );
 
-      if (rows.length === 0) {
+      if (loans.length === 0) {
         throw new NotFound('Data peminjaman tidak ditemukan');
       }
 
-      const loan = rows[0];
+      const loan = loans[0];
 
       if (loan.return_date) {
         throw new UnprocessableEntity('Buku sudah dikembalikan');
@@ -61,18 +74,26 @@ export async function POST(req: Request) {
       const penaltyFee = lateDays * 1000;
       const returnStatus = penaltyFee > 0 ? 'unpaid' : 'paid';
 
-      const [insertRes]: any = await conn.execute(
-        `INSERT INTO returns (loan_id, return_date, penalty_fee, status)
-          VALUES (?, ?, ?, ?)`,
-        [loan.id_loan, now, penaltyFee, returnStatus]
-      );
+      // INSERT menggunakan create method dari returnRepo
+      const insertResult = await returnRepo.create({
+        loan_id: loan.id_loan,
+        return_date: now,
+        penalty_fee: penaltyFee,
+        status: returnStatus,
+      });
 
-      const returnId = insertRes.insertId;
+      const returnId = insertResult.insertId;
 
-      await conn.execute(`UPDATE loans SET return_date = ?, status = 'returned' WHERE id_loan = ?`, [now, loan.id_loan]);
+      // UPDATE loans menggunakan updateById dari loanRepo
+      await loanRepo.updateById(loan.id_loan, {
+        return_date: now,
+        status: 'returned',
+      });
 
-      await conn.execute(`UPDATE books SET stock = stock + ? WHERE id_book = ?`, [loan.count, loan.book_id]);
+      // UPDATE books stock menggunakan rawQuery dari bookRepo
+      await bookRepo.rawQuery(`UPDATE books SET stock = stock + ? WHERE id_book = ?`, [loan.count, loan.book_id]);
 
+      // GET created return record
       return (await returnRepo.getById(returnId)) as ReturnModel;
     });
 

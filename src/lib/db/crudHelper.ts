@@ -1,5 +1,5 @@
 import { mysqlPool } from '@/lib/db/mysql';
-import { RowDataPacket, ResultSetHeader, Pool, PoolConnection, QueryResult } from 'mysql2/promise';
+import { RowDataPacket, ResultSetHeader, Pool, PoolConnection } from 'mysql2/promise';
 
 type DB = Pool | PoolConnection;
 
@@ -40,6 +40,28 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
       return result;
     },
+
+    async createMany(items: Partial<T>[]): Promise<ResultSetHeader> {
+      if (!items.length) {
+        throw new Error('No items to insert');
+      }
+
+      const columns = Object.keys(items[0]).join(', ');
+      const placeholders = items
+        .map(
+          () =>
+            `(${Object.keys(items[0])
+              .map(() => '?')
+              .join(', ')})`
+        )
+        .join(', ');
+
+      const values = items.flatMap((item) => Object.values(item));
+
+      const [result] = await db.query<ResultSetHeader>(`INSERT INTO ${table} (${columns}) VALUES ${placeholders}`, values);
+      return result;
+    },
+
     async updateById(id: number | string, data: Partial<T>): Promise<ResultSetHeader> {
       const keys = Object.keys(data);
       if (!keys.length) {
@@ -53,6 +75,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
       return res;
     },
+
     async updateBy(where: Record<string, any>, data: Partial<T>): Promise<ResultSetHeader> {
       const whereKeys = Object.keys(where);
       const dataKeys = Object.keys(data);
@@ -76,6 +99,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
       return (rows[0] as unknown as T) ?? null;
     },
+
     /**
      * GET BY ID - single row by primary key
      * @param id
@@ -184,6 +208,36 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
       return res;
     },
 
+    /**
+     * RESTORE - restore soft deleted record
+     * @param id
+     * @returns
+     */
+    async restore(id: any): Promise<ResultSetHeader> {
+      const [res] = await db.query<ResultSetHeader>(`UPDATE ${table} SET deleted_at = NULL WHERE ${key} = ?`, [id]);
+      return res;
+    },
+
+    /**
+     * COUNT - count records with optional where condition
+     * @param where
+     * @returns
+     */
+    async count(where?: Record<string, any>): Promise<number> {
+      const whereKeys = where ? Object.keys(where) : [];
+
+      if (whereKeys.length) {
+        const whereClause = 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ');
+        const values = whereKeys.map((k) => where![k]);
+
+        const [[{ count }]]: any = await db.query(`SELECT COUNT(*) as count FROM ${fromTable} ${whereClause}`, values);
+        return count;
+      }
+
+      const [[{ count }]]: any = await db.query(`SELECT COUNT(*) as count FROM ${fromTable}`, []);
+      return count;
+    },
+
     async existsById(id: number | string): Promise<boolean> {
       const [[row]]: any = await db.query(`SELECT 1 FROM ${fromTable} WHERE ${keyColumn} = ? LIMIT 1`, [id]);
 
@@ -200,6 +254,64 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
       const [[row]]: any = await db.query(`SELECT 1 FROM ${fromTable} WHERE ${whereClause} LIMIT 1`, values);
 
       return !!row;
+    },
+
+    /**
+     * RAW QUERY - for complex queries
+     * @param sql
+     * @param params
+     * @returns
+     */
+    async rawQuery<R = any>(sql: string, params?: any[]): Promise<R> {
+      const [result] = await db.query(sql, params || []);
+      return result as R;
+    },
+
+    /**
+     * TRANSACTION - execute operations in a transaction
+     * @param callback
+     * @returns
+     */
+    async transaction<R>(
+      callback: (repos: {
+        current: any; // Repository untuk table utama (table dari config)
+        createRepo: <U>(config: CrudConfig) => any; // Factory untuk buat repo lain
+      }) => Promise<R>
+    ): Promise<R> {
+      // Jika sudah dalam transaction (db adalah connection, bukan pool)
+      if (db !== mysqlPool) {
+        // Buat factory yang pakai connection yang sama (db)
+        const createRepo = <U>(repoConfig: CrudConfig) => crudHelper<U>(repoConfig, db);
+        // Panggil callback dengan repository saat ini dan factory
+        return callback({
+          current: this, // this = repository saat ini
+          createRepo, // factory untuk buat repo baru
+        });
+      }
+
+      // Jika belum dalam transaction, mulai transaction baru
+      const connection = await mysqlPool.getConnection();
+
+      try {
+        await connection.beginTransaction();
+
+        // Buat repository untuk table utama dengan connection transaction
+        const current = crudHelper<T>(config, connection);
+
+        // Buat factory yang selalu pakai connection transaction yang sama
+        const createRepo = <U>(repoConfig: CrudConfig) => crudHelper<U>(repoConfig, connection);
+
+        // Execute callback dengan semua yang dibutuhkan
+        const result = await callback({ current, createRepo });
+
+        await connection.commit();
+        return result;
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
     },
 
     /**
@@ -224,11 +336,13 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
         limit: number;
         total: number;
         totalPages: number;
+        hasPrev: boolean;
+        hasNext: boolean;
         search: string | null;
       };
     }> {
-      const page = options.page ?? 1;
-      const limit = options.limit ?? 10;
+      const page = Math.max(1, options.page ?? 1);
+      const limit = Math.max(1, options.limit ?? 10);
       const offset = (page - 1) * limit;
 
       const selectClause = options.select ?? '*';
@@ -247,13 +361,25 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
       const orderClause = `ORDER BY ${options.orderBy ?? keyColumn}`;
 
+      /** COUNT */
       const [[{ total }]]: any = await db.query(`SELECT COUNT(*) AS total FROM ${fromTable} ${joinClause} ${whereClause} ${searchClause}`, [
         ...whereParams,
         ...searchParams,
       ]);
 
+      const totalPages = Math.ceil(total / limit);
+
+      /** DATA */
       const [rows] = await db.query<RowDataPacket[]>(
-        `SELECT ${selectClause} FROM ${fromTable} ${joinClause} ${whereClause} ${searchClause} ${orderClause} LIMIT ? OFFSET ?`,
+        `
+    SELECT ${selectClause}
+    FROM ${fromTable}
+    ${joinClause}
+    ${whereClause}
+    ${searchClause}
+    ${orderClause}
+    LIMIT ? OFFSET ?
+    `,
         [...whereParams, ...searchParams, limit, offset]
       );
 
@@ -263,7 +389,9 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit),
+          totalPages,
+          hasPrev: page > 1,
+          hasNext: page < totalPages,
           search: options.search ?? null,
         },
       };
