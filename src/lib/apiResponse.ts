@@ -32,8 +32,9 @@ export const noContent = (): ApiResponse => ({
   status: 204,
 });
 
-export const fail = (message: string, status = 500): ApiResponse => ({
+export const fail = (message: string, status = 500, data?: any): ApiResponse => ({
   success: false,
   message,
   status,
+  ...(data ? { data } : {}),
 });

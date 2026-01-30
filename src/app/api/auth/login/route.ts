@@ -29,7 +29,7 @@ export const POST = handleApi(async ({ req, res }) => {
   }
 
   const token = createToken({
-    id: user.id_user,
+    sub: user.id_user,
     email: user.email,
     role: user.role,
   });
@@ -49,7 +49,7 @@ export const POST = handleApi(async ({ req, res }) => {
       id_user: user.id_user,
       email: user.email,
       role: user.role,
-      token
+      token,
     },
     { message: 'Login successful' }
   );

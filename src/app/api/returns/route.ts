@@ -41,8 +41,7 @@ export const POST = handleApi(async ({ req }) => {
         l.id_loan,
         l.book_id,
         l.count,
-        l.due_date,
-        l.return_date
+        l.due_date
       FROM loans l
       JOIN books b ON b.id_book = l.book_id
       WHERE l.id_loan = ?
@@ -72,12 +71,13 @@ export const POST = handleApi(async ({ req }) => {
     const inserted = await returnRepo.create({
       loan_id: loan.id_loan,
       return_date: now,
-      penalty_fee: penaltyFee,
-      status,
+      late_days:lateDays,
+      fine_amount: penaltyFee,
+      fine_status: 'waived',
+      note: 'hello'
     });
 
     await loanRepo.updateById(loan.id_loan, {
-      return_date: now,
       status: 'returned',
     });
 
@@ -104,8 +104,8 @@ export const GET = handleApi(async ({ req }) => {
       r.id_return,
       r.loan_id,
       r.return_date,
-      r.penalty_fee,
-      r.status AS return_status,
+      r.fine_amount,
+      r.fine_status,
 
       l.id_loan,
       l.loan_date,
@@ -114,7 +114,6 @@ export const GET = handleApi(async ({ req }) => {
 
       m.id_member,
       m.name AS member_name,
-      m.email AS member_email,
       m.phone AS member_phone,
       m.class AS member_class,
       m.major AS member_major,
@@ -123,16 +122,13 @@ export const GET = handleApi(async ({ req }) => {
       b.title AS book_title,
       b.author AS book_author,
       b.publisher AS book_publisher,
-      b.category AS book_category,
-
-      a.id_admin,
-      a.username AS admin_name
+      b.category_id AS book_category
     `,
     joins: [
       { type: 'INNER', table: 'loans l', on: 'l.id_loan = r.loan_id' },
       { type: 'LEFT', table: 'members m', on: 'm.id_member = l.member_id' },
       { type: 'LEFT', table: 'books b', on: 'b.id_book = l.book_id' },
-      { type: 'LEFT', table: 'admins a', on: 'a.id_admin = l.admin_id' },
+      // { type: 'LEFT', table: 'admins a', on: 'a.id_admin = l.admin_id' },
     ],
   });
 

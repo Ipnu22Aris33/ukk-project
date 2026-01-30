@@ -1,18 +1,9 @@
 'use client';
 
 import { Icon } from '@iconify/react';
-import {
-  Flex,
-  Text,
-  Heading,
-  Avatar,
-  Button,
-  Separator,
-  Box,
-  DropdownMenu,
-  Badge,
-} from '@radix-ui/themes';
+import { Flex, Text, Heading, Avatar, Button, Separator, Box, DropdownMenu, Badge } from '@radix-ui/themes';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
   isMobile: boolean;
@@ -21,7 +12,7 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'radix-icons:dashboard', href: '/' },
+  { id: 'dashboard', label: 'Dashboard', icon: 'radix-icons:dashboard', href: '/admin' },
   { id: 'analytics', label: 'Analytics', icon: 'radix-icons:bar-chart', href: '/analytics' },
   { id: 'users', label: 'Users', icon: 'radix-icons:person', href: '/users' },
   { id: 'orders', label: 'Orders', icon: 'mdi:cart-variant', href: '/orders' },
@@ -31,12 +22,13 @@ const menuItems = [
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, onCloseMobile }) => {
+  const pathame = usePathname();
   return (
     <Flex
       direction='column'
       style={{
         height: '100%',
-        padding: isMobile ? '20px' : '20px',
+        padding: isMobile ? '10px' : '10px',
         width: isMobile ? '250px' : sidebarCollapsed ? '70px' : '250px',
         transition: 'width 0.3s ease',
       }}
@@ -74,42 +66,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
 
       {/* Menu Items */}
       <Flex direction='column' gap='3' style={{ flex: 1 }}>
-        {menuItems.map((item) => (
-          <Link
-            key={item.id}
-            href={item.href}
-            style={{
-              textDecoration: 'none',
-              display: 'block',
-            }}
-            onClick={onCloseMobile}
-          >
-            <Button
-              variant='ghost'
+        {menuItems.map((item) => {
+          const pathname = usePathname();
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
               style={{
-                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                padding: sidebarCollapsed ? '10px' : '10px 12px',
-                height: '36px',
-                width: '100%',
-                overflow: 'hidden',
+                textDecoration: 'none',
+                display: 'block',
               }}
-              title={sidebarCollapsed ? item.label : undefined}
+              onClick={onCloseMobile}
             >
-              {/* Icon Container - untuk alignment yang lebih baik */}
-              <Box
+              <Button
+                variant= {isActive ? 'solid' : 'soft'}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
                   justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                  width: sidebarCollapsed ? '100%' : 'auto',
+                  padding: sidebarCollapsed ? '10px' : '10px 12px',
+                  width: '100%',
+                  height: '50px',
+                  overflow: 'hidden',
                 }}
+                title={sidebarCollapsed ? item.label : undefined}
               >
-                <Icon icon={item.icon} width='18' height='18' />
-                {!sidebarCollapsed && <Text style={{ marginLeft: '10px' }}>{item.label}</Text>}
-              </Box>
-            </Button>
-          </Link>
-        ))}
+                {/* Icon Container - untuk alignment yang lebih baik */}
+                <Box
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                    width: sidebarCollapsed ? '100%' : 'auto',
+                  }}
+                >
+                  <Icon icon={item.icon} width='18' height='18' />
+                  {!sidebarCollapsed && <Text style={{ marginLeft: '10px' }}>{item.label}</Text>}
+                </Box>
+              </Button>
+            </Link>
+          );
+        })}
       </Flex>
 
       {/* User Profile - tetap seperti sebelumnya */}

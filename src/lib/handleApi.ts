@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApiResponse, fail } from '@/lib/apiResponse';
 import { HttpError } from '@/lib/httpErrors';
+import { ZodError } from 'zod';
 
 type HandlerContext = {
   req: Request;
@@ -26,6 +27,15 @@ export function handleApi<T>(handler: Handler<T>) {
 
       if (error instanceof HttpError) {
         return NextResponse.json(fail(error.message, error.status), { status: error.status });
+      }
+
+      if (error instanceof ZodError) {
+        const errors = error.issues.map((e) => ({
+          path: e.path.join('.'),
+          message: e.message,
+        }));
+
+        return NextResponse.json(fail('Validation Error', 400, { errors }), { status: 400 });
       }
 
       return NextResponse.json(fail('Internal Server Error', 500), { status: 500 });

@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react';
 
 //svg-spinners:blocks-shuffle-3
-export default function SvgSpinnersBlocksShuffle3(props: SVGProps<SVGSVGElement>) {
+export function SvgSpinnersBlocksShuffle3(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns='http://www.w3.org/2000/svg'

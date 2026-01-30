@@ -1,7 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
-import { Flex, Heading, Button, Badge, DropdownMenu } from '@radix-ui/themes';
+import { Flex, Heading, Button, Badge, DropdownMenu, IconButton } from '@radix-ui/themes';
 import { ThemeToggle } from '../ui/ThemeToggle';
 
 interface HeaderProps {
@@ -10,11 +10,7 @@ interface HeaderProps {
   isMobile?: boolean; // Tambahkan prop ini
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  onToggleSidebar, 
-  sidebarCollapsed = false,
-  isMobile = false 
-}) => {
+export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed = false, isMobile = false }) => {
   // Tentukan icon berdasarkan state
   const getToggleIcon = () => {
     if (isMobile) {
@@ -22,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
       return 'radix-icons:hamburger-menu';
     } else {
       // Desktop: arrow kiri/kanan berdasarkan collapsed state
-      return sidebarCollapsed ? 'radix-icons:chevron-right' : 'radix-icons:chevron-left';
+      return sidebarCollapsed ? 'icon-park-twotone:expand-left' : 'icon-park-twotone:expand-right';
     }
   };
 
@@ -46,28 +42,23 @@ export const Header: React.FC<HeaderProps> = ({
       }}
     >
       <Flex align='center' gap='3'>
-        <Button 
-          variant='ghost' 
+        <IconButton
+          variant='ghost'
           onClick={onToggleSidebar}
           title={getToggleTitle()}
           style={{
             transition: 'transform 0.2s ease',
           }}
         >
-          <Icon 
-            icon={getToggleIcon()} 
-            width='20' 
-            height='20' 
-          />
-        </Button>
-        <Heading size='4'>Dashboard</Heading>
+          <Icon icon={getToggleIcon()} width='32' height='32' />
+        </IconButton>
       </Flex>
 
       <Flex align='center' gap='3'>
         <Button variant='ghost'>
           <Icon icon='radix-icons:magnifying-glass' width='18' height='18' />
         </Button>
-        
+
         <ThemeToggle />
 
         <Button variant='ghost' style={{ position: 'relative' }}>

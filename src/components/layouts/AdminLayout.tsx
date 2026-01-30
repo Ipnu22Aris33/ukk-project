@@ -90,7 +90,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             backgroundColor: 'var(--gray-2)',
           }}
         >
-          <Container size='3' style={{ padding: '20px' }}>
+          <Container size='4' style={{ padding: '20px' }}>
             {children}
           </Container>
         </Box>
