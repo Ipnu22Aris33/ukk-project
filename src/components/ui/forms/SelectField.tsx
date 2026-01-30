@@ -57,6 +57,7 @@ export function SelectField({ field, label, options, placeholder = 'Pilih...', r
           align='start'
           className='
             w-[--radix-popover-trigger-width]
+            max-h-[--radix-popover-content-available-height]
             p-0
           '
         >
@@ -75,8 +76,8 @@ export function SelectField({ field, label, options, placeholder = 'Pilih...', r
             />
 
             {/* LIST */}
-            <Command.List className='max-h-60 overflow-y-auto p-1'>
-              <Command.Empty className='px-2 py-1.5 text-sm text-(--gray-10)'>Tidak ada data</Command.Empty>
+            <Command.List className='max-h-[calc(var(--radix-popover-content-available-height)-64px)] overflow-y-auto p-1'>
+              <Command.Empty className='px-2 py-1.5 text-sm text-(--gray-10)'>Data NotFound</Command.Empty>
 
               {options.map((opt) => (
                 <Command.Item
