@@ -24,21 +24,19 @@ export const GET = handleApi(async ({ req }) => {
   });
 });
 
-export async function POST(req: Request) {
-  return handleApi(async () => {
-    const body = await req.json();
-    const result = await bookCrud.create({
-      title: body.title,
-      author: body.author,
-      publisher: body.publisher,
-      category: body.category,
-      stock: body.stock,
-    });
-
-    const newBook = await bookCrud.getById(result.insertId);
-
-    return ok(newBook, {
-      message: 'Book created successfully',
-    });
+export const POST = handleApi(async ({ req }) => {
+  const body = await req.json();
+  const result = await bookCrud.create({
+    title: body.title,
+    author: body.author,
+    publisher: body.publisher,
+    category: body.category,
+    stock: body.stock,
   });
-}
+
+  const newBook = await bookCrud.getById(result.insertId);
+
+  return ok(newBook, {
+    message: 'Book created successfully',
+  });
+});

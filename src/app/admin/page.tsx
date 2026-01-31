@@ -1,14 +1,15 @@
 import { AdminContent } from '@/components/layouts/AdminContent';
 import { AdminContentWrapper } from '@/components/layouts/AdminContentWrapper';
-import { AppIcon } from '@/components/ui/AppIcon';
-import { PaymentTable } from './Table';
-import { ScrollArea } from '@radix-ui/themes';
+import { LoanTable } from './LoanTable';
 
 export default function AdminPage() {
   return (
     <AdminContentWrapper>
       <AdminContent>
-        <PaymentTable />
+        <h1>Hello Admin</h1>
+      </AdminContent>
+      <AdminContent>
+        <LoanTable />
       </AdminContent>
     </AdminContentWrapper>
   );

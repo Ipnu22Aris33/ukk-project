@@ -13,7 +13,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <NextThemesProvider attribute='class' defaultTheme='system' enableSystem>
-      <Theme appearance='inherit' accentColor='plum' grayColor='slate' radius='large'>
+      <Theme appearance='inherit' accentColor='indigo' grayColor='slate' radius='large'>
         {children}
       </Theme>
     </NextThemesProvider>

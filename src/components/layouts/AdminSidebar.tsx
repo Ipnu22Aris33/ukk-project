@@ -4,6 +4,8 @@ import { Icon } from '@iconify/react';
 import { Flex, Text, Heading, Avatar, Button, Separator, Box, DropdownMenu, Badge } from '@radix-ui/themes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
+import { useSession } from '@/hooks/useSession';
 
 interface SidebarProps {
   isMobile: boolean;
@@ -23,6 +25,22 @@ const menuItems = [
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, onCloseMobile }) => {
   const pathame = usePathname();
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!res.ok) throw new Error('Logout gagal');
+      return res.json();
+    },
+    onSuccess: () => {
+      window.location.href = '/login';
+    },
+  });
+  const { data: session } = useSession();
+
   return (
     <Flex
       direction='column'
@@ -80,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               onClick={onCloseMobile}
             >
               <Button
-                variant= {isActive ? 'solid' : 'soft'}
+                variant={isActive ? 'solid' : 'soft'}
                 style={{
                   justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                   padding: sidebarCollapsed ? '10px' : '10px 12px',
@@ -172,14 +190,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                   <Flex direction='column' gap='1'>
                     <Flex align='center' gap='1'>
                       <Text size='2' weight='bold' style={{ lineHeight: '1.2' }}>
-                        Admin User
+                        {session?.email.split('@')[0]}
                       </Text>
                       <Badge color='green' size='1' style={{ padding: '0 4px' }}>
                         Admin
                       </Badge>
                     </Flex>
                     <Text size='1' color='gray' style={{ lineHeight: '1.2' }}>
-                      admin@example.com
+                      {session?.email}
                     </Text>
                   </Flex>
                 </Box>
@@ -227,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               </Flex>
             </DropdownMenu.Item>
             <DropdownMenu.Separator />
-            <DropdownMenu.Item color='red' onClick={() => console.log('Logout')}>
+            <DropdownMenu.Item color='red' onClick={() => logoutMutation.mutate()}>
               <Flex align='center' gap='2'>
                 <Icon icon='radix-icons:exit' width='14' height='14' />
                 <Text size='2'>Logout</Text>

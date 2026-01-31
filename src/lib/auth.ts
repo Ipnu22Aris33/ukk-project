@@ -18,7 +18,6 @@ export function createToken(payload: TokenPayload) {
 
 export function verifyToken(token: string): TokenPayload {
   try {
-    console.log(token);
     return jwt.verify(token, SECRET) as TokenPayload;
   } catch (err) {
     throw new Error('Invalid token');

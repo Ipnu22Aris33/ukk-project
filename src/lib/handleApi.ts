@@ -1,22 +1,24 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { ApiResponse, fail } from '@/lib/apiResponse';
 import { HttpError } from '@/lib/httpErrors';
 import { ZodError } from 'zod';
 
 type HandlerContext = {
-  req: Request;
+  req: NextRequest;
   res: NextResponse;
-  params?: Record<string, string>;
+  params: Record<string, string>;
 };
 
 type Handler<T = any> = (ctx: HandlerContext) => Promise<ApiResponse<T>>;
 
 export function handleApi<T>(handler: Handler<T>) {
-  return async (req: Request, ctx?: { params?: Record<string, string> }) => {
+  return async (req: NextRequest, context?: { params?: Promise<Record<string, string>> }) => {
     const res = NextResponse.json(null);
 
     try {
-      const result = await handler({ req, res, params: ctx?.params });
+      const params = context?.params instanceof Promise ? await context.params : (context?.params ?? {});
+
+      const result = await handler({ req, res, params });
 
       return NextResponse.json(result, {
         status: result.status ?? 200,
@@ -26,7 +28,9 @@ export function handleApi<T>(handler: Handler<T>) {
       console.error('[API ERROR]', error);
 
       if (error instanceof HttpError) {
-        return NextResponse.json(fail(error.message, error.status), { status: error.status });
+        return NextResponse.json(fail(error.message, error.status), {
+          status: error.status,
+        });
       }
 
       if (error instanceof ZodError) {

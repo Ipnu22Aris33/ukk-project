@@ -263,7 +263,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
      * @param id
      * @returns
      */
-    async delete(id: any): Promise<ResultSetHeader> {
+    async deleteById(id: any): Promise<ResultSetHeader> {
       const [res] = await db.query<ResultSetHeader>(`UPDATE ${table} SET deleted_at = NOW() WHERE ${key} = ?`, [id]);
       return res;
     },
@@ -273,7 +273,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
      * @param id
      * @returns
      */
-    async destroy(id: any): Promise<ResultSetHeader> {
+    async destroyById(id: any): Promise<ResultSetHeader> {
       const [res] = await db.query<ResultSetHeader>(`DELETE FROM ${table} WHERE ${key} = ?`, [id]);
       return res;
     },

@@ -7,6 +7,7 @@ import { Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
 export const loginSchema = z.object({
   email: z.email('Format email tidak valid').min(1, 'Email wajib diisi'),
@@ -14,6 +15,7 @@ export const loginSchema = z.object({
 });
 
 export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }) {
+  const router = useRouter();
   const loginMutation = useMutation({
     mutationFn: async (payload: z.infer<typeof loginSchema>) => {
       const res = await fetch('/api/auth/login', {
@@ -45,8 +47,7 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
       try {
         await loginMutation.mutateAsync(value);
 
-        console.log('Register data:', value);
-        alert(`Registrasi berhasil`);
+        router.replace('/');
 
         form.reset();
       } catch (err: any) {
