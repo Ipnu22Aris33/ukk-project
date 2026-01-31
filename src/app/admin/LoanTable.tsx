@@ -14,7 +14,7 @@ import {
 } from '@radix-ui/react-icons';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button, Badge, Text, Flex, IconButton, DropdownMenu } from '@radix-ui/themes';
-import { DataTable } from '@/components/ui/datatable';
+import { DataTable } from '@/components/features/datatable';
 import { useQuery } from '@tanstack/react-query';
 import { AppIcon } from '@/components/ui/AppIcon';
 

@@ -2,38 +2,17 @@
 
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
-import { FormCard, FormActions, InputField } from '@/components/ui/forms';
+import { FormCard, FormActions, InputField } from '@/components/features/forms';
 import { Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
-import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-
-export const loginSchema = z.object({
-  email: z.email('Format email tidak valid').min(1, 'Email wajib diisi'),
-  password: z.string().min(6, 'Password minimal 6 karakter'),
-});
+import { useAuth } from '@/hooks/useAuth';
+import { loginSchema } from '@/lib/schemas/auth';
 
 export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }) {
   const router = useRouter();
-  const loginMutation = useMutation({
-    mutationFn: async (payload: z.infer<typeof loginSchema>) => {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+  const { login } = useAuth();
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Registrasi gagal');
-      }
-
-      return res.json();
-    },
-  });
   const form = useForm({
     defaultValues: {
       email: '',
@@ -45,7 +24,7 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
 
     onSubmit: async ({ value }) => {
       try {
-        await loginMutation.mutateAsync(value);
+        await login(value);
 
         router.replace('/');
 
@@ -59,6 +38,7 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
   return (
     <FormCard maxWidth='500px' title='Login' description='Masukkan email dan password Anda untuk masuk ke akun'>
       <Form.Root
+      autoComplete='ok'
         className='space-y-4'
         onSubmit={(e) => {
           e.preventDefault();

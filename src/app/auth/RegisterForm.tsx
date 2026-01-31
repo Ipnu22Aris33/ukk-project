@@ -2,40 +2,16 @@
 
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
-import { FormCard, FormActions, InputField, SelectField } from '@/components/ui/forms';
+import { FormCard, FormActions, InputField, SelectField } from '@/components/features/forms';
 import { Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
-
-export const registerSchema = z.object({
-  name: z.string().min(1, 'Nama wajib diisi'),
-  email: z.email('Format email tidak valid').min(1, 'Email wajib diisi'),
-  password: z.string().min(6, 'Password minimal 6 karakter'),
-  class: z.string().min(1, 'Kelas wajib diisi'),
-  major: z.string().min(1, 'Jurusan wajib diisi'),
-  phone: z.string().min(10, 'Nomor HP minimal 10 digit'),
-});
+import { RegisterInput, registerSchema } from '@/lib/schemas/auth';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function RegisterForm({ setActiveTab }: { setActiveTab: () => void }) {
-  const registerMutation = useMutation({
-    mutationFn: async (payload: z.infer<typeof registerSchema>) => {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Registrasi gagal');
-      }
-
-      return res.json();
-    },
-  });
+  const { register } = useAuth();
 
   const form = useForm({
     defaultValues: {
@@ -53,11 +29,7 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
 
     onSubmit: async ({ value }) => {
       try {
-        await registerMutation.mutateAsync(value);
-
-        console.log('Register data:', value);
-        alert(`Registrasi berhasil untuk: ${value.name}`);
-
+        await register(value);
         form.reset();
       } catch (err: any) {
         alert(err.message);
@@ -67,6 +39,7 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
   return (
     <FormCard maxWidth='500px' title='Daftar Akun' description='Isi data diri Anda untuk membuat akun baru'>
       <Form.Root
+        autoComplete='ok'
         className='space-y-4'
         onSubmit={(e) => {
           e.preventDefault();
