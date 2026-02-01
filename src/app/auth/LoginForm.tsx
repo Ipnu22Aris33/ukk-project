@@ -3,7 +3,7 @@
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
 import { FormCard, FormActions, InputField } from '@/components/features/forms';
-import { Text } from '@radix-ui/themes';
+import { Text, Flex, Link } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,7 +38,7 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
   return (
     <FormCard maxWidth='500px' title='Login' description='Masukkan email dan password Anda untuk masuk ke akun'>
       <Form.Root
-      autoComplete='ok'
+        autoComplete='ok'
         className='space-y-4'
         onSubmit={(e) => {
           e.preventDefault();
@@ -93,29 +93,15 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
         </form.Subscribe>
       </Form.Root>
 
-      <div className='text-center mt-8 pt-8 border-t border-(--gray-6)'>
-        <Text size='2' className='text-(--gray-11)' as='span'>
-          Belum punya akun?{' '}
+      <Flex align='center' justify='center' gap='1' mt='5' pt='5' style={{ borderTop: '1px solid var(--gray-6)' }}>
+        <Text size='2' color='gray'>
+          Belum punya akun?
         </Text>
-        <button
-          type='button'
-          onClick={setActiveTab}
-          className='
-            font-semibold 
-            p-0 
-            border-0 
-            bg-transparent 
-            cursor-pointer
-            transition-colors
-            duration-200
-            text-(--accent-11) 
-            hover:text-(--accent-12)
-            hover:underline
-          '
-        >
+
+        <Link size='2' weight='medium' onClick={setActiveTab} style={{ cursor: 'pointer' }}>
           Daftar Sekarang
-        </button>
-      </div>
+        </Link>
+      </Flex>
     </FormCard>
   );
 }

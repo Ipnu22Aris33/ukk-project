@@ -15,8 +15,8 @@ import {
 import { ColumnDef } from '@tanstack/react-table';
 import { Button, Badge, Text, Flex, IconButton, DropdownMenu } from '@radix-ui/themes';
 import { DataTable } from '@/components/features/datatable';
-import { useQuery } from '@tanstack/react-query';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { useLoans } from '@/hooks/useLoans';
 
 // ============================================
 // TYPES
@@ -68,33 +68,17 @@ export function LoanTable() {
   });
   const [search, setSearch] = useState('');
 
-  // Fetch data dari API menggunakan fetch
-  const {
-    data: loansResponse,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['loans', pagination.pageIndex + 1, pagination.pageSize, search],
-    queryFn: async (): Promise<LoansResponse> => {
-      const params = new URLSearchParams({
-        page: (pagination.pageIndex + 1).toString(),
-        limit: pagination.pageSize.toString(),
-      });
-
-      if (search) {
-        params.append('search', search);
-      }
-
-      const response = await fetch(`/api/loans?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch loans');
-      }
-
-      return response.json();
-    },
+  const { list } = useLoans({
+    page: pagination.pageIndex + 1,
+    limit: pagination.pageSize,
+    search,
+    debounceMs: 400,
   });
+
+  const tableData = list.data?.data ?? [];
+  const metaData = list.data?.meta;
+  const isLoading = list.isLoading;
+  const refetch = list.refetch;
 
   const columns: ColumnDef<Loan>[] = [
     {
@@ -240,7 +224,7 @@ export function LoanTable() {
   // Custom actions di header
   const tableActions = (
     <>
-      <Button variant='soft' size='2'>
+      <Button variant='soft' size='2' onClick={() => window.print()}>
         <AppIcon name='UitPrint' />
         Print
       </Button>
@@ -259,24 +243,19 @@ export function LoanTable() {
     </>
   );
 
-  // Data untuk table
-  const tableData = loansResponse?.data || [];
-  const metaData = loansResponse?.meta;
-
   return (
     <DataTable
       data={tableData}
       columns={columns}
       title='Loans'
       description='Manage book loans and returns'
-      enableSearch={true}
-      enableColumnToggle={true}
-      enableSelection={true}
-      enablePagination={true}
+      enableSearch={!isLoading}
+      enableColumnToggle
+      enableSelection
+      enablePagination
       defaultPageSize={10}
       searchPlaceholder='Search loans...'
       actions={tableActions}
-      // Props untuk manual pagination dari API
       manualPagination={true}
       pageCount={metaData?.totalPages || 1}
       onPaginationChange={setPagination}

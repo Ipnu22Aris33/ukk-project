@@ -1,11 +1,14 @@
 'use client';
 
 import { Icon } from '@iconify/react';
-import { Flex, Text, Heading, Avatar, Button, Separator, Box, DropdownMenu, Badge } from '@radix-ui/themes';
+import { Flex, Text, Heading, Avatar, Button, Separator, Box, DropdownMenu, Badge, Popover } from '@radix-ui/themes';
+import * as Collapsible from '@radix-ui/react-collapsible';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { useSession } from '@/hooks/useSession';
+import { useAuth } from '@/hooks/useAuth';
+import { Fragment } from 'react/jsx-runtime';
 
 interface SidebarProps {
   isMobile: boolean;
@@ -13,33 +16,54 @@ interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
-const menuItems = [
+type MenuItems =
+  | {
+      id: string;
+      label: string;
+      icon: string;
+      href: string;
+      children?: never;
+    }
+  | {
+      id: string;
+      label: string;
+      icon: string;
+      children: {
+        id: string;
+        label: string;
+        icon?: string;
+        href: string;
+      }[];
+      href?: never;
+    };
+
+const menuItems: MenuItems[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'radix-icons:dashboard', href: '/admin' },
-  { id: 'analytics', label: 'Analytics', icon: 'radix-icons:bar-chart', href: '/analytics' },
   { id: 'users', label: 'Users', icon: 'radix-icons:person', href: '/users' },
   { id: 'orders', label: 'Orders', icon: 'mdi:cart-variant', href: '/orders' },
-  { id: 'messages', label: 'Messages', icon: 'radix-icons:chat-bubble', href: '/messages' },
-  { id: 'calendar', label: 'Calendar', icon: 'radix-icons:calendar', href: '/calendar' },
-  { id: 'settings', label: 'Settings', icon: 'radix-icons:gear', href: '/settings' },
+  {
+    id: 'members',
+    label: 'Members',
+    icon: 'radix-icons:people',
+    children: [
+      { id: 'students', label: 'Students', href: '/admin/members/students' },
+      { id: 'loan-create', label: 'New Loan', href: '/loans/new' },
+    ],
+  },
+  {
+    id: 'loans',
+    label: 'Loans',
+    icon: 'mdi:book-clock',
+    children: [
+      { id: 'loan-list', label: 'Loan List', href: '/loans' },
+      { id: 'loan-create', label: 'New Loan', href: '/loans/new' },
+    ],
+  },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, onCloseMobile }) => {
   const pathame = usePathname();
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!res.ok) throw new Error('Logout gagal');
-      return res.json();
-    },
-    onSuccess: () => {
-      window.location.href = '/login';
-    },
-  });
-  const { data: session } = useSession();
+  const { logout, session } = useAuth();
 
   return (
     <Flex
@@ -83,45 +107,189 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
       </Flex>
 
       {/* Menu Items */}
-      <Flex direction='column' gap='3' style={{ flex: 1 }}>
+      <Flex
+        py='4'
+        direction='column'
+        gap='3'
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          minHeight: 0,
+        }}
+      >
         {menuItems.map((item) => {
           const pathname = usePathname();
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              style={{
-                textDecoration: 'none',
-                display: 'block',
-              }}
-              onClick={onCloseMobile}
-            >
-              <Button
-                variant={isActive ? 'solid' : 'soft'}
-                style={{
-                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                  padding: sidebarCollapsed ? '10px' : '10px 12px',
-                  width: '100%',
-                  height: '50px',
-                  overflow: 'hidden',
-                }}
-                title={sidebarCollapsed ? item.label : undefined}
-              >
-                {/* Icon Container - untuk alignment yang lebih baik */}
-                <Box
+          const isActive = pathname === item.href || item.children?.some((c) => pathname.startsWith(c.href));
+          if (!item.children) {
+            return (
+              <Link key={item.id} href={item.href} style={{ textDecoration: 'none', display: 'block' }} onClick={onCloseMobile}>
+                <Button
+                  variant={isActive ? 'solid' : 'soft'}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                    width: sidebarCollapsed ? '100%' : 'auto',
+                    justifyContent: 'flex-start',
+                    padding: '10px',
+                    width: '100%',
+                    height: '50px',
+                    overflow: 'hidden',
                   }}
+                  title={sidebarCollapsed ? item.label : undefined}
                 >
-                  <Icon icon={item.icon} width='18' height='18' />
-                  {!sidebarCollapsed && <Text style={{ marginLeft: '10px' }}>{item.label}</Text>}
-                </Box>
-              </Button>
-            </Link>
+                  <Box
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                      width: sidebarCollapsed ? '100%' : 'auto',
+                    }}
+                  >
+                    <Icon icon={item.icon} width='18' height='18' />
+                    {!sidebarCollapsed && <Text style={{ marginLeft: '10px' }}>{item.label}</Text>}
+                  </Box>
+                </Button>
+              </Link>
+            );
+          }
+
+          return (
+            <Collapsible.Root key={item.id} defaultOpen={isActive}>
+              {/* ===== TRIGGER (BUTTON UTAMA) ===== */}
+              {sidebarCollapsed ? (
+                // POPOVER MODE (ketika sidebar collapsed)
+                <Popover.Root>
+                  <Popover.Trigger>
+                    <Button
+                      variant={isActive ? 'solid' : 'soft'}
+                      style={{
+                        justifyContent: 'center',
+                        padding: '10px',
+                        width: '100%',
+                        height: '50px',
+                      }}
+                      title={item.label}
+                    >
+                      <Icon icon={item.icon} width='18' height='18' />
+                    </Button>
+                  </Popover.Trigger>
+
+                  <Popover.Content
+                    side='right'
+                    align='start'
+                    sideOffset={8}
+                    style={{
+                      width: '160px',
+                      padding: '6px',
+                    }}
+                  >
+                    <Flex direction='column' gap='1'>
+                      {/* Header */}
+                      <Flex align='center' gap='2' px='2' py='1'>
+                        <Icon icon={item.icon} width='14' height='14' style={{ flexShrink: 0 }} />
+                        <Text
+                          size='1'
+                          weight='bold'
+                          style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {item.label}
+                        </Text>
+                      </Flex>
+
+                      <Separator size='4' my='1' />
+
+                      {/* Sub menu items */}
+                      {item.children.map((child) => {
+                        const isChildActive = pathname === child.href;
+
+                        return (
+                          <Link key={child.id} href={child.href} onClick={onCloseMobile} style={{ textDecoration: 'none' }}>
+                            <Button
+                              variant={isChildActive ? 'solid' : 'soft'}
+                              style={{
+                                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                                padding: sidebarCollapsed ? '10px' : '10px 12px',
+                                width: '100%',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <Text style={{ marginLeft: '10px' }}>{child.label}</Text>
+                            </Button>
+                          </Link>
+                        );
+                      })}
+                    </Flex>
+                  </Popover.Content>
+                </Popover.Root>
+              ) : (
+                // COLLAPSIBLE MODE (ketika sidebar expanded)
+                <>
+                  <Collapsible.Trigger asChild>
+                    <Button
+                      variant={isActive ? 'solid' : 'soft'}
+                      style={{
+                        justifyContent: 'flex-start',
+                        width: '100%',
+                        height: '50px',
+                      }}
+                    >
+                      <Flex align='center' gap='2' style={{ flex: 1, minWidth: 0 }}>
+                        <Icon icon={item.icon} width='18' height='18' style={{ flexShrink: 0 }} />
+                        <Text
+                          style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {item.label}
+                        </Text>
+                        <Icon icon='radix-icons:chevron-down' width='14' height='14' style={{ marginLeft: 'auto', flexShrink: 0 }} />
+                      </Flex>
+                    </Button>
+                  </Collapsible.Trigger>
+
+                  {/* ===== SUB MENU ===== */}
+                  <Collapsible.Content>
+                    <Flex direction='column' gap='2' mt='2' pl='4'>
+                      {item.children.map((child) => {
+                        const isChildActive = pathname === child.href;
+
+                        return (
+                          <Button
+                            key={child.id} // ✅ KEY DI SINI
+                            asChild
+                            variant={isChildActive ? 'solid' : 'soft'}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <Link href={child.href} onClick={onCloseMobile} style={{ textDecoration: 'none', width: '100%' }}>
+                              <Text
+                                size='2'
+                                style={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  width: '100%',
+                                  display: 'block',
+                                }}
+                              >
+                                {child.label}
+                              </Text>
+                            </Link>
+                          </Button>
+                        );
+                      })}
+                    </Flex>
+                  </Collapsible.Content>
+                </>
+              )}
+            </Collapsible.Root>
           );
         })}
       </Flex>
@@ -245,7 +413,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               </Flex>
             </DropdownMenu.Item>
             <DropdownMenu.Separator />
-            <DropdownMenu.Item color='red' onClick={() => logoutMutation.mutate()}>
+            <DropdownMenu.Item color='red' onClick={() => logout()}>
               <Flex align='center' gap='2'>
                 <Icon icon='radix-icons:exit' width='14' height='14' />
                 <Text size='2'>Logout</Text>

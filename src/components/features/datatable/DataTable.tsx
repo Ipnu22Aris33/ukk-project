@@ -83,7 +83,6 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
-    // Untuk manual pagination
     manualPagination: manualPagination,
     pageCount: controlledPageCount,
     
