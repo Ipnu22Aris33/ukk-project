@@ -44,7 +44,7 @@ export class Conflict extends HttpError {
   }
 }
 
-// 422 (opsional, sering buat validasi)
+// 422
 export class UnprocessableEntity extends HttpError {
   constructor(message = "Unprocessable Entity") {
     super(422, message);

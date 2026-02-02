@@ -1,4 +1,10 @@
-export { SvgSpinnersBlocksShuffle3 } from './SvgSpinnersBlocksShuffle3';
 export { UitPrint } from './UitPrint';
-export { default as LineMdCloseToMenuAltTransition } from './LineMdCloseToMenuAltTransition';
-export { default as LineMdMenuToCloseAltTransition } from './LineMdMenuToCloseAltTransition';
+export { MdiBookArrowLeft } from './MdiBookArrowLeft';
+export { MdiBookArrowRight } from './MdiBookArrowRight';
+export { MdiBooks } from './MdiBooks';
+export { IcOutlineDashboard } from './IcOutlineDashboard';
+export { RiArrowLeftDoubleLine } from './RiArrowLeftDoubleLine';
+export { RiArrowRightDoubleLine } from './RiArrowRightDoubleLine';
+export { IconoirLogOut } from './IconoirLogOut';
+export { Fa6SolidUsersGear } from './Fa6SolidUsersGear';
+export { MaterialSymbolsLocalLibraryOutline } from './MaterialSymbolsLocalLibraryOutline';

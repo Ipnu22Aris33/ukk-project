@@ -3,6 +3,7 @@
 import { Icon } from '@iconify/react';
 import { Flex, Heading, Button, Badge, DropdownMenu, IconButton } from '@radix-ui/themes';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { AppIcon } from '../ui/AppIcon';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -15,10 +16,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapse
   const getToggleIcon = () => {
     if (isMobile) {
       // Mobile: selalu hamburger menu
-      return 'radix-icons:hamburger-menu';
+      return 'RiArrowRightDoubleLine';
     } else {
       // Desktop: arrow kiri/kanan berdasarkan collapsed state
-      return sidebarCollapsed ? 'icon-park-twotone:expand-left' : 'icon-park-twotone:expand-right';
+      return sidebarCollapsed ? 'RiArrowLeftDoubleLine' : 'RiArrowRightDoubleLine';
     }
   };
 
@@ -50,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapse
             transition: 'transform 0.2s ease',
           }}
         >
-          <Icon icon={getToggleIcon()} width='32' height='32' />
+          <AppIcon name={getToggleIcon()} size={32} />
         </IconButton>
       </Flex>
 

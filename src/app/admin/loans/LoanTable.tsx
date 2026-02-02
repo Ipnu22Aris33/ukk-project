@@ -52,11 +52,6 @@ interface MetaData {
   search: string | null;
 }
 
-interface LoansResponse {
-  meta: MetaData;
-  data: Loan[];
-}
-
 // ============================================
 // LOAN TABLE COMPONENT
 // ============================================
@@ -237,7 +232,7 @@ export function LoanTable() {
         Export
       </Button>
       <Button variant='solid' size='2'>
-        <PlusIcon />
+        <PlusIcon /> 
         New Loan
       </Button>
     </>

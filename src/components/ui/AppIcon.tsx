@@ -2,6 +2,7 @@
 
 import type { SVGProps } from 'react';
 import * as Icons from '@/components/icons';
+import { InternalServerError } from '@/lib/httpErrors';
 
 export type IconName = keyof typeof Icons;
 
@@ -15,7 +16,7 @@ export function AppIcon({ name, size = 24, className, ...props }: AppIconProps) 
   const IconComponent = Icons[name];
 
   if (!IconComponent) {
-    throw new Error(`AppIcon: icon "${name}" not Found`);
+    throw new InternalServerError(`AppIcon: icon "${name}" not Found`);
   }
 
   return <IconComponent width={size} height={size} className={className} {...props} />;

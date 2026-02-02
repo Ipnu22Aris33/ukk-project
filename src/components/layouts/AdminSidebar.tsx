@@ -5,10 +5,10 @@ import { Flex, Text, Heading, Avatar, Button, Separator, Box, DropdownMenu, Badg
 import * as Collapsible from '@radix-ui/react-collapsible';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
-import { useSession } from '@/hooks/useSession';
 import { useAuth } from '@/hooks/useAuth';
-import { Fragment } from 'react/jsx-runtime';
+import { ChevronRightIcon, ChevronDownIcon } from '@radix-ui/react-icons';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AppIcon, type IconName } from '../ui/AppIcon';
 
 interface SidebarProps {
   isMobile: boolean;
@@ -20,49 +20,40 @@ type MenuItems =
   | {
       id: string;
       label: string;
-      icon: string;
+      icon: IconName;
       href: string;
       children?: never;
     }
   | {
       id: string;
       label: string;
-      icon: string;
+      icon: IconName;
       children: {
         id: string;
         label: string;
-        icon?: string;
+        icon?: IconName;
         href: string;
       }[];
       href?: never;
     };
 
 const menuItems: MenuItems[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'radix-icons:dashboard', href: '/admin' },
-  { id: 'users', label: 'Users', icon: 'radix-icons:person', href: '/users' },
-  { id: 'orders', label: 'Orders', icon: 'mdi:cart-variant', href: '/orders' },
+  { id: 'dashboard', label: 'Dashboard', icon: 'IcOutlineDashboard', href: '/admin' },
+  { id: 'loans', label: 'Peminjaman', icon: 'MdiBookArrowRight', href: '/admin/loans' },
+  { id: 'returns', label: 'Pengembalian', icon: 'MdiBookArrowLeft', href: '/admin/returns' },
+  { id: 'members', label: 'Anggota', icon: 'Fa6SolidUsersGear', href: '/admin/members' },
   {
-    id: 'members',
-    label: 'Members',
-    icon: 'radix-icons:people',
+    id: 'books',
+    label: 'Buku',
+    icon: 'MdiBooks',
     children: [
-      { id: 'students', label: 'Students', href: '/admin/members/students' },
-      { id: 'loan-create', label: 'New Loan', href: '/loans/new' },
-    ],
-  },
-  {
-    id: 'loans',
-    label: 'Loans',
-    icon: 'mdi:book-clock',
-    children: [
-      { id: 'loan-list', label: 'Loan List', href: '/loans' },
-      { id: 'loan-create', label: 'New Loan', href: '/loans/new' },
+      { id: 'book-list', label: 'List Buku', href: '/admin/books' },
+      { id: 'category-list', label: 'List Category', href: '/admin/books/category' },
     ],
   },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, onCloseMobile }) => {
-  const pathame = usePathname();
   const { logout, session } = useAuth();
 
   return (
@@ -80,14 +71,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
         align='center'
         gap='3'
         style={{
-          marginBottom: '30px',
           justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
           height: '32px',
           position: 'relative',
           width: '100%',
+          marginBottom: '16px',
         }}
       >
-        <Icon icon='radix-icons:cube' width='24' height='24' />
+        <AppIcon name='MaterialSymbolsLocalLibraryOutline' />
 
         {/* Heading dengan absolute positioning saat expanded */}
         <Box
@@ -99,12 +90,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
             overflow: 'hidden',
             transition: 'opacity 0.3s ease, width 0.3s ease, left 0.3s ease',
             whiteSpace: 'nowrap',
-            marginLeft: '12px',
           }}
         >
           <Heading size='4'>Dashboard</Heading>
         </Box>
       </Flex>
+
+      <Separator
+        size='4'
+        style={{
+          marginBottom: '16px',
+          opacity: sidebarCollapsed ? 0 : 1,
+          transition: 'opacity 0.3s ease',
+        }}
+      />
 
       {/* Menu Items */}
       <Flex
@@ -144,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                       width: sidebarCollapsed ? '100%' : 'auto',
                     }}
                   >
-                    <Icon icon={item.icon} width='18' height='18' />
+                    <AppIcon name={item.icon} size={24} />
                     {!sidebarCollapsed && <Text style={{ marginLeft: '10px' }}>{item.label}</Text>}
                   </Box>
                 </Button>
@@ -169,7 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                       }}
                       title={item.label}
                     >
-                      <Icon icon={item.icon} width='18' height='18' />
+                      <AppIcon name={item.icon} />
                     </Button>
                   </Popover.Trigger>
 
@@ -237,7 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                       }}
                     >
                       <Flex align='center' gap='2' style={{ flex: 1, minWidth: 0 }}>
-                        <Icon icon={item.icon} width='18' height='18' style={{ flexShrink: 0 }} />
+                        <AppIcon name={item.icon} size={18} />
                         <Text
                           style={{
                             overflow: 'hidden',
@@ -247,45 +246,62 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                         >
                           {item.label}
                         </Text>
-                        <Icon icon='radix-icons:chevron-down' width='14' height='14' style={{ marginLeft: 'auto', flexShrink: 0 }} />
+                        <ChevronDownIcon style={{ marginLeft: 'auto' }} />
                       </Flex>
                     </Button>
                   </Collapsible.Trigger>
 
                   {/* ===== SUB MENU ===== */}
                   <Collapsible.Content>
-                    <Flex direction='column' gap='2' mt='2' pl='4'>
-                      {item.children.map((child) => {
-                        const isChildActive = pathname === child.href;
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeInOut' }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <Flex direction='column' gap='0' mt='2'>
+                        {item.children.map((child, index) => {
+                          const isChildActive = pathname === child.href;
 
-                        return (
-                          <Button
-                            key={child.id} // ✅ KEY DI SINI
-                            asChild
-                            variant={isChildActive ? 'solid' : 'soft'}
-                            style={{
-                              width: '100%',
-                              textAlign: 'left',
-                            }}
-                          >
-                            <Link href={child.href} onClick={onCloseMobile} style={{ textDecoration: 'none', width: '100%' }}>
-                              <Text
-                                size='2'
-                                style={{
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  width: '100%',
-                                  display: 'block',
-                                }}
-                              >
-                                {child.label}
-                              </Text>
-                            </Link>
-                          </Button>
-                        );
-                      })}
-                    </Flex>
+                          return (
+                            <Box key={child.id} style={{ width: '100%' }}>
+                              {/* WRAPPER FLEX: ICON + BUTTON */}
+                              <Flex align='center' style={{ width: '100%' }}>
+                                {/* ICON CHEVRON */}
+                                <ChevronRightIcon
+                                  style={{
+                                    transform: isChildActive ? 'rotate(90deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s',
+                                    marginRight: '4px',
+                                  }}
+                                />
+
+                                {/* BUTTON */}
+                                <Button asChild variant={isChildActive ? 'solid' : 'soft'} style={{ flex: 1, textAlign: 'left' }}>
+                                  <Link href={child.href} onClick={onCloseMobile} style={{ textDecoration: 'none', width: '100%' }}>
+                                    <Text
+                                      size='2'
+                                      style={{
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        width: '100%',
+                                        display: 'block',
+                                      }}
+                                    >
+                                      {child.label}
+                                    </Text>
+                                  </Link>
+                                </Button>
+                              </Flex>
+
+                              {index < item.children.length - 1 && <Separator orientation='horizontal' style={{ margin: '2px 0' }} />}
+                            </Box>
+                          );
+                        })}
+                      </Flex>
+                    </motion.div>
                   </Collapsible.Content>
                 </>
               )}
@@ -400,22 +416,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                 <Text size='2'>My Profile</Text>
               </Flex>
             </DropdownMenu.Item>
-            <DropdownMenu.Item>
-              <Flex align='center' gap='2'>
-                <Icon icon='radix-icons:gear' width='14' height='14' />
-                <Text size='2'>Settings</Text>
-              </Flex>
-            </DropdownMenu.Item>
-            <DropdownMenu.Item>
-              <Flex align='center' gap='2'>
-                <Icon icon='radix-icons:question-mark' width='14' height='14' />
-                <Text size='2'>Help & Support</Text>
-              </Flex>
-            </DropdownMenu.Item>
             <DropdownMenu.Separator />
             <DropdownMenu.Item color='red' onClick={() => logout()}>
               <Flex align='center' gap='2'>
-                <Icon icon='radix-icons:exit' width='14' height='14' />
+                <AppIcon name='IconoirLogOut' size={14} />
                 <Text size='2'>Logout</Text>
               </Flex>
             </DropdownMenu.Item>
