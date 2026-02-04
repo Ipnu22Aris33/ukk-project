@@ -13,7 +13,17 @@ type ListParams = {
 
 type BasePayload = Record<string, any>;
 
-export function createResourceHook<TPayload extends BasePayload = any>(resourceName: string, baseApi: string) {
+type ResourceOptions = {
+  searchParam?: string; // 👈 default: 'search'
+};
+
+export function createResourceHook<TPayload extends BasePayload = any>(
+  resourceName: string,
+  baseApi: string,
+  options: ResourceOptions = {}
+) {
+  const { searchParam = 'q' } = options;
+
   return function useResource({ page, limit, search = '', debounceMs = 400 }: ListParams) {
     const qc = useQueryClient();
     const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -26,11 +36,23 @@ export function createResourceHook<TPayload extends BasePayload = any>(resourceN
     const list = useQuery({
       queryKey: [resourceName, page, limit, debouncedSearch],
       queryFn: async () => {
-        const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
-        if (debouncedSearch) qs.append('search', debouncedSearch);
+        const qs = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
 
-        const res = await fetch(`${baseApi}?${qs}`, { credentials: 'include' });
-        if (!res.ok) throw new InternalServerError(`Failed fetch ${resourceName}`);
+        if (debouncedSearch) {
+          qs.append(searchParam, debouncedSearch);
+        }
+
+        const res = await fetch(`${baseApi}?${qs.toString()}`, {
+          credentials: 'include',
+        });
+
+        if (!res.ok) {
+          throw new InternalServerError(`Failed fetch ${resourceName}`);
+        }
+
         return res.json();
       },
     });
@@ -65,7 +87,10 @@ export function createResourceHook<TPayload extends BasePayload = any>(resourceN
 
     const remove = useMutation({
       mutationFn: async (id: string) => {
-        const res = await fetch(`${baseApi}/${id}`, { method: 'DELETE', credentials: 'include' });
+        const res = await fetch(`${baseApi}/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
         if (!res.ok) throw new InternalServerError(`Delete ${resourceName} failed`);
       },
       onSuccess: () => qc.invalidateQueries({ queryKey: [resourceName] }),
