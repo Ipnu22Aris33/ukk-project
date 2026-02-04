@@ -1,3 +1,3 @@
 import { createResourceHook } from './createResourceHook';
 
-export const useBooks = createResourceHook('books', '/api/books');
+export const useBooks = createResourceHook('books', '/api/books', {searchParam: 'q'});
