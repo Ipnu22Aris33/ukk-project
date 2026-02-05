@@ -22,10 +22,12 @@ type PaginateOptions = {
   limit?: number;
   select?: string;
   orderBy?: string;
+  orderDir?: 'desc' | 'asc';
   where?: Record<string, any>;
   joins?: JoinOption[];
   search?: string;
   searchable?: string[];
+  sortable?: string[];
 };
 
 type PaginateResult<T> = {
@@ -406,7 +408,14 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
         : '';
       const searchParams = hasSearch ? options.searchable!.map(() => `%${options.search}%`) : [];
 
-      const orderClause = `ORDER BY ${options.orderBy ?? keyColumn}`;
+      const orderBy = options.orderBy;
+      const orderDir = options.orderDir?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+      const sortableColumns = options.sortable ?? [keyColumn];
+
+      const safeOrderBy = sortableColumns.includes(orderBy ?? '') ? orderBy : keyColumn;
+
+      const orderClause = `ORDER BY ${safeOrderBy} ${orderDir}`;
 
       const [[{ total }]]: any = await db.query(`SELECT COUNT(*) AS total FROM ${fromTable} ${joinClause} ${whereClause} ${searchClause}`, [
         ...whereParams,
