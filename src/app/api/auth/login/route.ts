@@ -22,6 +22,7 @@ export const POST = handleApi(async ({ req, res }) => {
   if (!user) {
     throw new NotFound('User not found');
   }
+  
 
   const isValid = await verifyPassword(password, user.password);
   if (!isValid) {

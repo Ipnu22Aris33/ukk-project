@@ -75,6 +75,7 @@ import {
   CounterClockwiseClockIcon,
   BackpackIcon,
 } from '@radix-ui/react-icons';
+import { UserHeader } from './UserHeader';
 
 interface UserLayoutProps {
   children: React.ReactNode;
@@ -144,198 +145,9 @@ export default function UserLayout({
 
   return (
     <Theme appearance='light' accentColor='indigo' radius='medium'>
-      {/* <Flex direction='column' style={{ minHeight: '100vh', background: 'var(--gray-2)' }}> */}
         {/* Header */}
-        <Box style={{ position: 'sticky', top: 0, zIndex: 40, background: 'white', borderBottom: '1px solid var(--gray-6)' }}>
-          <Container size='4'>
-            <Flex align='center' justify='between' py='3'>
-              {/* Logo & School Info */}
-              <Flex align='center' gap='3'>
-                <IconButton size='3' variant='ghost' style={{ display: 'none' }} className='lg:hidden'>
-                  <HamburgerMenuIcon />
-                </IconButton>
+       <UserHeader schoolName='BM' userName='banda'/>
 
-                <Flex align='center' gap='3'>
-                  <Box
-                    style={{
-                      background: 'linear-gradient(135deg, var(--indigo-9) 0%, var(--purple-9) 100%)',
-                      padding: '10px',
-                      borderRadius: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <ArchiveIcon width='24' height='24' color='white' />
-                  </Box>
-                  <Box>
-                    <Text weight='bold' size='4' style={{ color: 'var(--indigo-11)' }}>
-                      Perpustakaan Digital
-                    </Text>
-                    <Text size='1' color='gray'>
-                      {schoolName}
-                    </Text>
-                  </Box>
-                </Flex>
-              </Flex>
-
-              {/* Search Bar */}
-              <Box style={{ flex: 1, maxWidth: '500px', margin: '0 20px' }}>
-                <TextField.Root size='2' placeholder='Cari buku, penulis, atau kategori...' style={{ width: '100%' }}>
-                  <TextField.Slot>
-                    <MagnifyingGlassIcon height='16' width='16' />
-                  </TextField.Slot>
-                </TextField.Root>
-              </Box>
-
-              {/* Actions */}
-              <Flex align='center' gap='2'>
-                {/* Notifications */}
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger>
-                    <Box style={{ position: 'relative' }}>
-                      <IconButton size='3' variant='soft'>
-                        <BellIcon />
-                      </IconButton>
-                      <Badge
-                        size='1'
-                        color='red'
-                        variant='solid'
-                        radius='full'
-                        style={{
-                          position: 'absolute',
-                          top: '-4px',
-                          right: '-4px',
-                          minWidth: '18px',
-                          height: '18px',
-                        }}
-                      >
-                        3
-                      </Badge>
-                    </Box>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Content style={{ width: '320px' }}>
-                    <Box p='3'>
-                      <Flex justify='between' align='center' mb='3'>
-                        <Text weight='bold' size='3'>
-                          Notifikasi
-                        </Text>
-                        <Button size='1' variant='ghost' color='gray'>
-                          <CheckIcon /> Tandai terbaca
-                        </Button>
-                      </Flex>
-                      <Separator size='4' mb='2' />
-                      <ScrollArea style={{ height: '280px' }}>
-                        <Flex direction='column' gap='3'>
-                          <Box p='2' style={{ borderRadius: '8px', background: 'var(--amber-3)' }}>
-                            <Flex gap='2' align='start'>
-                              <ClockIcon color='orange' />
-                              <Box style={{ flex: 1 }}>
-                                <Text size='2' weight='medium'>
-                                  Peringatan Jatuh Tempo
-                                </Text>
-                                <Text size='1' color='gray' style={{ display: 'block', marginTop: '4px' }}>
-                                  "Fisika untuk SMA" akan jatuh tempo dalam 5 hari
-                                </Text>
-                                <Text size='1' color='gray' style={{ marginTop: '4px' }}>
-                                  2 jam yang lalu
-                                </Text>
-                              </Box>
-                            </Flex>
-                          </Box>
-
-                          <Box p='2' style={{ borderRadius: '8px', background: 'var(--blue-2)' }}>
-                            <Flex gap='2' align='start'>
-                              <CheckCircledIcon color='blue' />
-                              <Box style={{ flex: 1 }}>
-                                <Text size='2' weight='medium'>
-                                  Buku Tersedia
-                                </Text>
-                                <Text size='1' color='gray' style={{ display: 'block', marginTop: '4px' }}>
-                                  "Sejarah Indonesia Modern" sudah bisa dipinjam
-                                </Text>
-                                <Text size='1' color='gray' style={{ marginTop: '4px' }}>
-                                  5 jam yang lalu
-                                </Text>
-                              </Box>
-                            </Flex>
-                          </Box>
-
-                          <Box p='2' style={{ borderRadius: '8px', background: 'var(--green-2)' }}>
-                            <Flex gap='2' align='start'>
-                              <StarIcon color='green' />
-                              <Box style={{ flex: 1 }}>
-                                <Text size='2' weight='medium'>
-                                  Poin Membaca +10
-                                </Text>
-                                <Text size='1' color='gray' style={{ display: 'block', marginTop: '4px' }}>
-                                  Selamat! Kamu mendapat 10 poin untuk menyelesaikan buku
-                                </Text>
-                                <Text size='1' color='gray' style={{ marginTop: '4px' }}>
-                                  Kemarin
-                                </Text>
-                              </Box>
-                            </Flex>
-                          </Box>
-                        </Flex>
-                      </ScrollArea>
-                    </Box>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Root>
-
-                {/* User Menu */}
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger>
-                    <Button variant='soft' size='2'>
-                      <Flex align='center' gap='2'>
-                        <Avatar size='2' src='https://api.dicebear.com/7.x/avataaars/svg?seed=ahmad' fallback='AF' color='indigo' />
-                        <Box style={{ display: 'none' }} className='md:block'>
-                          <Text size='2' weight='medium'>
-                            {userName}
-                          </Text>
-                        </Box>
-                        <ChevronDownIcon />
-                      </Flex>
-                    </Button>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Content>
-                    <DropdownMenu.Label>
-                      <Flex direction='column' gap='1'>
-                        <Text weight='bold'>{userName}</Text>
-                        <Text size='1' color='gray'>
-                          {studentId}
-                        </Text>
-                        <Badge color='indigo' variant='soft' size='1' style={{ marginTop: '4px', width: 'fit-content' }}>
-                          {userRole}
-                        </Badge>
-                      </Flex>
-                    </DropdownMenu.Label>
-                    <Separator size='4' my='1' />
-                    <DropdownMenu.Item>
-                      <PersonIcon /> Profil Saya
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item>
-                      <BackpackIcon /> Tas Buku Saya
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item>
-                      <CounterClockwiseClockIcon /> Riwayat Peminjaman
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item>
-                      <HeartIcon /> Daftar Favorit
-                    </DropdownMenu.Item>
-                    <Separator size='4' my='1' />
-                    <DropdownMenu.Item>
-                      <GearIcon /> Pengaturan
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item color='red'>
-                      <ExitIcon /> Keluar
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Root>
-              </Flex>
-            </Flex>
-          </Container>
-        </Box>
    
         {/* Main Content */}
         <Flex style={{ flex: 1 }}>
@@ -828,7 +640,6 @@ export default function UserLayout({
             </Flex>
           </Container>
         </Box>
-      {/* </Flex> */}
     </Theme>
   );
 }

@@ -16,7 +16,7 @@ export function AppIcon({ name, size = 24, className, ...props }: AppIconProps) 
   const IconComponent = Icons[name];
 
   if (!IconComponent) {
-    throw new InternalServerError(`AppIcon: icon "${name}" not Found`);
+    return null
   }
 
   return <IconComponent width={size} height={size} className={className} {...props} />;

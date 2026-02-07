@@ -2,13 +2,14 @@
 
 import { Icon } from '@iconify/react';
 import { Flex, Text, Heading, Avatar, Button, Separator, Box, DropdownMenu, Badge, Popover } from '@radix-ui/themes';
-import * as Collapsible from '@radix-ui/react-collapsible';
 import Link from 'next/link';
+import * as Collapsible from '@radix-ui/react-collapsible';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { ChevronRightIcon, ChevronDownIcon } from '@radix-ui/react-icons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AppIcon, type IconName } from '../ui/AppIcon';
+import { useRouter } from 'next/navigation';
 
 interface SidebarProps {
   isMobile: boolean;
@@ -41,20 +42,25 @@ const menuItems: MenuItems[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'IcOutlineDashboard', href: '/admin' },
   { id: 'loans', label: 'Peminjaman', icon: 'MdiBookArrowRight', href: '/admin/loans' },
   { id: 'returns', label: 'Pengembalian', icon: 'MdiBookArrowLeft', href: '/admin/returns' },
-  { id: 'members', label: 'Anggota', icon: 'Fa6SolidUsersGear', href: '/admin/members' },
   {
     id: 'books',
     label: 'Buku',
     icon: 'MdiBooks',
     children: [
-      { id: 'book-list', label: 'List Buku', href: '/admin/books' },
-      { id: 'category-list', label: 'List Category', href: '/admin/books/category' },
+      { id: 'book-list', label: 'Daftar Buku', icon: 'WpfBooks', href: '/admin/books' },
+      { id: 'book-categories', label: 'Kategori', icon: 'MaterialSymbolsCategorySearchOutline', href: '/admin/books/categories' },
     ],
   },
+  { id: 'members', label: 'Anggota', icon: 'Fa6SolidUsersGear', href: '/admin/members' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, onCloseMobile }) => {
+  const router = useRouter();
   const { logout, session } = useAuth();
+  const handleLogout = async () => {
+    await logout(); // hapus token / session
+    router.replace('/'); // redirect ke root
+  };
 
   return (
     <Flex
@@ -123,31 +129,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
           const isActive = pathname === item.href || item.children?.some((c) => pathname.startsWith(c.href));
           if (!item.children) {
             return (
-              <Link key={item.id} href={item.href} style={{ textDecoration: 'none', display: 'block' }} onClick={onCloseMobile}>
-                <Button
-                  variant={isActive ? 'solid' : 'soft'}
-                  style={{
-                    justifyContent: 'flex-start',
-                    padding: '10px',
-                    width: '100%',
-                    height: '50px',
-                    overflow: 'hidden',
-                  }}
-                  title={sidebarCollapsed ? item.label : undefined}
-                >
+              <Button
+                asChild
+                key={item.id}
+                variant={isActive ? 'solid' : 'soft'}
+                onClick={onCloseMobile}
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: '10px',
+                  width: '100%',
+                  height: '50px',
+                  overflow: 'hidden',
+                }}
+                title={sidebarCollapsed ? item.label : undefined}
+              >
+                <Link href={item.href} style={{ textDecoration: 'none' }}>
                   <Box
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                       width: sidebarCollapsed ? '100%' : 'auto',
+                      gap: sidebarCollapsed ? 0 : '10px',
                     }}
                   >
                     <AppIcon name={item.icon} size={24} />
-                    {!sidebarCollapsed && <Text style={{ marginLeft: '10px' }}>{item.label}</Text>}
+                    {!sidebarCollapsed && <Text>{item.label}</Text>}
                   </Box>
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             );
           }
 
@@ -205,19 +215,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                         const isChildActive = pathname === child.href;
 
                         return (
-                          <Link key={child.id} href={child.href} onClick={onCloseMobile} style={{ textDecoration: 'none' }}>
-                            <Button
-                              variant={isChildActive ? 'solid' : 'soft'}
-                              style={{
-                                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                                padding: sidebarCollapsed ? '10px' : '10px 12px',
-                                width: '100%',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              <Text style={{ marginLeft: '10px' }}>{child.label}</Text>
-                            </Button>
-                          </Link>
+                          <Button
+                            asChild
+                            key={child.id}
+                            variant={isChildActive ? 'solid' : 'soft'}
+                            onClick={onCloseMobile}
+                            style={{
+                              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                              padding: sidebarCollapsed ? '10px' : '10px 12px',
+                              width: '100%',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <Link href={child.href} style={{ textDecoration: 'none' }}>
+                              <Text style={{ marginLeft: sidebarCollapsed ? 0 : '10px' }}>{child.label}</Text>
+                            </Link>
+                          </Button>
                         );
                       })}
                     </Flex>
@@ -260,7 +273,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                       style={{ overflow: 'hidden' }}
                     >
-                      <Flex direction='column' gap='0' mt='2'>
+                      <Flex direction='column' gap='1' mt='3'>
                         {item.children.map((child, index) => {
                           const isChildActive = pathname === child.href;
 
@@ -280,6 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                                 {/* BUTTON */}
                                 <Button asChild variant={isChildActive ? 'solid' : 'soft'} style={{ flex: 1, textAlign: 'left' }}>
                                   <Link href={child.href} onClick={onCloseMobile} style={{ textDecoration: 'none', width: '100%' }}>
+                                    <AppIcon name={child.icon} size={18} />
                                     <Text
                                       size='2'
                                       style={{
@@ -417,7 +431,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               </Flex>
             </DropdownMenu.Item>
             <DropdownMenu.Separator />
-            <DropdownMenu.Item color='red' onClick={() => logout()}>
+            <DropdownMenu.Item color='red' onClick={() => handleLogout()}>
               <Flex align='center' gap='2'>
                 <AppIcon name='IconoirLogOut' size={14} />
                 <Text size='2'>Logout</Text>

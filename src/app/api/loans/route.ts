@@ -2,6 +2,7 @@ import { handleApi } from '@/lib/handleApi';
 import { ok } from '@/lib/apiResponse';
 import { crudHelper } from '@/lib/db/crudHelper';
 import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/httpErrors';
+import { parseQuery } from '@/lib/query';
 
 const loanCrud = crudHelper({
   table: 'loans',
@@ -32,15 +33,14 @@ export const POST = handleApi(async ({ req }) => {
       throw new UnprocessableEntity('Not enough stock');
     }
 
-    // Opsional: cek member exist
-    const member = await memberRepo.getById(member_id);
+    const member = await memberRepo.existsById(member_id);
     if (!member) {
       throw new NotFound('Member not found');
     }
 
     const now = new Date();
     const dueDate = new Date(now);
-    dueDate.setDate(now.getDate() + 7); // default 7 hari peminjaman
+    dueDate.setDate(now.getDate() + 7);
 
     // Buat loan baru
     const loanResult = await current.create({
@@ -52,10 +52,8 @@ export const POST = handleApi(async ({ req }) => {
       status: 'borrowed',
     });
 
-    // Kurangi stock buku
     await bookRepo.updateById(book_id, { stock: book.stock - count });
 
-    // Ambil data loan terbaru
     const newLoan = await current.getById(loanResult.insertId);
 
     return newLoan;
@@ -66,11 +64,15 @@ export const POST = handleApi(async ({ req }) => {
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
+  const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
 
-  const page = await loanCrud.paginate({
-    page: Number(url.searchParams.get('page') ?? 1),
-    limit: Number(url.searchParams.get('limit') ?? 10),
-    orderBy: 'l.id_loan DESC',
+  const { data, meta } = await loanCrud.paginate({
+    page,
+    limit,
+    search,
+    orderBy,
+    orderDir,
+    searchable: ['b.title', 'm.name'],
 
     select: `
         l.id_loan,
@@ -90,20 +92,16 @@ export const GET = handleApi(async ({ req }) => {
         m.phone     AS member_phone,
         m.class     AS member_class,
         m.major     AS member_major
-
       `,
 
     joins: [
       { type: 'LEFT', table: 'books b', on: 'b.id_book = l.book_id' },
       { type: 'LEFT', table: 'members m', on: 'm.id_member = l.member_id' },
     ],
-
-    searchable: ['b.title', 'm.name', 'm.email'],
-    search: url.searchParams.get('q') ?? undefined,
   });
 
-  return ok(page.data, {
+  return ok(data, {
     message: 'Loans retrieved successfully',
-    meta: page.meta,
+    meta,
   });
 });

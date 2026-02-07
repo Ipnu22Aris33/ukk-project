@@ -2,6 +2,7 @@ import { handleApi } from '@/lib/handleApi';
 import { ok } from '@/lib/apiResponse';
 import { NotFound, UnprocessableEntity } from '@/lib/httpErrors';
 import { crudHelper } from '@/lib/db/crudHelper';
+import { parseQuery } from '@/lib/query';
 
 export interface ReturnModel {
   id_return: string;
@@ -71,10 +72,10 @@ export const POST = handleApi(async ({ req }) => {
     const inserted = await returnRepo.create({
       loan_id: loan.id_loan,
       return_date: now,
-      late_days:lateDays,
+      late_days: lateDays,
       fine_amount: penaltyFee,
       fine_status: 'waived',
-      note: 'hello'
+      note: 'hello',
     });
 
     await loanRepo.updateById(loan.id_loan, {
@@ -93,13 +94,15 @@ export const POST = handleApi(async ({ req }) => {
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
+  const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
 
   const { data, meta } = await returnCrud.paginate({
-    page: Number(url.searchParams.get('page') ?? 1),
-    limit: Number(url.searchParams.get('limit') ?? 10),
-    search: url.searchParams.get('q') ?? undefined,
+    page,
+    limit,
+    search,
+    orderBy,
+    orderDir,
     searchable: ['r.id_return', 'r.status', 'm.name', 'm.email', 'b.title'],
-    orderBy: 'r.id_return DESC',
     select: `
       r.id_return,
       r.loan_id,

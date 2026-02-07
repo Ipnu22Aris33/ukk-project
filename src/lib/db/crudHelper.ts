@@ -410,6 +410,7 @@ export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
 
       const orderBy = options.orderBy;
       const orderDir = options.orderDir?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+      console.log(orderDir)
 
       const sortableColumns = options.sortable ?? [keyColumn];
 
