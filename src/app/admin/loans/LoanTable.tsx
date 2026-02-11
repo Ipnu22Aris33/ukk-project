@@ -121,8 +121,8 @@ export function LoanTable() {
   return (
     <DataTableProvider value={dataTableState}>
       <Flex direction='column'>
-        <DataTableHeader title='Loan Management' description='Manage and track all book loans' actions={tableActions} />
-        <DataTableToolbar />
+        <DataTableHeader title='Loan Management' description='Manage and track all book loans' />
+        <DataTableToolbar  actions={tableActions}/>
         <DataTableBody />
         <DataTableFooter />
       </Flex>

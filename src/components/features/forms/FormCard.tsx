@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Text } from '@radix-ui/themes';
+import { Card, Text, Box } from '@radix-ui/themes';
 
 interface FormCardProps {
   title: string;
@@ -12,7 +12,7 @@ interface FormCardProps {
 export function FormCard({ title, description, children, maxWidth = '400px' }: FormCardProps) {
   return (
     <Card size='3' style={{ maxWidth, width: '100%' }} className='bg-(--accent-1)'>
-      <div className='text-center mb-6'>
+      <Box className='text-center mb-6'>
         <Text as='div' size='5' weight='bold' className='text-(--accent-9)'>
           {title}
         </Text>
@@ -21,7 +21,7 @@ export function FormCard({ title, description, children, maxWidth = '400px' }: F
             {description}
           </Text>
         )}
-      </div>
+      </Box>
       {children}
     </Card>
   );

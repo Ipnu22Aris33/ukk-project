@@ -2,7 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { InternalServerError } from '@/lib/httpErrors';
+import { ApiResponse } from '@/lib/apiResponse';
+import { toast } from 'sonner';
 
 /* =======================
  * TYPES
@@ -23,6 +24,20 @@ type BasePayload = Record<string, any>;
 
 type ResourceOptions = {
   searchParam?: string;
+  messages?: {
+    create?: {
+      success?: string;
+      error?: string;
+    };
+    update?: {
+      success?: string;
+      error?: string;
+    };
+    delete?: {
+      success?: string;
+      error?: string;
+    };
+  };
 };
 
 /* =======================
@@ -34,14 +49,11 @@ export function createResourceHook<TPayload extends BasePayload = any, TListResp
   baseApi: string,
   options: ResourceOptions = {}
 ) {
-  const { searchParam = 'search' } = options;
+  const { searchParam = 'search', messages = {} } = options;
 
   return function useResource({ page, limit, search = '', orderBy, orderDir = 'asc', debounceMs = 400 }: ListParams) {
     const qc = useQueryClient();
 
-    /**
-     * De
-     */
     const [debouncedSearch, setDebouncedSearch] = useState(search);
 
     useEffect(() => {
@@ -55,7 +67,7 @@ export function createResourceHook<TPayload extends BasePayload = any, TListResp
     /* =======================
      * LIST QUERY
      * ======================= */
-    const list = useQuery<TListResponse>({
+    const list = useQuery<ApiResponse<TListResponse>>({
       queryKey: [resourceName, page, limit, debouncedSearch, orderBy, orderDir],
       queryFn: async () => {
         const qs = new URLSearchParams({
@@ -76,11 +88,13 @@ export function createResourceHook<TPayload extends BasePayload = any, TListResp
           credentials: 'include',
         });
 
-        if (!res.ok) {
-          throw new InternalServerError(`Failed fetch ${resourceName}`);
+        const data: ApiResponse<TListResponse> = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || `Failed fetch ${resourceName}`);
         }
 
-        return res.json();
+        return data;
       },
       placeholderData: keepPreviousData,
     });
@@ -88,7 +102,7 @@ export function createResourceHook<TPayload extends BasePayload = any, TListResp
     /* =======================
      * CREATE
      * ======================= */
-    const create = useMutation({
+    const create = useMutation<ApiResponse, Error, TPayload>({
       mutationFn: async (payload: TPayload) => {
         const res = await fetch(baseApi, {
           method: 'POST',
@@ -97,22 +111,47 @@ export function createResourceHook<TPayload extends BasePayload = any, TListResp
           credentials: 'include',
         });
 
-        if (!res.ok) {
-          throw new InternalServerError(`Create ${resourceName} failed`);
+        const data: ApiResponse = await res.json();
+
+        if (!res.ok || !data.success) {
+          // Buat error dengan data dari response
+          const error = new Error(data.message || messages.create?.error || `Create ${resourceName} failed`);
+          (error as any).response = { data };
+          throw error;
         }
 
-        return res.json();
+        return data;
       },
-      onSuccess: () => {
+      onSuccess: (data) => {
+        const message = messages.create?.success || data?.message;
+        if (message) {
+          toast.success(message);
+        }
         qc.invalidateQueries({ queryKey: [resourceName] });
+      },
+      onError: (error: any) => {
+        // Handle validation errors
+        if (error?.response?.data?.errors) {
+          const validationErrors = error.response.data.errors;
+          if (Array.isArray(validationErrors)) {
+            // Tampilkan semua error validation
+            validationErrors.forEach((err: any) => {
+              toast.error(err.message || 'Validation error');
+            });
+          } else {
+            toast.error('Validation error');
+          }
+        } else {
+          toast.error(error.message);
+        }
       },
     });
 
     /* =======================
      * UPDATE
      * ======================= */
-    const update = useMutation({
-      mutationFn: async ({ id, ...payload }: TPayload & { id: string }) => {
+    const update = useMutation<ApiResponse, Error, TPayload & { id: string }>({
+      mutationFn: async ({ id, ...payload }) => {
         const res = await fetch(`${baseApi}/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -120,33 +159,84 @@ export function createResourceHook<TPayload extends BasePayload = any, TListResp
           credentials: 'include',
         });
 
-        if (!res.ok) {
-          throw new InternalServerError(`Update ${resourceName} failed`);
+        const data: ApiResponse = await res.json();
+
+        if (!res.ok || !data.success) {
+          const error = new Error(data.message || messages.update?.error || `Update ${resourceName} failed`);
+          (error as any).response = { data };
+          throw error;
         }
 
-        return res.json();
+        return data;
       },
-      onSuccess: () => {
+      onSuccess: (data) => {
+        const message = messages.update?.success || data?.message;
+        if (message) {
+          toast.success(message);
+        }
         qc.invalidateQueries({ queryKey: [resourceName] });
+      },
+      onError: (error: any) => {
+        if (error?.response?.data?.errors) {
+          const validationErrors = error.response.data.errors;
+          if (Array.isArray(validationErrors)) {
+            validationErrors.forEach((err: any) => {
+              toast.error(err.message || 'Validation error');
+            });
+          } else {
+            toast.error('Validation error');
+          }
+        } else {
+          toast.error(error.message);
+        }
       },
     });
 
     /* =======================
      * DELETE
      * ======================= */
-    const remove = useMutation({
+    const remove = useMutation<ApiResponse, Error, string>({
       mutationFn: async (id: string) => {
         const res = await fetch(`${baseApi}/${id}`, {
           method: 'DELETE',
           credentials: 'include',
         });
 
-        if (!res.ok) {
-          throw new InternalServerError(`Delete ${resourceName} failed`);
+        // Untuk DELETE, mungkin return 204 No Content
+        if (res.status === 204) {
+          return { success: true, message: 'Deleted successfully' };
         }
+
+        const data: ApiResponse = await res.json();
+
+        if (!res.ok || !data.success) {
+          const error = new Error(data.message || messages.delete?.error || `Delete ${resourceName} failed`);
+          (error as any).response = { data };
+          throw error;
+        }
+
+        return data;
       },
-      onSuccess: () => {
+      onSuccess: (data) => {
+        const message = messages.delete?.success || data?.message;
+        if (message) {
+          toast.success(message);
+        }
         qc.invalidateQueries({ queryKey: [resourceName] });
+      },
+      onError: (error: any) => {
+        if (error?.response?.data?.errors) {
+          const validationErrors = error.response.data.errors;
+          if (Array.isArray(validationErrors)) {
+            validationErrors.forEach((err: any) => {
+              toast.error(err.message || 'Validation error');
+            });
+          } else {
+            toast.error('Validation error');
+          }
+        } else {
+          toast.error(error.message);
+        }
       },
     });
 

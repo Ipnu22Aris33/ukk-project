@@ -48,408 +48,446 @@ type TransactionRepos<T> = {
   createRepo<U>(config: CrudConfig): CrudHelper<U>;
 };
 
-type CrudHelper<T> = ReturnType<typeof crudHelper<T>>;
+export class CrudHelper<T = any> {
+  private table: string;
+  private key: string;
+  private alias?: string;
+  private fromTable: string;
+  private keyColumn: string;
+  private db: DB;
 
-export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
-  const { table, key, alias } = config;
+  constructor(config: CrudConfig, db: DB = mysqlPool) {
+    const { table, key, alias } = config;
 
-  const fromTable = alias ? `${table} ${alias}` : table;
-  const keyColumn = alias ? `${alias}.${key}` : key;
+    this.table = table;
+    this.key = key;
+    this.alias = alias;
+    this.db = db;
 
-  return {
-    /**
-     * CREATE - insert new row
-     * @param data
-     * @returns
-     */
-    async create(data: Partial<T>): Promise<T> {
-      const columns = Object.keys(data).join(', ');
-      const placeholders = Object.keys(data)
-        .map(() => '?')
-        .join(', ');
-      const values = Object.values(data);
+    this.fromTable = this.alias ? `${this.table} ${this.alias}` : this.table;
+    this.keyColumn = this.alias ? `${this.alias}.${this.key}` : this.key;
+  }
 
-      const [result] = await db.query<ResultSetHeader>(`INSERT INTO ${table} (${columns}) VALUES (${placeholders})`, values);
+  /**
+   * CREATE - insert new row
+   * @param data
+   * @returns
+   */
+  async create(data: Partial<T>): Promise<T> {
+    const columns = Object.keys(data).join(', ');
+    const placeholders = Object.keys(data)
+      .map(() => '?')
+      .join(', ');
+    const values = Object.values(data);
 
-      return {
-        ...data,
-        [key]: result.insertId,
-      } as T;
-    },
+    const [result] = await this.db.query<ResultSetHeader>(`INSERT INTO ${this.table} (${columns}) VALUES (${placeholders})`, values);
 
-    /**
-     * CREATE MANY - insert multiple rows
-     * @param items
-     * @returns
-     */
-    async createMany(items: Partial<T>[]): Promise<ResultSetHeader> {
-      if (!items.length) {
-        throw new Error('createMany: items is empty');
+    // Tambahkan SELECT untuk mendapatkan data lengkap dari database
+    const [rows] = await this.db.query<RowDataPacket[]>(`SELECT * FROM ${this.table} WHERE ${this.key} = ?`, [result.insertId]);
+
+    if (!rows || rows.length === 0) {
+      throw new Error('Failed to retrieve created record');
+    }
+
+    return rows[0] as unknown as T;
+  }
+
+  /**
+   * CREATE MANY - insert multiple rows
+   * @param items
+   * @returns
+   */
+  async createMany(items: Partial<T>[]): Promise<T[]> {
+    if (!items.length) {
+      throw new Error('createMany: items is empty');
+    }
+
+    const columns = Object.keys(items[0]);
+
+    if (!columns.length) {
+      throw new Error('createMany: no columns provided');
+    }
+
+    // Validasi semua item memiliki kolom yang sama
+    for (const [index, item] of items.entries()) {
+      const keys = Object.keys(item);
+
+      if (keys.length !== columns.length) {
+        throw new Error(`createMany: inconsistent columns at index ${index}`);
       }
 
-      const columns = Object.keys(items[0]);
-
-      if (!columns.length) {
-        throw new Error('createMany: no columns provided');
-      }
-
-      for (const [index, item] of items.entries()) {
-        const keys = Object.keys(item);
-
-        if (keys.length !== columns.length) {
-          throw new Error(`createMany: inconsistent columns at index ${index}`);
+      for (const col of columns) {
+        if (!keys.includes(col)) {
+          throw new Error(`createMany: missing column "${col}" at index ${index}`);
         }
-
-        for (const col of columns) {
-          if (!keys.includes(col)) {
-            throw new Error(`createMany: missing column "${col}" at index ${index}`);
-          }
-        }
       }
+    }
 
-      const columnSQL = columns.map((col) => `\`${col}\``).join(', ');
+    const columnSQL = columns.map((col) => `\`${col}\``).join(', ');
 
-      const placeholders = items.map(() => `(${columns.map(() => '?').join(', ')})`).join(', ');
+    const placeholders = items.map(() => `(${columns.map(() => '?').join(', ')})`).join(', ');
 
-      const values = items.flatMap((item) => columns.map((col) => item[col as keyof T]));
+    const values = items.flatMap((item) => columns.map((col) => item[col as keyof T]));
 
-      const [result] = await db.query<ResultSetHeader>(`INSERT INTO \`${table}\` (${columnSQL}) VALUES ${placeholders}`, values);
-      return result;
-    },
+    // Execute INSERT
+    const [result] = await this.db.query<ResultSetHeader>(`INSERT INTO \`${this.table}\` (${columnSQL}) VALUES ${placeholders}`, values);
 
-    /**
-     * UPDATE BY ID - update row by primary key
-     * @param id
-     * @param data
-     * @returns
-     */
-    async updateById(id: number | string, data: Partial<T>): Promise<ResultSetHeader> {
-      const keys = Object.keys(data);
-      if (!keys.length) {
-        throw new Error('No data to update');
-      }
+    // Pastikan insert berhasil
+    if (!result || result.affectedRows === 0) {
+      throw new Error('Failed to insert records');
+    }
 
-      const setClause = keys.map((k) => `${k} = ?`).join(', ');
-      const values = [...Object.values(data), id];
+    // SELECT berdasarkan ID terakhir yang dibuat
+    // Gunakan ORDER BY created_at atau ID descending untuk mendapatkan yang terbaru
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `SELECT * FROM \`${this.table}\` 
+     WHERE \`${this.key}\` >= ?
+     ORDER BY \`${this.key}\` ASC 
+     LIMIT ?`,
+      [result.insertId, result.affectedRows]
+    );
 
-      const [res] = await db.query<ResultSetHeader>(`UPDATE ${table} SET ${setClause} WHERE ${keyColumn} = ?`, values);
+    return rows as unknown as T[];
+  }
 
-      return res;
-    },
+  /**
+   * UPDATE BY ID - update row by primary key
+   * @param id
+   * @param data
+   * @returns
+   */
+  async updateById(id: number | string, data: Partial<T>): Promise<ResultSetHeader> {
+    const keys = Object.keys(data);
+    if (!keys.length) {
+      throw new Error('No data to update');
+    }
 
-    /**
-     * UPDATE BY - update rows by where condition
-     * @param where
-     * @param data
-     * @returns
-     */
-    async updateBy(where: Record<string, any>, data: Partial<T>): Promise<ResultSetHeader> {
-      const whereKeys = Object.keys(where);
-      const dataKeys = Object.keys(data);
+    const setClause = keys.map((k) => `${k} = ?`).join(', ');
+    const values = [...Object.values(data), id];
 
-      if (!whereKeys.length || !dataKeys.length) {
-        throw new Error('Invalid update condition');
-      }
+    const [res] = await this.db.query<ResultSetHeader>(`UPDATE ${this.table} SET ${setClause} WHERE ${this.keyColumn} = ?`, values);
 
-      const setClause = dataKeys.map((k) => `${k} = ?`).join(', ');
-      const whereClause = whereKeys.map((k) => `${k} = ?`).join(' AND ');
+    return res;
+  }
 
-      const values = [...dataKeys.map((k) => (data as any)[k]), ...whereKeys.map((k) => where[k])];
+  /**
+   * UPDATE BY - update rows by where condition
+   * @param where
+   * @param data
+   * @returns
+   */
+  async updateBy(where: Record<string, any>, data: Partial<T>): Promise<ResultSetHeader> {
+    const whereKeys = Object.keys(where);
+    const dataKeys = Object.keys(data);
 
-      const [res] = await db.query<ResultSetHeader>(`UPDATE ${table} SET ${setClause} WHERE ${whereClause}`, values);
+    if (!whereKeys.length || !dataKeys.length) {
+      throw new Error('Invalid update condition');
+    }
 
-      return res;
-    },
+    const setClause = dataKeys.map((k) => `${k} = ?`).join(', ');
+    const whereClause = whereKeys.map((k) => `${k} = ?`).join(' AND ');
 
-    /**
-     * LOCK BY ID - get row by primary key with FOR UPDATE
-     * @param id
-     * @returns
-     */
-    async lockById(id: number | string): Promise<T | null> {
-      const [rows] = await db.query<RowDataPacket[]>(`SELECT * FROM ${fromTable} WHERE ${keyColumn} = ? FOR UPDATE`, [id]);
+    const values = [...dataKeys.map((k) => (data as any)[k]), ...whereKeys.map((k) => where[k])];
 
-      return (rows[0] as unknown as T) ?? null;
-    },
+    const [res] = await this.db.query<ResultSetHeader>(`UPDATE ${this.table} SET ${setClause} WHERE ${whereClause}`, values);
 
-    /**
-     * GET BY ID - single row by primary key
-     * @param id
-     * @param options
-     * @returns
-     */
-    async getById(
-      id: number | string,
-      options?: {
-        select?: string;
-        joins?: JoinOption[];
-      }
-    ): Promise<T | null> {
-      const selectClause = options?.select ?? '*';
-      const joinClause = options?.joins?.length ? options.joins.map((j) => `${j.type ?? 'LEFT'} JOIN ${j.table} ON ${j.on}`).join(' ') : '';
+    return res;
+  }
 
-      const [rows] = await db.query<RowDataPacket[]>(
-        `
-        SELECT ${selectClause}
-        FROM ${fromTable}
-        ${joinClause}
-        WHERE ${keyColumn} = ?
-        LIMIT 1
-        `,
-        [id]
-      );
+  /**
+   * LOCK BY ID - get row by primary key with FOR UPDATE
+   * @param id
+   * @returns
+   */
+  async lockById(id: number | string): Promise<T | null> {
+    const [rows] = await this.db.query<RowDataPacket[]>(`SELECT * FROM ${this.fromTable} WHERE ${this.keyColumn} = ? FOR UPDATE`, [id]);
 
-      return (rows[0] as unknown as T) ?? null;
-    },
+    return (rows[0] as unknown as T) ?? null;
+  }
 
-    /**
-     * GET BY - single row by where condition
-     * @param where
-     * @param options
-     * @returns
-     */
-    async getBy(
-      where: Record<string, any>,
-      options?: {
-        select?: string;
-        joins?: JoinOption[];
-      }
-    ): Promise<T | null> {
-      const selectClause = options?.select ?? '*';
+  /**
+   * GET BY ID - single row by primary key
+   * @param id
+   * @param options
+   * @returns
+   */
+  async getById(
+    id: number | string,
+    options?: {
+      select?: string;
+      joins?: JoinOption[];
+    }
+  ): Promise<T | null> {
+    const selectClause = options?.select ?? '*';
+    const joinClause = options?.joins?.length ? options.joins.map((j) => `${j.type ?? 'LEFT'} JOIN ${j.table} ON ${j.on}`).join(' ') : '';
 
-      const joinClause = options?.joins?.length ? options.joins.map((j) => `${j.type ?? 'LEFT'} JOIN ${j.table} ON ${j.on}`).join(' ') : '';
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `
+      SELECT ${selectClause}
+      FROM ${this.fromTable}
+      ${joinClause}
+      WHERE ${this.keyColumn} = ?
+      LIMIT 1
+      `,
+      [id]
+    );
 
-      const whereKeys = Object.keys(where);
-      if (!whereKeys.length) return null;
+    return (rows[0] as unknown as T) ?? null;
+  }
 
+  /**
+   * GET BY - single row by where condition
+   * @param where
+   * @param options
+   * @returns
+   */
+  async getBy(
+    where: Record<string, any>,
+    options?: {
+      select?: string;
+      joins?: JoinOption[];
+    }
+  ): Promise<T | null> {
+    const selectClause = options?.select ?? '*';
+
+    const joinClause = options?.joins?.length ? options.joins.map((j) => `${j.type ?? 'LEFT'} JOIN ${j.table} ON ${j.on}`).join(' ') : '';
+
+    const whereKeys = Object.keys(where);
+    if (!whereKeys.length) return null;
+
+    const whereClause = 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ');
+    const params = whereKeys.map((k) => where[k]);
+
+    const [rows] = await this.db.query<RowDataPacket[]>(`SELECT ${selectClause} FROM ${this.fromTable} ${joinClause} ${whereClause} LIMIT 1`, params);
+
+    return (rows[0] as unknown as T) ?? null;
+  }
+
+  /**
+   * GET ALL - without pagination
+   * @param options
+   * @returns
+   */
+  async getAll(options?: { select?: string; joins?: JoinOption[]; where?: Record<string, any>; orderBy?: string }): Promise<T[]> {
+    const selectClause = options?.select ?? '*';
+
+    const joinClause = options?.joins?.length ? options.joins.map((j) => `${j.type ?? 'LEFT'} JOIN ${j.table} ON ${j.on}`).join(' ') : '';
+
+    const whereKeys = options?.where ? Object.keys(options.where) : [];
+    const whereClause = whereKeys.length ? 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ') : '';
+    const whereParams = whereKeys.map((k) => options!.where![k]);
+
+    const orderClause = options?.orderBy ? `ORDER BY ${options.orderBy}` : '';
+
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `
+      SELECT ${selectClause}
+      FROM ${this.fromTable}
+      ${joinClause}
+      ${whereClause}
+      ${orderClause}
+      `,
+      whereParams
+    );
+
+    return rows as unknown as T[];
+  }
+
+  /**
+   * DELETE - soft delete
+   * @param id
+   * @returns
+   */
+  async deleteById(id: any): Promise<ResultSetHeader> {
+    const [res] = await this.db.query<ResultSetHeader>(`UPDATE ${this.table} SET deleted_at = NOW() WHERE ${this.key} = ?`, [id]);
+    return res;
+  }
+
+  /**
+   * DESTROY - hard delete
+   * @param id
+   * @returns
+   */
+  async destroyById(id: any): Promise<ResultSetHeader> {
+    const [res] = await this.db.query<ResultSetHeader>(`DELETE FROM ${this.table} WHERE ${this.key} = ?`, [id]);
+    return res;
+  }
+
+  /**
+   * RESTORE - restore soft deleted record
+   * @param id
+   * @returns
+   */
+  async restore(id: any): Promise<ResultSetHeader> {
+    const [res] = await this.db.query<ResultSetHeader>(`UPDATE ${this.table} SET deleted_at = NULL WHERE ${this.key} = ?`, [id]);
+    return res;
+  }
+
+  /**
+   * COUNT - count records with optional where condition
+   * @param where
+   * @returns
+   */
+  async count(where?: Record<string, any>): Promise<number> {
+    const whereKeys = where ? Object.keys(where) : [];
+
+    if (whereKeys.length) {
       const whereClause = 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ');
-      const params = whereKeys.map((k) => where[k]);
+      const values = whereKeys.map((k) => where![k]);
 
-      const [rows] = await db.query<RowDataPacket[]>(`SELECT ${selectClause} FROM ${fromTable} ${joinClause} ${whereClause} LIMIT 1`, params);
-
-      return (rows[0] as unknown as T) ?? null;
-    },
-
-    /**
-     * GET ALL - without pagination
-     * @param options
-     * @returns
-     */
-    async getAll(options?: { select?: string; joins?: JoinOption[]; where?: Record<string, any>; orderBy?: string }): Promise<T[]> {
-      const selectClause = options?.select ?? '*';
-
-      const joinClause = options?.joins?.length ? options.joins.map((j) => `${j.type ?? 'LEFT'} JOIN ${j.table} ON ${j.on}`).join(' ') : '';
-
-      const whereKeys = options?.where ? Object.keys(options.where) : [];
-      const whereClause = whereKeys.length ? 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ') : '';
-      const whereParams = whereKeys.map((k) => options!.where![k]);
-
-      const orderClause = options?.orderBy ? `ORDER BY ${options.orderBy}` : '';
-
-      const [rows] = await db.query<RowDataPacket[]>(
-        `
-        SELECT ${selectClause}
-        FROM ${fromTable}
-        ${joinClause}
-        ${whereClause}
-        ${orderClause}
-        `,
-        whereParams
-      );
-
-      return rows as unknown as T[];
-    },
-
-    /**
-     * DELETE - soft delete
-     * @param id
-     * @returns
-     */
-    async deleteById(id: any): Promise<ResultSetHeader> {
-      const [res] = await db.query<ResultSetHeader>(`UPDATE ${table} SET deleted_at = NOW() WHERE ${key} = ?`, [id]);
-      return res;
-    },
-
-    /**
-     * DESTROY - hard delete
-     * @param id
-     * @returns
-     */
-    async destroyById(id: any): Promise<ResultSetHeader> {
-      const [res] = await db.query<ResultSetHeader>(`DELETE FROM ${table} WHERE ${key} = ?`, [id]);
-      return res;
-    },
-
-    /**
-     * RESTORE - restore soft deleted record
-     * @param id
-     * @returns
-     */
-    async restore(id: any): Promise<ResultSetHeader> {
-      const [res] = await db.query<ResultSetHeader>(`UPDATE ${table} SET deleted_at = NULL WHERE ${key} = ?`, [id]);
-      return res;
-    },
-
-    /**
-     * COUNT - count records with optional where condition
-     * @param where
-     * @returns
-     */
-    async count(where?: Record<string, any>): Promise<number> {
-      const whereKeys = where ? Object.keys(where) : [];
-
-      if (whereKeys.length) {
-        const whereClause = 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ');
-        const values = whereKeys.map((k) => where![k]);
-
-        const [[{ count }]]: any = await db.query(`SELECT COUNT(*) as count FROM ${fromTable} ${whereClause}`, values);
-        return count;
-      }
-
-      const [[{ count }]]: any = await db.query(`SELECT COUNT(*) as count FROM ${fromTable}`, []);
+      const [[{ count }]]: any = await this.db.query(`SELECT COUNT(*) as count FROM ${this.fromTable} ${whereClause}`, values);
       return count;
-    },
+    }
 
-    /**
-     * EXISTS BY ID - check if record exists by primary key
-     * @param id
-     * @returns
-     */
-    async existsById(id: number | string): Promise<boolean> {
-      const [[row]]: any = await db.query(`SELECT 1 FROM ${fromTable} WHERE ${keyColumn} = ? LIMIT 1`, [id]);
+    const [[{ count }]]: any = await this.db.query(`SELECT COUNT(*) as count FROM ${this.fromTable}`, []);
+    return count;
+  }
 
-      return !!row;
-    },
+  /**
+   * EXISTS BY ID - check if record exists by primary key
+   * @param id
+   * @returns
+   */
+  async existsById(id: number | string): Promise<boolean> {
+    const [[row]]: any = await this.db.query(`SELECT 1 FROM ${this.fromTable} WHERE ${this.keyColumn} = ? LIMIT 1`, [id]);
 
-    /**
-     * EXISTS - check if record exists by where condition
-     * @param where
-     * @returns
-     */
-    async exists(where: Record<string, any>): Promise<boolean> {
-      const keys = Object.keys(where);
-      if (!keys.length) return false;
+    return !!row;
+  }
 
-      const whereClause = keys.map((k) => `${k} = ?`).join(' AND ');
-      const values = keys.map((k) => where[k]);
+  /**
+   * EXISTS - check if record exists by where condition
+   * @param where
+   * @returns
+   */
+  async exists(where: Record<string, any>): Promise<boolean> {
+    const keys = Object.keys(where);
+    if (!keys.length) return false;
 
-      const [[row]]: any = await db.query(`SELECT 1 FROM ${fromTable} WHERE ${whereClause} LIMIT 1`, values);
+    const whereClause = keys.map((k) => `${k} = ?`).join(' AND ');
+    const values = keys.map((k) => where[k]);
 
-      return !!row;
-    },
+    const [[row]]: any = await this.db.query(`SELECT 1 FROM ${this.fromTable} WHERE ${whereClause} LIMIT 1`, values);
 
-    /**
-     * RAW QUERY - for complex queries
-     * @param sql
-     * @param params
-     * @returns
-     */
-    async rawQuery<R = any>(sql: string, params?: any[]): Promise<R> {
-      const [result] = await db.query(sql, params || []);
-      return result as R;
-    },
+    return !!row;
+  }
 
-    /**
-     * TRANSACTION - execute operations in a transaction
-     * @param callback
-     * @returns
-     */
-    async transaction<R>(callback: (repos: TransactionRepos<T>) => Promise<R>): Promise<R> {
-      if (db !== mysqlPool) {
-        const createRepo = <U>(repoConfig: CrudConfig) => crudHelper<U>(repoConfig, db);
+  /**
+   * RAW QUERY - for complex queries
+   * @param sql
+   * @param params
+   * @returns
+   */
+  async rawQuery<R = any>(sql: string, params?: any[]): Promise<R> {
+    const [result] = await this.db.query(sql, params || []);
+    return result as R;
+  }
 
-        return callback({
-          current: this as CrudHelper<T>,
-          createRepo,
-        });
-      }
+  /**
+   * TRANSACTION - execute operations in a transaction
+   * @param callback
+   * @returns
+   */
+  async transaction<R>(callback: (repos: TransactionRepos<T>) => Promise<R>): Promise<R> {
+    if (this.db !== mysqlPool) {
+      const createRepo = <U>(repoConfig: CrudConfig) => new CrudHelper<U>(repoConfig, this.db);
 
-      const connection = await mysqlPool.getConnection();
+      return callback({
+        current: this as CrudHelper<T>,
+        createRepo,
+      });
+    }
 
-      try {
-        await connection.beginTransaction();
+    const connection = await mysqlPool.getConnection();
 
-        const current = crudHelper<T>(config, connection);
+    try {
+      await connection.beginTransaction();
 
-        const createRepo = <U>(repoConfig: CrudConfig) => crudHelper<U>(repoConfig, connection);
+      const current = new CrudHelper<T>({ table: this.table, key: this.key, alias: this.alias }, connection);
 
-        const result = await callback({ current, createRepo });
+      const createRepo = <U>(repoConfig: CrudConfig) => new CrudHelper<U>(repoConfig, connection);
 
-        await connection.commit();
-        return result;
-      } catch (error) {
-        await connection.rollback();
-        throw error;
-      } finally {
-        connection.release();
-      }
-    },
-    /**
-     * PAGINATE - with search and joins
-     * @param options
-     * @returns
-     */
-    async paginate(options: PaginateOptions): Promise<PaginateResult<T>> {
-      const page = Math.max(1, options.page ?? 1);
-      const limit = Math.max(1, options.limit ?? 10);
-      const offset = (page - 1) * limit;
+      const result = await callback({ current, createRepo });
 
-      const selectClause = options.select ?? '*';
+      await connection.commit();
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
 
-      const joinClause = options.joins?.length ? options.joins.map((j) => `${j.type ?? 'LEFT'} JOIN ${j.table} ON ${j.on}`).join(' ') : '';
+  /**
+   * PAGINATE - with search and joins
+   * @param options
+   * @returns
+   */
+  async paginate(options: PaginateOptions): Promise<PaginateResult<T>> {
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.max(1, options.limit ?? 10);
+    const offset = (page - 1) * limit;
 
-      const whereKeys = options.where ? Object.keys(options.where) : [];
-      const whereClause = whereKeys.length ? 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ') : '';
-      const whereParams = whereKeys.map((k) => options.where![k]);
+    const selectClause = options.select ?? '*';
 
-      const hasSearch = options.search && options.searchable?.length;
-      const searchClause = hasSearch
-        ? (whereClause ? ' AND ' : 'WHERE ') + '(' + options.searchable!.map((f) => `${f} LIKE ?`).join(' OR ') + ')'
-        : '';
-      const searchParams = hasSearch ? options.searchable!.map(() => `%${options.search}%`) : [];
+    const joinClause = options.joins?.length ? options.joins.map((j) => `${j.type ?? 'LEFT'} JOIN ${j.table} ON ${j.on}`).join(' ') : '';
 
-      const orderBy = options.orderBy;
-      const orderDir = options.orderDir?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-      console.log(orderDir)
+    const whereKeys = options.where ? Object.keys(options.where) : [];
+    const whereClause = whereKeys.length ? 'WHERE ' + whereKeys.map((k) => `${k} = ?`).join(' AND ') : '';
+    const whereParams = whereKeys.map((k) => options.where![k]);
 
-      const sortableColumns = options.sortable ?? [keyColumn];
+    const hasSearch = options.search && options.searchable?.length;
+    const searchClause = hasSearch ? (whereClause ? ' AND ' : 'WHERE ') + '(' + options.searchable!.map((f) => `${f} LIKE ?`).join(' OR ') + ')' : '';
+    const searchParams = hasSearch ? options.searchable!.map(() => `%${options.search}%`) : [];
 
-      const safeOrderBy = sortableColumns.includes(orderBy ?? '') ? orderBy : keyColumn;
+    const orderBy = options.orderBy;
+    const orderDir = options.orderDir?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
-      const orderClause = `ORDER BY ${safeOrderBy} ${orderDir}`;
+    const sortableColumns = options.sortable ?? [this.keyColumn];
 
-      const [[{ total }]]: any = await db.query(`SELECT COUNT(*) AS total FROM ${fromTable} ${joinClause} ${whereClause} ${searchClause}`, [
-        ...whereParams,
-        ...searchParams,
-      ]);
+    const safeOrderBy = sortableColumns.includes(orderBy ?? '') ? orderBy : this.keyColumn;
 
-      const totalPages = Math.ceil(total / limit);
+    const orderClause = `ORDER BY ${safeOrderBy} ${orderDir}`;
 
-      const [rows] = await db.query<RowDataPacket[]>(
-        `
-        SELECT ${selectClause}
-        FROM ${fromTable}
-        ${joinClause}
-        ${whereClause}
-        ${searchClause}
-        ${orderClause}
-        LIMIT ? OFFSET ?
-        `,
-        [...whereParams, ...searchParams, limit, offset]
-      );
+    const [[{ total }]]: any = await this.db.query(`SELECT COUNT(*) AS total FROM ${this.fromTable} ${joinClause} ${whereClause} ${searchClause}`, [
+      ...whereParams,
+      ...searchParams,
+    ]);
 
-      return {
-        data: rows as unknown as T[],
-        meta: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasPrev: page > 1,
-          hasNext: page < totalPages,
-          search: options.search ?? null,
-        },
-      };
-    },
-  };
+    const totalPages = Math.ceil(total / limit);
+
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `
+      SELECT ${selectClause}
+      FROM ${this.fromTable}
+      ${joinClause}
+      ${whereClause}
+      ${searchClause}
+      ${orderClause}
+      LIMIT ? OFFSET ?
+      `,
+      [...whereParams, ...searchParams, limit, offset]
+    );
+
+    return {
+      data: rows as unknown as T[],
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasPrev: page > 1,
+        hasNext: page < totalPages,
+        search: options.search ?? null,
+      },
+    };
+  }
 }
+
+// Export juga function helper untuk backward compatibility
+export function crudHelper<T = any>(config: CrudConfig, db: DB = mysqlPool) {
+  return new CrudHelper<T>(config, db);
+}
+
+// Type untuk backward compatibility
+type CrudHelperFunction<T> = ReturnType<typeof crudHelper<T>>;

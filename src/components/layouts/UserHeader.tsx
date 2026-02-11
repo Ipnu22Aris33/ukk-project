@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { Box, Flex, Container, Text, IconButton, TextField, Avatar, Badge, DropdownMenu } from '@radix-ui/themes';
 import { MagnifyingGlassIcon, BellIcon, ArchiveIcon, ChevronLeftIcon, PersonIcon, GearIcon, ExitIcon } from '@radix-ui/react-icons';
-
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 import { useResponsive } from '@/hooks/useResponsive';
 
 interface UserHeaderProps {
@@ -12,8 +13,14 @@ interface UserHeaderProps {
 }
 
 export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
+  const router = useRouter();
   const { isMobile } = useResponsive();
   const [searchOpen, setSearchOpen] = useState(false);
+  const { logout, session } = useAuth();
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/');
+  };
 
   return (
     <Box
@@ -110,7 +117,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
 
                 <DropdownMenu.Separator />
 
-                <DropdownMenu.Item color='red'>
+                <DropdownMenu.Item color='red' onClick={() => handleLogout()}>
                   <ExitIcon /> Keluar
                 </DropdownMenu.Item>
               </DropdownMenu.Content>

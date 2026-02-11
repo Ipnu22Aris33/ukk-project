@@ -199,7 +199,7 @@ export function ColumnFactory<T>() {
     actionsColumn(options: ActionsColumnOptions<T>): ColumnDef<T> {
       return {
         id: 'actions',
-        header: '',
+        header: 'Action',
         enableSorting: false,
         enableHiding: false,
         size: 48,

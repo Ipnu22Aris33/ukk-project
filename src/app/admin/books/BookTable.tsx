@@ -39,7 +39,7 @@ export function BookTable() {
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
-    debounceMs: 400,
+    debounceMs: 200,
   });
 
   const tableData = list.data?.data ?? [];
@@ -107,8 +107,8 @@ export function BookTable() {
   return (
     <DataTableProvider value={dataTableState}>
       <Flex direction='column'>
-        <DataTableHeader title='Books Management' description='Manage library books' actions={tableActions} />
-        <DataTableToolbar />
+        <DataTableHeader title='Books Management' description='Manage library books'  />
+        <DataTableToolbar actions={tableActions}/>
         {tableData.length === 0 ? (
           <DataTableEmpty title='No books found' description='Try adjusting your search or add a new book' />
         ) : (

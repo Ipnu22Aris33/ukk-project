@@ -2,7 +2,7 @@ import UserLayout from '@/components/layouts/UserLayout';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Admin Dashboard',
+  title: 'User Dashboard',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

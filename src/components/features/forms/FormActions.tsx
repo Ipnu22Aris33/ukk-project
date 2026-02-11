@@ -1,7 +1,6 @@
 'use client';
 
 import { Button, Flex, Box } from '@radix-ui/themes';
-import { SunIcon } from '@radix-ui/react-icons';
 import { Submit } from '@radix-ui/react-form';
 
 interface FormActionsProps {
@@ -39,27 +38,16 @@ export function FormActions({
 
   return (
     <Box className={`mt-6 ${isFull ? 'w-full' : ''}`}>
-      <Flex
-        direction={layout}
-        gap='3'
-        className={`w-full ${layout === 'row' ? 'flex-row' : 'flex-col'}`}
-        style={{ width: '100%' }}
-      >
+      <Flex direction={layout} gap='3' className={`w-full ${layout === 'row' ? 'flex-row' : 'flex-col'}`} style={{ width: '100%' }}>
         <Submit asChild>
           <Button
             size='3'
             disabled={!canSubmit || isSubmitting}
+            loading={isSubmitting}
             className={`${isFull ? 'w-full flex-1' : ''}`}
             style={{ flex: isFull && layout === 'row' ? 1 : 'auto' }}
           >
-            {isSubmitting ? (
-              <Flex align='center' justify='center' gap='2'>
-                <SunIcon className='animate-spin' />
-                Menyimpan...
-              </Flex>
-            ) : (
-              submitLabel
-            )}
+            {submitLabel}
           </Button>
         </Submit>
 

@@ -3,7 +3,7 @@ import { hashPassword } from '@/lib/auth';
 import { crudHelper } from '@/lib/db/crudHelper';
 import { handleApi } from '@/lib/handleApi';
 import { Conflict } from '@/lib/httpErrors';
-import { NextRequest } from 'next/server';
+import crypto from 'crypto'
 
 const userCrud = crudHelper({
   table: 'users',
@@ -32,6 +32,7 @@ export const POST = handleApi(async ({ req }) => {
       password: hashPw,
       role: 'member',
     });
+    const member_code = 'MBR-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
     await memberRepo.create({
       user_id: newUser.id_user,
@@ -39,6 +40,7 @@ export const POST = handleApi(async ({ req }) => {
       class: data.class,
       major: data.major,
       phone: data.phone,
+      member_code: member_code
     });
 
     return current.getById(newUser.id_user, {
@@ -46,7 +48,6 @@ export const POST = handleApi(async ({ req }) => {
           u.id_user,
           u.email,
           u.role,
-          u.status,
           m.id_member,
           m.name,
           m.class,

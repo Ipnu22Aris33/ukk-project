@@ -132,8 +132,8 @@ export function CategoryTable() {
   return (
     <DataTableProvider value={dataTableState}>
       <Flex direction='column'>
-        <DataTableHeader title='Categories' description='Manage book categories' actions={tableActions} />
-        <DataTableToolbar />
+        <DataTableHeader title='Categories' description='Manage book categories'  />
+        <DataTableToolbar actions={tableActions}/>
         {tableData.length === 0 ? (
           <DataTableEmpty title='No categories found' description='Try adjusting your search or add a new category' />
         ) : (
