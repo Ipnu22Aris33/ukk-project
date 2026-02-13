@@ -1,6 +1,6 @@
 import { handleApi } from '@/lib/handleApi';
 import { ok } from '@/lib/apiResponse';
-import { NotFound, UnprocessableEntity } from '@/lib/httpErrors';
+import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/httpErrors';
 import { crudHelper } from '@/lib/db/crudHelper';
 import { parseQuery } from '@/lib/query';
 
@@ -22,7 +22,7 @@ export const POST = handleApi(async ({ req }) => {
   const { loan_id } = await req.json();
 
   if (!loan_id) {
-    throw new NotFound('loan_id is required');
+    throw new BadRequest('loan_id is required');
   }
 
   const result = await returnCrud.transaction(async ({ current: returnRepo, createRepo }) => {

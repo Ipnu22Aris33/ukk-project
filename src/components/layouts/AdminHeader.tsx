@@ -56,42 +56,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapse
       </Flex>
 
       <Flex align='center' gap='3'>
-        <Button variant='ghost'>
-          <Icon icon='radix-icons:magnifying-glass' width='18' height='18' />
-        </Button>
-
         <ThemeToggle />
-
-        <Button variant='ghost' style={{ position: 'relative' }}>
-          <Icon icon='radix-icons:bell' width='18' height='18' />
-          <Badge
-            style={{
-              position: 'absolute',
-              top: '-2px',
-              right: '-2px',
-              minWidth: '16px',
-              height: '16px',
-              padding: '0 4px',
-            }}
-            color='red'
-            size='1'
-          >
-            3
-          </Badge>
-        </Button>
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger>
-            <Button variant='ghost'>
-              <Icon icon='radix-icons:gear' width='18' height='18' />
-            </Button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content>
-            <DropdownMenu.Item>Settings</DropdownMenu.Item>
-            <DropdownMenu.Item>Profile</DropdownMenu.Item>
-            <DropdownMenu.Separator />
-            <DropdownMenu.Item color='red'>Logout</DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
       </Flex>
     </Flex>
   );

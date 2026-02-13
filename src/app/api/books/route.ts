@@ -20,7 +20,6 @@ export const GET = handleApi(async ({ req }) => {
     search,
     orderBy,
     orderDir,
-    sortable: ['b.id_book', 'b.title', 'b.author', 'b.created_at', 'c.name'],
     searchable: ['b.title', 'b.author', 'b.slug'],
     select: `
       b.*,
@@ -28,7 +27,7 @@ export const GET = handleApi(async ({ req }) => {
     `,
     joins: [
       {
-        type: 'INNER',
+        type: 'LEFT',
         table: 'categories c',
         on: 'c.id_category = b.category_id',
       },

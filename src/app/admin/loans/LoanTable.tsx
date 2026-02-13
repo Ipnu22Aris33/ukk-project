@@ -2,17 +2,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Flex } from '@radix-ui/themes';
+import { Button, Flex, Dialog, Box } from '@radix-ui/themes';
 import { ReloadIcon, DownloadIcon, PlusIcon } from '@radix-ui/react-icons';
+import { useForm } from '@tanstack/react-form';
+import * as Form from '@radix-ui/react-form';
+import { InputField, SelectField } from '@/components/features/forms';
 import { ColumnFactory, DataTableProvider } from '@/components/features/datatable';
-import {  } from '@/components/features/datatable/DataTableProvider';
 import { DataTableHeader } from '@/components/features/datatable/DataTableHeader';
 import { DataTableToolbar } from '@/components/features/datatable/DataTableToolbar';
 import { DataTableBody } from '@/components/features/datatable/DataTableBody';
 import { DataTableFooter } from '@/components/features/datatable/DataTableFooter';
 import { useDataTable } from '@/hooks/useDataTable';
 import { useLoans } from '@/hooks/useLoans';
+import { Icon } from '@iconify/react';
 import type { ColumnDef } from '@tanstack/react-table';
+import { useMembers } from '@/hooks/useMembers';
+import { useBooks } from '@/hooks/useBooks';
 
 type LoanStatus = 'borrowed' | 'returned' | 'overdue' | 'late';
 
@@ -34,17 +39,45 @@ interface Loan {
   member_major: string;
 }
 
+interface LoanFormData {
+  member_id: string;
+  book_id: string;
+  count: number;
+  due_date: string;
+}
+
 export function LoanTable() {
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   });
   const [search, setSearch] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { list } = useLoans({
+  // State untuk pencarian di form dialog
+  const [memberSearch, setMemberSearch] = useState('');
+  const [bookSearch, setBookSearch] = useState('');
+
+  const { list, create } = useLoans({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
+    debounceMs: 400,
+  });
+
+  // Fetch members untuk dropdown
+  const { list: memberList } = useMembers({
+    page: 1,
+    limit: 100, // Ambil banyak untuk dropdown
+    search: memberSearch,
+    debounceMs: 400,
+  });
+
+  // Fetch books untuk dropdown
+  const { list: bookList } = useBooks({
+    page: 1,
+    limit: 100, // Ambil banyak untuk dropdown
+    search: bookSearch,
     debounceMs: 400,
   });
 
@@ -52,6 +85,18 @@ export function LoanTable() {
   const metaData = list.data?.meta;
   const isLoading = list.isLoading;
   const refetch = list.refetch;
+
+  // Konversi members ke format Option
+  const memberOptions = (memberList.data?.data || []).map((member) => ({
+    value: String(member.id_member),
+    label: `${member.name} (${member.class})`, // Sesuaikan dengan struktur data member Anda
+  }));
+
+  // Konversi books ke format Option
+  const bookOptions = (bookList.data?.data || []).map((book) => ({
+    value: String(book.id_book),
+    label: `${book.title} - ${book.author}`,
+  }));
 
   const col = ColumnFactory<Loan>();
 
@@ -85,6 +130,34 @@ export function LoanTable() {
     pageSize: metaData?.limit || 10,
   });
 
+  // FORM
+  const form = useForm({
+    defaultValues: {
+      member_id: '',
+      book_id: '',
+      count: 1,
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
+    onSubmit: async ({ value }) => {
+      try {
+        await create.mutateAsync({
+          ...value,
+          loan_date: new Date().toISOString().split('T')[0],
+        });
+
+        setDialogOpen(false);
+        form.reset();
+        refetch();
+
+        // Reset search states
+        setMemberSearch('');
+        setBookSearch('');
+      } catch (err: any) {
+        alert(err.message);
+      }
+    },
+  });
+
   // Table actions
   const tableActions = (
     <>
@@ -99,18 +172,164 @@ export function LoanTable() {
         <DownloadIcon />
         Export
       </Button>
-      <Button variant='solid' size='2'>
-        <PlusIcon />
-        New Loan
-      </Button>
+
+      {/* DIALOG WITH FORM */}
+      <Dialog.Root
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            // Reset form and search when dialog closes
+            form.reset();
+            setMemberSearch('');
+            setBookSearch('');
+          }
+        }}
+      >
+        <Dialog.Trigger>
+          <Button variant='solid' size='2'>
+            <PlusIcon />
+            New Loan
+          </Button>
+        </Dialog.Trigger>
+
+        <Dialog.Content maxWidth='500px'>
+          <Dialog.Title>Create New Loan</Dialog.Title>
+          <Dialog.Description size='2' mb='4'>
+            Add a new book loan transaction
+          </Dialog.Description>
+
+          <Form.Root
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+          >
+            <Box className='space-y-4'>
+              {/* MEMBER SELECT */}
+              <form.Field
+                name='member_id'
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value) return 'Member wajib dipilih';
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <SelectField
+                    icon={<Icon icon='mdi:account' width={16} height={16} />}
+                    field={field}
+                    label='Member'
+                    options={memberOptions}
+                    placeholder='Cari member...'
+                    required
+                    searchable={true}
+                    search={memberSearch}
+                    onSearchChange={setMemberSearch}
+                  />
+                )}
+              </form.Field>
+
+              {/* BOOK SELECT */}
+              <form.Field
+                name='book_id'
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value) return 'Buku wajib dipilih';
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <SelectField
+                    icon={<Icon icon='mdi:book' width={16} height={16} />}
+                    field={field}
+                    label='Book'
+                    options={bookOptions}
+                    placeholder='Cari buku...'
+                    required
+                    searchable={true}
+                    search={bookSearch}
+                    onSearchChange={setBookSearch}
+                  />
+                )}
+              </form.Field>
+
+              {/* QUANTITY */}
+              <form.Field
+                name='count'
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value) return 'Jumlah wajib diisi';
+                    if (value < 1) return 'Minimal 1 buku';
+                    if (value > 5) return 'Maksimal 5 buku';
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <InputField
+                    field={field}
+                    label='Quantity'
+                    type='number'
+                    placeholder='Masukkan jumlah'
+                    required
+                    icon={<Icon icon='mdi:counter' />}
+                  />
+                )}
+              </form.Field>
+
+              {/* DUE DATE */}
+              <form.Field
+                name='due_date'
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value) return 'Tanggal kembali wajib diisi';
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <InputField
+                    field={field}
+                    label='Due Date'
+                    type='date'
+                    placeholder='Pilih tanggal kembali'
+                    required
+                    icon={<Icon icon='mdi:calendar' />}
+                  />
+                )}
+              </form.Field>
+
+              {/* FORM ACTIONS */}
+              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+                {([canSubmit, isSubmitting]) => (
+                  <Flex gap='3' mt='4' justify='end'>
+                    <Dialog.Close>
+                      <Button variant='soft' color='gray'>
+                        Cancel
+                      </Button>
+                    </Dialog.Close>
+                    <Button type='submit' variant='solid' disabled={!canSubmit} loading={isSubmitting}>
+                      {isSubmitting ? 'Creating...' : 'Create Loan'}
+                    </Button>
+                  </Flex>
+                )}
+              </form.Subscribe>
+            </Box>
+          </Form.Root>
+        </Dialog.Content>
+      </Dialog.Root>
     </>
   );
 
-  // Context value untuk provider - TAMBAHKAN setPagination di sini
+  // Context value untuk provider
   const dataTableState = {
     table,
     pagination,
-    setPagination, // ✅ TAMBAHKAN INI
+    setPagination,
     search,
     setSearch,
     meta: metaData,
@@ -122,7 +341,7 @@ export function LoanTable() {
     <DataTableProvider value={dataTableState}>
       <Flex direction='column'>
         <DataTableHeader title='Loan Management' description='Manage and track all book loans' />
-        <DataTableToolbar  actions={tableActions}/>
+        <DataTableToolbar actions={tableActions} />
         <DataTableBody />
         <DataTableFooter />
       </Flex>

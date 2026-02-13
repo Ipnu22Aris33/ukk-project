@@ -6,6 +6,8 @@ import { MagnifyingGlassIcon, BellIcon, ArchiveIcon, ChevronLeftIcon, PersonIcon
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useResponsive } from '@/hooks/useResponsive';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { getInitials } from '@/lib/getInitials';
 
 interface UserHeaderProps {
   schoolName: string;
@@ -17,6 +19,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
   const { isMobile } = useResponsive();
   const [searchOpen, setSearchOpen] = useState(false);
   const { logout, session } = useAuth();
+
   const handleLogout = async () => {
     await logout();
     router.replace('/');
@@ -28,7 +31,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
         position: 'sticky',
         top: 0,
         zIndex: 40,
-        background: 'white',
+        backgroundColor: 'var(--color-panel-solid)',
         borderBottom: '1px solid var(--gray-6)',
       }}
     >
@@ -62,25 +65,36 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
           <Flex align='center' gap='2'>
             {/* Desktop Search */}
             {!isMobile && (
-              <TextField.Root size='2' placeholder='Cari buku...' style={{ width: '300px' }}>
+              <TextField.Root
+                size='2'
+                placeholder='Cari buku...'
+                style={{
+                  width: '300px',
+                  backgroundColor: 'var(--color-surface)',
+                }}
+              >
                 <TextField.Slot>
                   <MagnifyingGlassIcon />
                 </TextField.Slot>
               </TextField.Root>
             )}
 
-            {/* Search icon – mobile only */}
+            {/* Mobile Search */}
             {isMobile && (
               <IconButton size='2' variant='soft' onClick={() => setSearchOpen(true)}>
                 <MagnifyingGlassIcon />
               </IconButton>
             )}
 
+            {/* Theme Toggle */}
+            <ThemeToggle variant='soft' />
+
             {/* Notification */}
             <Box style={{ position: 'relative' }}>
               <IconButton size='2' variant='soft'>
                 <BellIcon />
               </IconButton>
+
               <Badge
                 size='1'
                 color='red'
@@ -99,11 +113,16 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
                 <IconButton size='2' variant='soft' style={{ cursor: 'pointer' }}>
-                  <Avatar size='1' fallback={userName[0]} style={{ width: '100%', height: '100%' }} />
+                  <Avatar size='1' fallback={getInitials(session?.name)} />
                 </IconButton>
               </DropdownMenu.Trigger>
 
-              <DropdownMenu.Content align='end'>
+              <DropdownMenu.Content
+                align='end'
+                style={{
+                  backgroundColor: 'var(--color-panel-solid)',
+                }}
+              >
                 <DropdownMenu.Label>{userName}</DropdownMenu.Label>
                 <DropdownMenu.Separator />
 
@@ -117,7 +136,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
 
                 <DropdownMenu.Separator />
 
-                <DropdownMenu.Item color='red' onClick={() => handleLogout()}>
+                <DropdownMenu.Item color='red' onClick={handleLogout}>
                   <ExitIcon /> Keluar
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
@@ -132,9 +151,9 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'white',
             zIndex: 50,
             padding: '12px',
+            backgroundColor: 'var(--color-panel-solid)',
             borderBottom: '1px solid var(--gray-6)',
           }}
         >
@@ -143,7 +162,15 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
               <ChevronLeftIcon />
             </IconButton>
 
-            <TextField.Root autoFocus size='2' style={{ flex: 1 }} placeholder='Cari buku...'>
+            <TextField.Root
+              autoFocus
+              size='2'
+              style={{
+                flex: 1,
+                backgroundColor: 'var(--color-surface)',
+              }}
+              placeholder='Cari buku...'
+            >
               <TextField.Slot>
                 <MagnifyingGlassIcon />
               </TextField.Slot>

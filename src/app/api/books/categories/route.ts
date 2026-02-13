@@ -8,7 +8,7 @@ const categoryRepo = crudHelper({ table: 'categories', key: 'id_category' });
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
-  const { page, limit, search, orderBy, orderDir } = parseQuery(url);
+  const { page, limit, search, orderBy, orderDir = 'desc'} = parseQuery(url);
   const { data, meta } = await categoryRepo.paginate({
     page,
     limit,
@@ -27,8 +27,7 @@ export const POST = handleApi(async ({ req }) => {
     description: body.description,
   });
 
-  const newCategory = await categoryRepo.getById(result.insertId);
-  console.log(newCategory);
+  const newCategory = await categoryRepo.getById(result.id_category);
 
   return ok(newCategory, {
     message: 'Book created successfully',

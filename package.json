@@ -33,6 +33,7 @@
     "@tanstack/react-table": "^8.21.3",
     "bcryptjs": "^3.0.3",
     "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.29.0",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.16.1",

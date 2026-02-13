@@ -1,23 +1,15 @@
 'use client';
 
-import { Icon } from '@iconify/react';
-import { Button } from '@radix-ui/themes';
+import { SunIcon, MoonIcon } from '@radix-ui/react-icons';
+import { IconButton } from '@radix-ui/themes';
 import { useTheme } from '@/hooks/useTheme';
 
-export function ThemeToggle() {
+export function ThemeToggle({ variant = 'soft' }: { variant?: 'classic' | 'solid' | 'soft' | 'surface' | 'outline' | 'ghost' }) {
   const { toggleTheme, isDark } = useTheme();
 
   return (
-    <Button
-      variant="ghost"
-      onClick={toggleTheme}
-      // aria-label='Toggle theme'
-    >
-      <Icon
-        icon={isDark ? 'radix-icons:sun' : 'radix-icons:moon'}
-        width={18}
-        height={18}
-      />
-    </Button>
+    <IconButton size='2' variant={variant} onClick={toggleTheme} aria-label='Toggle theme'>
+      {isDark ? <SunIcon width='16' height='16' /> : <MoonIcon width='16' height='16' />}
+    </IconButton>
   );
 }

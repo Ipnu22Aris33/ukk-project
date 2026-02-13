@@ -4,12 +4,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { LoginInput, RegisterInput } from '@/lib/schemas/auth';
 
-type SessionUser = {
-  id_user: string;
-  email: string;
-  role: string;
-};
-
 export function useAuth() {
   const queryClient = useQueryClient();
 
@@ -18,7 +12,7 @@ export function useAuth() {
    * SESSION (QUERY)
    * ======================
    */
-  const sessionQuery = useQuery<SessionUser | null>({
+  const sessionQuery = useQuery({
     queryKey: ['session'],
     queryFn: async () => {
       const res = await fetch('/api/auth/session', {

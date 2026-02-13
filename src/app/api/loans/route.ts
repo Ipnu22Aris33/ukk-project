@@ -95,8 +95,8 @@ export const GET = handleApi(async ({ req }) => {
       `,
 
     joins: [
-      { type: 'LEFT', table: 'books b', on: 'b.id_book = l.book_id' },
-      { type: 'LEFT', table: 'members m', on: 'm.id_member = l.member_id' },
+      { type: 'INNER', table: 'books b', on: 'b.id_book = l.book_id' },
+      { type: 'INNER', table: 'members m', on: 'm.id_member = l.member_id' },
     ],
   });
 

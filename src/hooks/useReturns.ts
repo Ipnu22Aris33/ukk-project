@@ -1,3 +1,3 @@
 import { createResourceHook } from './createResourceHook';
 
-export const usereturns = createResourceHook('returns', '/api/returns');
+export const useReturns = createResourceHook('returns', '/api/returns');
