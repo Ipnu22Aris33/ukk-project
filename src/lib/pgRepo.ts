@@ -1,6 +1,10 @@
 import { Pool, PoolClient } from 'pg';
 import { pgPool } from './pg';
-
+import { dbMappings } from '@/config/dbMappings';
+// Type untuk semua repositori
+type AllRepos = {
+  [K in keyof typeof dbMappings]: PgRepo<any>;
+};
 type DB = Pool | PoolClient;
 
 type JoinType = 'INNER' | 'LEFT' | 'RIGHT';
@@ -633,39 +637,39 @@ export class PgRepo<T = any> {
    * @param callback - Function containing transaction operations
    * @returns Result of the callback
    */
-  async transaction<R>(callback: (repos: TransactionRepos<T>) => Promise<R>): Promise<R> {
+  async transaction<R>(callback: (repos: AllRepos) => Promise<R>): Promise<R> {
+    // Helper buat create repos
+    const createRepos = (db: any): AllRepos => {
+      // Gunakan Record untuk bypass read-only
+      const repos = {} as Record<keyof typeof dbMappings, PgRepo<any>>;
+
+      for (const [name, config] of Object.entries(dbMappings)) {
+        repos[name as keyof typeof dbMappings] = new PgRepo(
+          {
+            table: config.repo.table,
+            key: config.repo.key,
+            alias: config.repo.alias,
+            hasCreatedAt: config.repo.hasCreatedAt,
+            hasUpdatedAt: config.repo.hasUpdatedAt,
+            hasDeletedAt: config.repo.hasDeletedAt,
+          },
+          db
+        );
+      }
+
+      return repos as AllRepos;
+    };
+
     // If already in a transaction, reuse the connection
     if (this.db !== pgPool) {
-      const createRepo = <U>(repoConfig: CrudConfig) => new PgRepo<U>(repoConfig, this.db);
-
-      return callback({
-        current: this as PgRepo<T>,
-        createRepo,
-      });
+      return callback(createRepos(this.db));
     }
 
     const client = await pgPool.connect();
 
     try {
       await client.query('BEGIN');
-
-      const current = new PgRepo<T>(
-        {
-          table: this.table,
-          key: this.key,
-          alias: this.alias,
-          hasUpdatedAt: this.hasUpdatedAt,
-          hasDeletedAt: this.hasDeletedAt,
-          hasCreatedAt: this.hasCreatedAt,
-          softDelete: this.softDelete,
-        },
-        client
-      );
-
-      const createRepo = <U>(repoConfig: CrudConfig) => new PgRepo<U>(repoConfig, client);
-
-      const result = await callback({ current, createRepo });
-
+      const result = await callback(createRepos(client));
       await client.query('COMMIT');
       return result;
     } catch (err) {
@@ -699,16 +703,29 @@ export class PgRepo<T = any> {
    * Build where clause and parameters from where object
    */
   private buildWhereClause(where?: Record<string, any>): { clause: string; params: any[] } {
-    if (!where) {
+    if (!where || Object.keys(where).length === 0) {
       return { clause: '', params: [] };
+    }
+
+    // Support OR
+    if ('$or' in where && Array.isArray(where.$or)) {
+      const conditions = where.$or.map((condition: Record<string, any>, index: number) => {
+        const key = Object.keys(condition)[0];
+        return `${key} = $${index + 1}`;
+      });
+
+      const params = where.$or.map((condition: Record<string, any>) => Object.values(condition)[0]);
+
+      return {
+        clause: `WHERE (${conditions.join(' OR ')})`,
+        params,
+      };
     }
 
     const entries = Object.entries(where);
-    if (entries.length === 0) {
-      return { clause: '', params: [] };
-    }
 
     const conditions = entries.map(([key], index) => `${key} = $${index + 1}`);
+
     const params = entries.map(([, value]) => value);
 
     return {
@@ -746,19 +763,29 @@ export class PgRepo<T = any> {
    * Build where clause for GET operations that might have base condition + soft delete
    */
   private buildGetWhereClause(baseCondition: string, baseParams: any[]): { clause: string; params: any[] } {
-    if (!this.softDelete || !this.hasDeletedAt) {
-      return { clause: baseCondition, params: baseParams };
+    const tableRef = this.alias ?? this.table;
+    const cleanCondition = baseCondition.replace(/^WHERE\s+/i, '');
+
+    const hasBase = cleanCondition.trim().length > 0;
+
+    if (!hasBase) {
+      if (this.softDelete && this.hasDeletedAt) {
+        return {
+          clause: `WHERE ${tableRef}.deleted_at IS NULL`,
+          params: baseParams,
+        };
+      }
+      return { clause: '', params: baseParams };
     }
 
-    const tableRef = this.alias ?? this.table;
+    const baseWhereClause = `WHERE ${cleanCondition}`;
 
-    const softDeleteCondition = `${tableRef}.deleted_at IS NULL`;
+    const whereClause = this.softDelete && this.hasDeletedAt ? `${baseWhereClause} AND ${tableRef}.deleted_at IS NULL` : baseWhereClause;
 
-    const clause = baseCondition.includes('WHERE')
-      ? `${baseCondition} AND ${softDeleteCondition}`
-      : `WHERE ${baseCondition} AND ${softDeleteCondition}`;
-
-    return { clause, params: baseParams };
+    return {
+      clause: whereClause,
+      params: baseParams,
+    };
   }
 }
 

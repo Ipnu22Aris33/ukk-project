@@ -3,16 +3,7 @@ import { hashPassword } from '@/lib/auth';
 import { handleApi } from '@/lib/handleApi';
 import { Conflict, BadRequest } from '@/lib/httpErrors';
 import { PgRepo } from '@/lib/pgRepo';
-
-const userRepo = new PgRepo({
-  table: 'users',
-  key: 'id_user',
-  alias: 'u',
-  hasCreatedAt: true,
-  hasUpdatedAt: true,
-  hasDeletedAt: true,
-  softDelete: true,
-});
+import { userRepo } from '@/config/dbMappings';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
@@ -23,29 +14,23 @@ export const POST = handleApi(async ({ req }) => {
     throw new BadRequest('Required fields are missing');
   }
 
-  const result = await userRepo.transaction(async ({ current, createRepo }) => {
-    const memberRepo = createRepo({
-      table: 'members',
-      key: 'id_member',
-      alias: 'm',
-      hasDeletedAt: true,
-      softDelete: true,
-    });
-
-    // 🔎 Cek username
-    if (await current.exists({ username })) {
+  const result = await userRepo.transaction(async ({ users: userRepo, members: memberRepo }) => {
+    if (await userRepo.exists({ username })) {
       throw new Conflict('Username already registered');
     }
 
-    // 🔎 Cek email
-    if (await current.exists({ email })) {
+    if (await userRepo.exists({ email })) {
       throw new Conflict('Email already registered');
+    }
+
+    if (await memberRepo.exists({ nis })) {
+      throw new Conflict('NIS already registered');
     }
 
     const hashPw = await hashPassword(password);
 
-    const newUser = await current.create({
-      username, // ← WAJIB
+    const newUser = await userRepo.create({
+      username,
       email,
       password: hashPw,
       role: 'member',
@@ -61,7 +46,7 @@ export const POST = handleApi(async ({ req }) => {
       phone,
     });
 
-    return current.getById(newUser.id_user, {
+    return userRepo.getById(newUser.id_user, {
       select: `
         u.id_user,
         u.username,

@@ -4,15 +4,7 @@ import { crudHelper } from '@/lib/db/crudHelper';
 import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/httpErrors';
 import { parseQuery } from '@/lib/query';
 import { PgRepo } from '@/lib/pgRepo';
-
-const loanCrud = new PgRepo({
-  table: 'loans',
-  key: 'id_loan',
-  alias: 'l',
-  hasCreatedAt: true,
-  hasUpdatedAt: true,
-  hasDeletedAt: true,
-});
+import { loanRepo } from '@/config/dbMappings';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
@@ -23,10 +15,7 @@ export const POST = handleApi(async ({ req }) => {
     throw new BadRequest('member_id, book_id, and quantity are required');
   }
 
-  const result = await loanCrud.transaction(async ({ current, createRepo }) => {
-    const bookRepo = createRepo({ table: 'books', key: 'id_book' });
-    const memberRepo = createRepo({ table: 'members', key: 'id_member' });
-
+  const result = await loanRepo.transaction(async ({ loans: loanRepo, members: memberRepo, books: bookRepo }) => {
     const book = await bookRepo.existsById(book_id);
     if (!book) {
       throw new NotFound('Book not found');
@@ -37,7 +26,7 @@ export const POST = handleApi(async ({ req }) => {
       throw new NotFound('Member not found');
     }
 
-    const loan = await current.create({
+    const loan = await loanRepo.create({
       member_id,
       book_id,
       quantity,
@@ -55,7 +44,7 @@ export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
   const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
 
-  const { data, meta } = await loanCrud.paginate({
+  const { data, meta } = await loanRepo.paginate({
     page,
     limit,
     search,

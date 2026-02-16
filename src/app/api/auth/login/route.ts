@@ -4,25 +4,20 @@ import { ok } from '@/lib/apiResponse';
 import { crudHelper } from '@/lib/db/crudHelper';
 import { NotFound, UnprocessableEntity } from '@/lib/httpErrors';
 import { verifyPassword, createToken } from '@/lib/auth';
-
-const userCrud = crudHelper({
-  table: 'users',
-  key: 'id_user',
-});
+import { userRepo } from '@/config/dbMappings';
 
 export const POST = handleApi(async ({ req, res }) => {
-  const { email, password } = await req.json();
+  const { identifier, password } = await req.json();
 
-  if (!email || !password) {
+  if (!identifier || !password) {
     throw new UnprocessableEntity('Email and password are required');
   }
 
-  const user = await userCrud.getBy({ email });
+  const user = await userRepo.getBy({ $or: [{ email: identifier }, { username: identifier }] });
 
   if (!user) {
     throw new NotFound('User not found');
   }
-  
 
   const isValid = await verifyPassword(password, user.password);
   if (!isValid) {
