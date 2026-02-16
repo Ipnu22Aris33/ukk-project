@@ -44,7 +44,7 @@ export const PATCH = handleApi(async ({ req, params }) => {
     title: data.title,
     author: data.author,
     publisher: data.publisher,
-    category: data.category,
+    category_id: data.category_id,
     stock: data.stock,
   });
 

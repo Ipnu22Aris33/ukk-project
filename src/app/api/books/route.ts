@@ -1,29 +1,34 @@
 import { handleApi } from '@/lib/handleApi';
 import { ok } from '@/lib/apiResponse';
-import { crudHelper } from '@/lib/db/crudHelper';
+import { PgRepo } from '@/lib/pgRepo';
 import { slugify } from '@/lib/slugify';
 import { parseQuery } from '@/lib/query';
 
-const bookCrud = crudHelper({
+const bookRepo = new PgRepo({
   table: 'books',
   key: 'id_book',
   alias: 'b',
+  hasCreatedAt: true,
+  hasUpdatedAt: true,
+  hasDeletedAt: true
 });
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
-  const { page, limit, search, orderBy, orderDir= 'desc' } = parseQuery(url);
 
-  const { data, meta } = await bookCrud.paginate({
+  const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
+
+  const { data, meta } = await bookRepo.paginate({
     page,
     limit,
     search,
     orderBy,
     orderDir,
-    searchable: ['b.title', 'b.author', 'b.slug'],
+    searchable: ['b.title', 'b.author'],
+    sortable: ['b.created_at', 'b.title', 'b.year'],
     select: `
       b.*,
-      c.name as category
+      c.name AS category
     `,
     joins: [
       {
@@ -42,7 +47,8 @@ export const GET = handleApi(async ({ req }) => {
 
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
-  const result = await bookCrud.create({
+
+  const newBook = await bookRepo.create({
     title: body.title,
     author: body.author,
     slug: slugify(body.title),
@@ -50,10 +56,7 @@ export const POST = handleApi(async ({ req }) => {
     category_id: body.category_id,
     stock: body.stock,
     year: body.year,
-    isbn: body.isbn,
   });
-
-  const newBook = await bookCrud.getById(result.id_book);
 
   return ok(newBook, {
     message: 'Book created successfully',

@@ -12,9 +12,11 @@ import { useBooks } from '@/hooks/useBooks';
 import { useCategory } from '@/hooks/useCategory';
 import { Icon } from '@iconify/react';
 import type { ColumnDef } from '@tanstack/react-table';
+import { BookAlert } from './BookAlert';
+import { BookModal } from './BookModal';
 
 interface Book {
-  id_book: number;
+  id_book: string;
   title: string;
   author: string;
   publisher: string;
@@ -23,18 +25,7 @@ interface Book {
   year: number;
   isbn: string;
   category: number;
-  category_name?: string;
-}
-
-interface BookFormData {
-  title: string;
-  author: string;
-  publisher: string;
-  slug: string;
-  stock: number;
-  year: number;
-  isbn: string;
-  category_id: string;
+  category_id: number;
 }
 
 export function BookTable() {
@@ -47,7 +38,13 @@ export function BookTable() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
 
-  const { list, create } = useBooks({
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+
+  const { list, create, remove, update } = useBooks({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
@@ -82,16 +79,37 @@ export function BookTable() {
     col.textColumn('isbn', 'ISBN', { color: 'gray' }),
     col.textColumn('slug', 'Slug', { color: 'gray' }),
     col.numberColumn('stock', 'Stock'),
-    col.textColumn('category_name', 'Category'),
+    col.textColumn('category', 'Category'),
     col.actionsColumn({
       useDefault: true,
       handlers: {
-        view: (row) => console.log('View', row),
-        edit: (row) => console.log('Edit', row),
-        delete: (row) => console.log('Delete', row),
+        view: (row) => console.log('view', row),
+        edit: (row) => {
+          setSelectedBook(row);
+          setEditOpen(true);
+        },
+        delete: (row) => {
+          setSelectedId(row.id_book);
+          setDeleteOpen(true);
+        },
       },
     }),
   ];
+
+  const handleConfirmDelete = async () => {
+    if (!selectedId) return;
+
+    await remove.mutateAsync(selectedId);
+    setDeleteOpen(false);
+    setSelectedId(null);
+  };
+
+  const handleUpdate = async (data: any, id: string) => {
+    await update.mutateAsync({ id, ...data });
+    setEditOpen(false);
+    setSelectedBook(null);
+    refetch();
+  };
 
   const { table } = useDataTable({
     data: tableData,
@@ -173,24 +191,16 @@ export function BookTable() {
           >
             <Box className='space-y-4'>
               <form.Field name='title'>
-                {(field) => <InputField field={field} label='Title' placeholder='Enter book title...'  icon={<Icon icon='mdi:book' />} />}
+                {(field) => <InputField field={field} label='Title' placeholder='Enter book title...' icon={<Icon icon='mdi:book' />} />}
               </form.Field>
 
               <form.Field name='author'>
-                {(field) => (
-                  <InputField field={field} label='Author' placeholder='Enter author name...'  icon={<Icon icon='mdi:account-edit' />} />
-                )}
+                {(field) => <InputField field={field} label='Author' placeholder='Enter author name...' icon={<Icon icon='mdi:account-edit' />} />}
               </form.Field>
 
               <form.Field name='publisher'>
                 {(field) => (
-                  <InputField
-                    field={field}
-                    label='Publisher'
-                    placeholder='Enter publisher name...'
-                    
-                    icon={<Icon icon='mdi:office-building' />}
-                  />
+                  <InputField field={field} label='Publisher' placeholder='Enter publisher name...' icon={<Icon icon='mdi:office-building' />} />
                 )}
               </form.Field>
 
@@ -203,7 +213,7 @@ export function BookTable() {
                   },
                 }}
               >
-                {(field) => <InputField field={field} label='ISBN' placeholder='Enter ISBN number...'  icon={<Icon icon='mdi:barcode' />} />}
+                {(field) => <InputField field={field} label='ISBN' placeholder='Enter ISBN number...' icon={<Icon icon='mdi:barcode' />} />}
               </form.Field>
 
               <form.Field
@@ -217,14 +227,7 @@ export function BookTable() {
                 }}
               >
                 {(field) => (
-                  <InputField
-                    field={field}
-                    label='Year'
-                    type='number'
-                    placeholder='Enter publication year...'
-                    
-                    icon={<Icon icon='mdi:calendar' />}
-                  />
+                  <InputField field={field} label='Year' type='number' placeholder='Enter publication year...' icon={<Icon icon='mdi:calendar' />} />
                 )}
               </form.Field>
 
@@ -297,6 +300,17 @@ export function BookTable() {
         <DataTableBody />
         <DataTableFooter />
       </Flex>
+      <BookAlert open={deleteOpen} onOpenChange={setDeleteOpen} onConfirm={handleConfirmDelete} loading={remove.isPending} />
+      <BookModal
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        book={selectedBook}
+        onSubmit={handleUpdate}
+        loading={update.isPending}
+        categoryOptions={categoryOptions}
+        categorySearch={categorySearch}
+        setCategorySearch={setCategorySearch}
+      />
     </DataTableProvider>
   );
 }

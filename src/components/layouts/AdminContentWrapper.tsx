@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 import { Grid, GridProps } from '@radix-ui/themes';
 
-type AdminContentWrapperProps = Omit<GridProps, 'columns' | 'gap'> & {
+type AdminContentWrapperProps = Omit<GridProps, 'columns' | 'gap' | 'as'> & {
   children: ReactNode;
   columns?: GridProps['columns'];
   gap?: GridProps['gap'];

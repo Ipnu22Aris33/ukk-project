@@ -20,7 +20,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 // ============================================
 
 interface Category {
-  id_category: number;
+  id_category: string;
   name: string;
   slug: string;
   description?: string;
@@ -44,7 +44,7 @@ export function CategoryTable() {
   // =========================
   // FETCH DATA
   // =========================
-  const { list } = useCategory({
+  const { list, remove, create } = useCategory({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
@@ -71,7 +71,7 @@ export function CategoryTable() {
       handlers: {
         view: (row) => console.log('View', row),
         edit: (row) => console.log('Edit', row),
-        delete: (row) => console.log('Delete', row),
+        delete: (row) => remove.mutateAsync(row.id_category),
       },
     }),
   ];
@@ -118,7 +118,7 @@ export function CategoryTable() {
   const dataTableState = {
     table,
     pagination,
-    setPagination, // ✅ WAJIB
+    setPagination,
     search,
     setSearch,
     meta: metaData,

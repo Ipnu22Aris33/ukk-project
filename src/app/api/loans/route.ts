@@ -3,34 +3,33 @@ import { ok } from '@/lib/apiResponse';
 import { crudHelper } from '@/lib/db/crudHelper';
 import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/httpErrors';
 import { parseQuery } from '@/lib/query';
+import { PgRepo } from '@/lib/pgRepo';
 
-const loanCrud = crudHelper({
+const loanCrud = new PgRepo({
   table: 'loans',
   key: 'id_loan',
   alias: 'l',
+  hasCreatedAt: true,
+  hasUpdatedAt: true,
+  hasDeletedAt: true,
 });
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
 
-  // Validasi input
-  const { member_id, book_id, count } = data;
-  if (!member_id || !book_id || !count) {
-    throw new BadRequest('member_id, book_id, and count are required');
+  const { member_id, book_id, quantity, notes } = data;
+
+  if (!member_id || !book_id || !quantity) {
+    throw new BadRequest('member_id, book_id, and quantity are required');
   }
 
   const result = await loanCrud.transaction(async ({ current, createRepo }) => {
     const bookRepo = createRepo({ table: 'books', key: 'id_book' });
     const memberRepo = createRepo({ table: 'members', key: 'id_member' });
 
-    // Lock book untuk stock aman
-    const book = (await bookRepo.lockById(book_id)) as any;
+    const book = await bookRepo.existsById(book_id);
     if (!book) {
       throw new NotFound('Book not found');
-    }
-
-    if (book.stock < count) {
-      throw new UnprocessableEntity('Not enough stock');
     }
 
     const member = await memberRepo.existsById(member_id);
@@ -38,28 +37,18 @@ export const POST = handleApi(async ({ req }) => {
       throw new NotFound('Member not found');
     }
 
-    const now = new Date();
-    const dueDate = new Date(now);
-    dueDate.setDate(now.getDate() + 7);
-
-    // Buat loan baru
-    const loanResult = await current.create({
+    const loan = await current.create({
       member_id,
       book_id,
-      count,
-      loan_date: now,
-      due_date: dueDate,
-      status: 'borrowed',
+      quantity,
+      status: 'pending',
+      notes,
     });
 
-    await bookRepo.updateById(book_id, { stock: book.stock - count });
-
-    const newLoan = await current.getById(loanResult.insertId);
-
-    return newLoan;
+    return loan;
   });
 
-  return ok(result, { message: 'Book borrowed successfully' });
+  return ok(result, { message: 'Loan request submitted successfully' });
 });
 
 export const GET = handleApi(async ({ req }) => {
@@ -72,27 +61,29 @@ export const GET = handleApi(async ({ req }) => {
     search,
     orderBy,
     orderDir,
-    searchable: ['b.title', 'm.name'],
+    searchable: ['b.title', 'm.full_name'],
 
     select: `
-        l.id_loan,
-        l.count,
-        l.loan_date,
-        l.due_date,
-        l.status,
+      l.id_loan,
+      l.quantity,
+      l.status,
+      l.requested_at,
+      l.approved_at,
+      l.borrowed_at,
+      l.due_date,
+      l.notes,
 
-        b.id_book   AS book_id,
-        b.title     AS book_title,
-        b.author    AS book_author,
-        b.publisher AS book_publisher,
-        b.category_id  AS book_category,
+      b.id_book   AS book_id,
+      b.title     AS book_title,
+      b.author    AS book_author,
+      b.publisher AS book_publisher,
+      b.category_id AS book_category,
 
-        m.id_member AS member_id,
-        m.name      AS member_name,
-        m.phone     AS member_phone,
-        m.class     AS member_class,
-        m.major     AS member_major
-      `,
+      m.id_member AS member_id,
+      m.full_name      AS member_name,
+      m.phone     AS member_phone,
+      m.class     AS member_class
+    `,
 
     joins: [
       { type: 'INNER', table: 'books b', on: 'b.id_book = l.book_id' },

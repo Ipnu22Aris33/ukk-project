@@ -1,35 +1,54 @@
 import { ok } from '@/lib/apiResponse';
-import { crudHelper } from '@/lib/db/crudHelper';
 import { handleApi } from '@/lib/handleApi';
+import { PgRepo } from '@/lib/pgRepo';
 import { parseQuery } from '@/lib/query';
 import { slugify } from '@/lib/slugify';
 
-const categoryRepo = crudHelper({ table: 'categories', key: 'id_category' });
+const categoryRepo = new PgRepo({
+  table: 'categories',
+  key: 'id_category',
+  alias: 'c',
+  hasCreatedAt: true,
+  hasUpdatedAt: true,
+  hasDeletedAt: true,
+  softDelete: true, // penting kalau ada deleted_at
+});
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
-  const { page, limit, search, orderBy, orderDir = 'desc'} = parseQuery(url);
+  const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
+
   const { data, meta } = await categoryRepo.paginate({
     page,
     limit,
     search,
     orderBy,
     orderDir,
+    searchable: ['c.name', 'c.slug'],
+    sortable: ['c.id_category', 'c.name', 'c.created_at'],
+    select: `
+      c.id_category,
+      c.name,
+      c.slug,
+      c.description,
+      c.created_at,
+      c.updated_at
+    `,
   });
+
   return ok(data, { meta });
 });
 
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
+
   const result = await categoryRepo.create({
     name: body.name,
     slug: slugify(body.name),
     description: body.description,
   });
 
-  const newCategory = await categoryRepo.getById(result.id_category);
-
-  return ok(newCategory, {
-    message: 'Book created successfully',
+  return ok(result, {
+    message: 'Category created successfully',
   });
 });

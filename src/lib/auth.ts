@@ -4,7 +4,6 @@ import { InternalServerError } from './httpErrors';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
-console.log(JWT_EXPIRES_IN)
 
 interface TokenPayload extends JwtPayload {
   sub: string;
@@ -16,7 +15,7 @@ export const hashPassword = (p: string) => bcrypt.hash(p, 10);
 export const verifyPassword = (p: string, h: string) => bcrypt.compare(p, h);
 
 export function createToken(payload: TokenPayload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: (JWT_EXPIRES_IN || '7d') as any });
 }
 
 export function verifyToken(token: string): TokenPayload {

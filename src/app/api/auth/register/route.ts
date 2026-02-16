@@ -1,59 +1,79 @@
 import { ok } from '@/lib/apiResponse';
 import { hashPassword } from '@/lib/auth';
-import { crudHelper } from '@/lib/db/crudHelper';
 import { handleApi } from '@/lib/handleApi';
-import { Conflict } from '@/lib/httpErrors';
-import crypto from 'crypto'
+import { Conflict, BadRequest } from '@/lib/httpErrors';
+import { PgRepo } from '@/lib/pgRepo';
 
-const userCrud = crudHelper({
+const userRepo = new PgRepo({
   table: 'users',
   key: 'id_user',
   alias: 'u',
+  hasCreatedAt: true,
+  hasUpdatedAt: true,
+  hasDeletedAt: true,
+  softDelete: true,
 });
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
 
-  const result = await userCrud.transaction(async ({ current, createRepo }) => {
+  const { username, email, password, nis, full_name, class: className, address, phone } = data;
+
+  if (!username || !email || !password || !nis || !full_name) {
+    throw new BadRequest('Required fields are missing');
+  }
+
+  const result = await userRepo.transaction(async ({ current, createRepo }) => {
     const memberRepo = createRepo({
       table: 'members',
       key: 'id_member',
       alias: 'm',
+      hasDeletedAt: true,
+      softDelete: true,
     });
 
-    const userExist = await current.exists({ email: data.email });
-    if (userExist) {
+    // 🔎 Cek username
+    if (await current.exists({ username })) {
+      throw new Conflict('Username already registered');
+    }
+
+    // 🔎 Cek email
+    if (await current.exists({ email })) {
       throw new Conflict('Email already registered');
     }
 
-    const hashPw = await hashPassword(data.password);
+    const hashPw = await hashPassword(password);
+
     const newUser = await current.create({
-      email: data.email,
+      username, // ← WAJIB
+      email,
       password: hashPw,
       role: 'member',
+      status: 'active',
     });
-    const member_code = 'MBR-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
     await memberRepo.create({
       user_id: newUser.id_user,
-      name: data.name,
-      class: data.class,
-      major: data.major,
-      phone: data.phone,
-      member_code: member_code
+      nis,
+      full_name,
+      class: className,
+      address,
+      phone,
     });
 
     return current.getById(newUser.id_user, {
       select: `
-          u.id_user,
-          u.email,
-          u.role,
-          m.id_member,
-          m.name,
-          m.class,
-          m.major,
-          m.phone
-        `,
+        u.id_user,
+        u.username,
+        u.email,
+        u.role,
+        u.status,
+        m.id_member,
+        m.nis,
+        m.full_name,
+        m.class,
+        m.phone
+      `,
       joins: [
         {
           table: 'members m',
@@ -65,6 +85,6 @@ export const POST = handleApi(async ({ req }) => {
   });
 
   return ok(result, {
-    message: 'User registered successfully',
+    message: 'Member registered successfully',
   });
 });

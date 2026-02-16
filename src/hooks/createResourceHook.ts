@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { ApiResponse } from '@/lib/apiResponse';
+import { HttpError } from '@/lib/httpErrors';
 import { toast } from 'sonner';
 
 /* =======================
@@ -24,230 +25,175 @@ type BasePayload = Record<string, any>;
 
 type ResourceOptions = {
   searchParam?: string;
+
+  // Custom messages (opsional)
   messages?: {
-    create?: {
-      success?: string;
-      error?: string;
-    };
-    update?: {
-      success?: string;
-      error?: string;
-    };
-    delete?: {
-      success?: string;
-      error?: string;
-    };
+    create?: string;
+    update?: string;
+    delete?: string;
   };
+
+  // Matikan toast jika tidak ingin
+  disableToasts?: boolean;
+
+  // Query options
+  staleTime?: number;
+  gcTime?: number;
 };
 
 /* =======================
  * FACTORY HOOK
  * ======================= */
 
-export function createResourceHook<TPayload extends BasePayload = any, TListResponse = any>(
+export function createResourceHook<TPayload extends BasePayload = any, TListResponse = any, TSingleResponse = any>(
   resourceName: string,
   baseApi: string,
   options: ResourceOptions = {}
 ) {
-  const { searchParam = 'search', messages = {} } = options;
+  const {
+    searchParam = 'search',
+    messages = {},
+    disableToasts = false,
+    staleTime = 1000 * 60 * 5, // 5 menit
+    gcTime = 1000 * 60 * 10, // 10 menit
+  } = options;
 
-  return function useResource({ page, limit, search = '', orderBy, orderDir = 'asc', debounceMs = 400 }: ListParams) {
+  return function useResource(params: ListParams) {
+    const { page, limit, search = '', orderBy, orderDir = 'asc', debounceMs = 400 } = params;
     const qc = useQueryClient();
-
     const [debouncedSearch, setDebouncedSearch] = useState(search);
 
     useEffect(() => {
-      const timer = setTimeout(() => {
-        setDebouncedSearch(search);
-      }, debounceMs);
-
+      const timer = setTimeout(() => setDebouncedSearch(search), debounceMs);
       return () => clearTimeout(timer);
     }, [search, debounceMs]);
 
-    /* =======================
-     * LIST QUERY
-     * ======================= */
+    // Helper fetch
+    const fetchApi = async <T>(url: string, options?: RequestInit): Promise<ApiResponse<T>> => {
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        // Throw HttpError dengan message dari API
+        throw new HttpError(data.status || res.status, data.message || 'Request failed');
+      }
+
+      return data;
+    };
+
+    // Query keys
+    const queryKeys = {
+      list: [resourceName, 'list', { page, limit, search: debouncedSearch, orderBy, orderDir }],
+      detail: (id: string) => [resourceName, 'detail', id],
+    };
+
+    // LIST
     const list = useQuery<ApiResponse<TListResponse>>({
-      queryKey: [resourceName, page, limit, debouncedSearch, orderBy, orderDir],
+      queryKey: queryKeys.list,
       queryFn: async () => {
         const qs = new URLSearchParams({
           page: String(page),
           limit: String(limit),
         });
 
-        if (debouncedSearch) {
-          qs.append(searchParam, debouncedSearch);
-        }
-
+        if (debouncedSearch) qs.append(searchParam, debouncedSearch);
         if (orderBy) {
           qs.append('orderBy', orderBy);
           qs.append('orderDir', orderDir);
         }
 
-        const res = await fetch(`${baseApi}?${qs.toString()}`, {
-          credentials: 'include',
-        });
-
-        const data: ApiResponse<TListResponse> = await res.json();
-
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || `Failed fetch ${resourceName}`);
-        }
-
-        return data;
+        return fetchApi<TListResponse>(`${baseApi}?${qs}`);
       },
       placeholderData: keepPreviousData,
+      staleTime,
+      gcTime,
     });
 
-    /* =======================
-     * CREATE
-     * ======================= */
-    const create = useMutation<ApiResponse, Error, TPayload>({
-      mutationFn: async (payload: TPayload) => {
-        const res = await fetch(baseApi, {
+    // GET ONE
+    const getOne = (id: string, enabled = true) =>
+      useQuery<ApiResponse<TSingleResponse>>({
+        queryKey: queryKeys.detail(id),
+        queryFn: () => fetchApi<TSingleResponse>(`${baseApi}/${id}`),
+        enabled: !!id && enabled,
+        staleTime,
+        gcTime,
+      });
+
+    // CREATE
+    const create = useMutation<ApiResponse, HttpError, TPayload>({
+      mutationFn: (payload) =>
+        fetchApi(baseApi, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
-          credentials: 'include',
-        });
-
-        const data: ApiResponse = await res.json();
-
-        if (!res.ok || !data.success) {
-          // Buat error dengan data dari response
-          const error = new Error(data.message || messages.create?.error || `Create ${resourceName} failed`);
-          (error as any).response = { data };
-          throw error;
-        }
-
-        return data;
-      },
+        }),
       onSuccess: (data) => {
-        const message = messages.create?.success || data?.message;
-        if (message) {
-          toast.success(message);
+        if (!disableToasts) {
+          toast.success(messages.create || data.message || 'Created successfully');
         }
         qc.invalidateQueries({ queryKey: [resourceName] });
       },
-      onError: (error: any) => {
-        // Handle validation errors
-        if (error?.response?.data?.errors) {
-          const validationErrors = error.response.data.errors;
-          if (Array.isArray(validationErrors)) {
-            // Tampilkan semua error validation
-            validationErrors.forEach((err: any) => {
-              toast.error(err.message || 'Validation error');
-            });
-          } else {
-            toast.error('Validation error');
-          }
-        } else {
+      onError: (error) => {
+        if (!disableToasts) {
           toast.error(error.message);
         }
       },
     });
 
-    /* =======================
-     * UPDATE
-     * ======================= */
-    const update = useMutation<ApiResponse, Error, TPayload & { id: string }>({
-      mutationFn: async ({ id, ...payload }) => {
-        const res = await fetch(`${baseApi}/${id}`, {
+    // UPDATE
+    const update = useMutation<ApiResponse, HttpError, TPayload & { id: string }>({
+      mutationFn: ({ id, ...payload }) =>
+        fetchApi(`${baseApi}/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
-          credentials: 'include',
-        });
-
-        const data: ApiResponse = await res.json();
-
-        if (!res.ok || !data.success) {
-          const error = new Error(data.message || messages.update?.error || `Update ${resourceName} failed`);
-          (error as any).response = { data };
-          throw error;
-        }
-
-        return data;
-      },
-      onSuccess: (data) => {
-        const message = messages.update?.success || data?.message;
-        if (message) {
-          toast.success(message);
+        }),
+      onSuccess: (data, variables) => {
+        if (!disableToasts) {
+          toast.success(messages.update || data.message || 'Updated successfully');
         }
         qc.invalidateQueries({ queryKey: [resourceName] });
+        qc.invalidateQueries({ queryKey: queryKeys.detail(variables.id) });
       },
-      onError: (error: any) => {
-        if (error?.response?.data?.errors) {
-          const validationErrors = error.response.data.errors;
-          if (Array.isArray(validationErrors)) {
-            validationErrors.forEach((err: any) => {
-              toast.error(err.message || 'Validation error');
-            });
-          } else {
-            toast.error('Validation error');
-          }
-        } else {
+      onError: (error) => {
+        if (!disableToasts) {
           toast.error(error.message);
         }
       },
     });
 
-    /* =======================
-     * DELETE
-     * ======================= */
-    const remove = useMutation<ApiResponse, Error, string>({
-      mutationFn: async (id: string) => {
-        const res = await fetch(`${baseApi}/${id}`, {
+    // DELETE
+    const remove = useMutation<ApiResponse, HttpError, string>({
+      mutationFn: (id) =>
+        fetchApi(`${baseApi}/${id}`, {
           method: 'DELETE',
-          credentials: 'include',
-        });
-
-        // Untuk DELETE, mungkin return 204 No Content
-        if (res.status === 204) {
-          return { success: true, message: 'Deleted successfully' };
-        }
-
-        const data: ApiResponse = await res.json();
-
-        if (!res.ok || !data.success) {
-          const error = new Error(data.message || messages.delete?.error || `Delete ${resourceName} failed`);
-          (error as any).response = { data };
-          throw error;
-        }
-
-        return data;
-      },
-      onSuccess: (data) => {
-        const message = messages.delete?.success || data?.message;
-        if (message) {
-          toast.success(message);
+        }),
+      onSuccess: (data, id) => {
+        if (!disableToasts) {
+          toast.success(messages.delete || data.message || 'Deleted successfully');
         }
         qc.invalidateQueries({ queryKey: [resourceName] });
+        qc.removeQueries({ queryKey: queryKeys.detail(id) });
       },
-      onError: (error: any) => {
-        if (error?.response?.data?.errors) {
-          const validationErrors = error.response.data.errors;
-          if (Array.isArray(validationErrors)) {
-            validationErrors.forEach((err: any) => {
-              toast.error(err.message || 'Validation error');
-            });
-          } else {
-            toast.error('Validation error');
-          }
-        } else {
+      onError: (error) => {
+        if (!disableToasts) {
           toast.error(error.message);
         }
       },
     });
 
-    /* =======================
-     * RETURN
-     * ======================= */
     return {
       list,
+      getOne,
       create,
       update,
       remove,
+
+      // Helper
+      invalidateList: () => qc.invalidateQueries({ queryKey: [resourceName, 'list'] }),
     };
   };
 }
