@@ -1,10 +1,9 @@
 import { ok } from '@/lib/utils/apiResponse';
 import { hashPassword } from '@/lib/utils/auth';
-import { crudHelper } from '@/lib/db/crudHelper';
 import { handleApi } from '@/lib/utils/handleApi';
 import { Conflict } from '@/lib/utils/httpErrors';
 import { parseQuery } from '@/lib/utils/parseQuery';
-import { createMemberSchema, createMemberType } from '@/lib/schemas/member.schema';
+import { createMemberSchema } from '@/lib/schemas/member.schema';
 import crypto from 'crypto';
 import { userRepo, memberRepo } from '@/config/dbRepo';
 import { withTransaction } from '@/lib/db/withTransaction';
@@ -33,7 +32,7 @@ export const POST = handleApi(async ({ req }) => {
 
   const result = await withTransaction(async () => {
     // cek email
-    if (await userRepo.exists({ 'u.email': parsedData.email })) {
+    if (await userRepo.exists({ email: parsedData.email })) {
       throw new Conflict('Email already registered');
     }
 
@@ -45,6 +44,7 @@ export const POST = handleApi(async ({ req }) => {
     // insert user
     const newUser = await userRepo.insertOne(
       mapDb('users', {
+        username: parsedData.username,
         email: parsedData.email,
         password: passwordHash,
         role: 'member',
@@ -57,9 +57,8 @@ export const POST = handleApi(async ({ req }) => {
         fullName: parsedData.full_name,
         memberCode,
         phone: parsedData.phone,
-        class: parsedData.class,
-        // major: parsedData.major,
-        status: 'active',
+        memberClass: parsedData.member_class,
+        major: parsedData.major,
         userId: newUser.id_user,
       })
     );

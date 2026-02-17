@@ -1,19 +1,15 @@
 import { handleApi } from '@/lib/utils/handleApi';
-import { NextRequest, NextResponse } from 'next/server';
 import { ok } from '@/lib/utils/apiResponse';
-import { crudHelper } from '@/lib/db/crudHelper';
 import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
 import { verifyPassword, createToken } from '@/lib/utils/auth';
-import { userRepo } from '@/config/dbMappings';
+import { userRepo } from '@/config/dbRepo';
+import { validateLogin } from '@/lib/models/auth';
 
 export const POST = handleApi(async ({ req, res }) => {
-  const { identifier, password } = await req.json();
+  const data = await req.json();
+  const { password, identifier } = validateLogin(data);
 
-  if (!identifier || !password) {
-    throw new UnprocessableEntity('Email and password are required');
-  }
-
-  const user = await userRepo.getBy({ $or: [{ email: identifier }, { username: identifier }] });
+  const user = await userRepo.findOne({ OR: [{ email: identifier }, { username: identifier }] });
 
   if (!user) {
     throw new NotFound('User not found');

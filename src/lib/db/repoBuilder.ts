@@ -31,6 +31,8 @@ export type PaginateResult<T> = {
     hasPrev: boolean;
     hasNext: boolean;
     search: string | null;
+    orderBy: string;
+    orderDir: string;
   };
 };
 
@@ -176,12 +178,7 @@ export class RepoBuilder<T = any> {
     // Hitung total parameter sebelum WHERE
     const totalCaseParams = columns.length * items.length * 2;
 
-    const values = columns.flatMap((col) =>
-      items.flatMap((item) => [
-        item[this.pk],
-        item[col as keyof T],
-      ])
-    );
+    const values = columns.flatMap((col) => items.flatMap((item) => [item[this.pk], item[col as keyof T]]));
 
     const setClause = columns
       .map((col, colIndex) => {
@@ -297,25 +294,61 @@ export class RepoBuilder<T = any> {
     const page = opts.page ?? 1;
     const limit = opts.limit ?? 10;
     const offset = (page - 1) * limit;
-    const selectClause = Array.isArray(opts.select) ? opts.select.join(', ') : (opts.select ?? '*');
-    const joinClause = this.buildJoinClause(opts.joins);
-    const { sql: whereSql, values } = this.buildWhere(opts.where);
 
-    const searchClause = opts.search && opts.searchable?.length ? `(${opts.searchable.map((f, i) => `${f} ILIKE $${i + 1}`).join(' OR ')})` : '';
+    const selectClause = Array.isArray(opts.select) ? opts.select.join(', ') : (opts.select ?? '*');
+
+    const joinClause = this.buildJoinClause(opts.joins);
+
+    const { sql: whereSql, values: whereValues } = this.buildWhere(opts.where);
+
+    // ===== SEARCH FIX (NO PARAM CONFLICT) =====
+    const searchStartIndex = whereValues.length;
+
+    const searchClause =
+      opts.search && opts.searchable?.length
+        ? `(${opts.searchable.map((field, i) => `${field} ILIKE $${searchStartIndex + i + 1}`).join(' OR ')})`
+        : '';
+
     const searchValues = opts.search && opts.searchable?.length ? opts.searchable.map(() => `%${opts.search}%`) : [];
 
     const finalWhere = whereSql ? (searchClause ? `${whereSql} AND ${searchClause}` : whereSql) : searchClause ? `WHERE ${searchClause}` : '';
-    const finalValues = [...values, ...searchValues];
 
-    const orderBy = opts.orderBy ?? `${this.alias ?? this.table}.${this.pk}`;
-    const orderDir = opts.orderDir === 'desc' ? 'DESC' : 'ASC';
+    const finalValues = [...whereValues, ...searchValues];
 
-    const countQuery = `SELECT COUNT(*)::int AS total FROM ${this.tableWithAlias} ${joinClause} ${finalWhere}`;
+    // ===== ORDER FIX =====
+    const defaultOrder = `${this.alias ?? this.table}.${this.pk}`;
+
+    const orderBy =
+      opts.orderBy && opts.sortable?.length
+        ? (opts.sortable.find((s) => s === opts.orderBy || s.endsWith(`.${opts.orderBy}`)) ?? defaultOrder)
+        : defaultOrder;
+
+    const orderDir = opts.orderDir?.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    // ===== COUNT QUERY =====
+    const countQuery = `
+    SELECT COUNT(*)::int AS total
+    FROM ${this.tableWithAlias}
+    ${joinClause}
+    ${finalWhere}
+  `;
+
     const countResult = await this.pool.query(countQuery, finalValues);
+
     const total = countResult.rows[0]?.total ?? 0;
     const totalPages = Math.ceil(total / limit);
 
-    const dataQuery = `SELECT ${selectClause} FROM ${this.tableWithAlias} ${joinClause} ${finalWhere} ORDER BY ${orderBy} ${orderDir} LIMIT $${finalValues.length + 1} OFFSET $${finalValues.length + 2}`;
+    // ===== DATA QUERY =====
+    const dataQuery = `
+    SELECT ${selectClause}
+    FROM ${this.tableWithAlias}
+    ${joinClause}
+    ${finalWhere}
+    ORDER BY ${orderBy} ${orderDir}
+    LIMIT $${finalValues.length + 1}
+    OFFSET $${finalValues.length + 2}
+  `;
+
     const dataResult = await this.pool.query(dataQuery, [...finalValues, limit, offset]);
 
     return {
@@ -328,6 +361,8 @@ export class RepoBuilder<T = any> {
         hasPrev: page > 1,
         hasNext: page < totalPages,
         search: opts.search ?? null,
+        orderBy,
+        orderDir,
       },
     };
   }
@@ -369,12 +404,92 @@ export class RepoBuilder<T = any> {
       .join(' ');
   }
 
-  private buildWhere(where?: Record<string, any>, startIdx = 1) {
-    if (!where || !Object.keys(where).length) return { sql: '', values: [] };
-    const keys = Object.keys(where);
-    const values = Object.values(where);
-    const clauses = keys.map((k, i) => (Array.isArray(values[i]) ? `${k} = ANY($${i + startIdx}::int[])` : `${k}=$${i + startIdx}`));
-    return { sql: `WHERE ${clauses.join(' AND ')}`, values };
+  private buildWhere(where?: Record<string, any>, startIdx = 1): { sql: string; values: any[] } {
+    if (!where || !Object.keys(where).length) {
+      return { sql: '', values: [] };
+    }
+
+    const process = (conditions: Record<string, any>, index: number): { clause: string; values: any[]; nextIndex: number } => {
+      return Object.entries(conditions).reduce(
+        (acc, [key, value]) => {
+          // ===== OR SUPPORT =====
+          if (key === 'OR' && Array.isArray(value)) {
+            const orResult = value.reduce(
+              (orAcc, cond) => {
+                const res = process(cond, orAcc.nextIndex);
+
+                return {
+                  clauses: [...orAcc.clauses, `(${res.clause})`],
+                  values: [...orAcc.values, ...res.values],
+                  nextIndex: res.nextIndex,
+                };
+              },
+              { clauses: [] as string[], values: [] as any[], nextIndex: acc.nextIndex }
+            );
+
+            const clause = `(${orResult.clauses.join(' OR ')})`;
+
+            return {
+              clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
+              values: [...acc.values, ...orResult.values],
+              nextIndex: orResult.nextIndex,
+            };
+          }
+
+          // ===== NULL SUPPORT =====
+          if (value === null) {
+            const clause = `${key} IS NULL`;
+
+            return {
+              clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
+              values: acc.values,
+              nextIndex: acc.nextIndex,
+            };
+          }
+
+          // ===== NOT NULL SUPPORT =====
+          if (value === '__NOT_NULL__') {
+            const clause = `${key} IS NOT NULL`;
+
+            return {
+              clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
+              values: acc.values,
+              nextIndex: acc.nextIndex,
+            };
+          }
+
+          const paramIndex = acc.nextIndex;
+
+          // ===== ARRAY (IN) SUPPORT =====
+          if (Array.isArray(value)) {
+            const clause = `${key} = ANY($${paramIndex})`;
+
+            return {
+              clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
+              values: [...acc.values, value],
+              nextIndex: acc.nextIndex + 1,
+            };
+          }
+
+          // ===== DEFAULT "=" =====
+          const clause = `${key} = $${paramIndex}`;
+
+          return {
+            clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
+            values: [...acc.values, value],
+            nextIndex: acc.nextIndex + 1,
+          };
+        },
+        { clause: '', values: [] as any[], nextIndex: index }
+      );
+    };
+
+    const { clause, values } = process(where, startIdx);
+
+    return {
+      sql: clause ? `WHERE ${clause}` : '',
+      values,
+    };
   }
 
   private buildSetClause(data: Partial<T>) {

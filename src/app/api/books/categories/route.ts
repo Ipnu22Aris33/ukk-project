@@ -1,18 +1,10 @@
 import { ok } from '@/lib/utils/apiResponse';
 import { handleApi } from '@/lib/utils/handleApi';
-import { PgRepo } from '@/lib/pgRepo';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { slugify } from '@/lib/utils/slugify';
-
-const categoryRepo = new PgRepo({
-  table: 'categories',
-  key: 'id_category',
-  alias: 'c',
-  hasCreatedAt: true,
-  hasUpdatedAt: true,
-  hasDeletedAt: true,
-  softDelete: true, // penting kalau ada deleted_at
-});
+import { categoryRepo } from '@/config/dbRepo';
+import { col, mapDb } from '@/config/dbMappings';
+import { validateCreateCategory } from '@/lib/models/category';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
@@ -24,16 +16,17 @@ export const GET = handleApi(async ({ req }) => {
     search,
     orderBy,
     orderDir,
-    searchable: ['c.name', 'c.slug'],
-    sortable: ['c.id_category', 'c.name', 'c.created_at'],
-    select: `
-      c.id_category,
-      c.name,
-      c.slug,
-      c.description,
-      c.created_at,
-      c.updated_at
-    `,
+    where: { deleted_at: null},
+    searchable: [col('categories', 'name'), col('categories', 'slug')],
+    sortable: [col('categories', 'id'), col('categories', 'name'), col('categories', 'createdAt')],
+    select: [
+      col('categories', 'id'),
+      col('categories', 'name'),
+      col('categories', 'slug'),
+      col('categories', 'description'),
+      col('categories', 'createdAt'),
+      col('categories', 'updatedAt'),
+    ],
   });
 
   return ok(data, { meta });
@@ -41,12 +34,8 @@ export const GET = handleApi(async ({ req }) => {
 
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
-
-  const result = await categoryRepo.create({
-    name: body.name,
-    slug: slugify(body.name),
-    description: body.description,
-  });
+  const { name, description } = validateCreateCategory(body);
+  const result = await categoryRepo.insertOne(mapDb('categories', { name, description, slug: slugify(name) }));
 
   return ok(result, {
     message: 'Category created successfully',

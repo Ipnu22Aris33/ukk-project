@@ -5,11 +5,12 @@ import { Conflict, BadRequest } from '@/lib/utils/httpErrors';
 import { userRepo, memberRepo } from '@/config/dbRepo';
 import { withTransaction } from '@/lib/db/withTransaction';
 import { mapDb } from '@/config/dbMappings';
+import crypto from 'crypto';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
 
-  const { username, email, password, nis, full_name, class: className, address, phone } = data;
+  const { username, email, password, nis, full_name, member_class, address, phone, major } = data;
 
   if (!username || !email || !password || !nis || !full_name) {
     throw new BadRequest('Required fields are missing');
@@ -29,19 +30,15 @@ export const POST = handleApi(async ({ req }) => {
 
     // hash password
     const hashPw = await hashPassword(password);
+    const memberCode = 'MBR-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
     // insert user
-    const newUser = await userRepo.insertOne(mapDb('users', { username, email, password: hashPw, role: 'memberr' }));
+    const newUser = await userRepo.insertOne(mapDb('users', { username, email, password: hashPw, role: 'member' }));
 
     // insert member
-    await memberRepo.insertOne(mapDb('members', {userId: newUser.id_user, fullName: full_name, memberCode}){
-      user_id: newUser.id_user,
-      nis,
-      full_name,
-      class: className,
-      address,
-      phone,
-    });
+    await memberRepo.insertOne(
+      mapDb('members', { userId: newUser.id_user, fullName: full_name, memberCode, memberClass: member_class, address, phone, major, nis })
+    );
 
     // ambil data gabungan user + member
     return userRepo.findOne(
@@ -51,11 +48,10 @@ export const POST = handleApi(async ({ req }) => {
         `${userRepo['alias'] ?? userRepo['table']}.username`,
         `${userRepo['alias'] ?? userRepo['table']}.email`,
         `${userRepo['alias'] ?? userRepo['table']}.role`,
-        `${userRepo['alias'] ?? userRepo['table']}.status`,
         'm.id_member',
         'm.nis',
         'm.full_name',
-        'm.class',
+        'm.member_class',
         'm.phone',
       ],
       [

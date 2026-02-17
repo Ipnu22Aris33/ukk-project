@@ -3,7 +3,7 @@ import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { bookRepo } from '@/config/dbRepo';
 import { parseQuery } from '@/lib/utils/parseQuery';
-import { mapDb } from '@/config/dbMappings';
+import { mapDb, col, dbMappings } from '@/config/dbMappings';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
@@ -15,15 +15,15 @@ export const GET = handleApi(async ({ req }) => {
     search,
     orderBy,
     orderDir,
-    searchable: ['b.title', 'b.author', 'c.name'],
-    sortable: ['b.created_at', 'b.title', 'c.name'],
-    select: ['b.id_book', 'b.title', 'b.author', 'c.name as category'],
+    searchable: [col('books', 'title'), col('books', 'author'), col('categories', 'name')],
+    sortable: [col('books', 'createdAt'), col('books', 'title'), col('categories', 'name')],
+    select: [col('books', 'id'), col('books', 'title'), col('books', 'author'), `${col('categories', 'name')} AS category`],
     joins: [
       {
         type: 'LEFT',
-        table: 'categories',
-        alias: 'c',
-        on: 'c.id_category = b.category_id',
+        table: dbMappings.categories.repo.table,
+        alias: dbMappings.categories.repo.alias,
+        on: `${col('categories', 'id')} = ${col('books', 'categoryId')}`,
       },
     ],
   });
@@ -34,7 +34,6 @@ export const GET = handleApi(async ({ req }) => {
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
 
-  // pakai mapDb supaya tidak perlu menulis kolom DB satu per satu
   const bookData = mapDb('books', {
     title: body.title,
     author: body.author,

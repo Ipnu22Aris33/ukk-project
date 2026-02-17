@@ -1,12 +1,7 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, BadRequest } from '@/lib/utils/httpErrors';
-import { crudHelper } from '@/lib/db/crudHelper';
-
-const categoryCrud = crudHelper({
-  table: 'categories',
-  key: 'id_category',
-});
+import { categoryRepo } from '@/config/dbRepo';
 
 export const GET = handleApi(async ({ params }) => {
   const id = params?.id;
@@ -15,7 +10,7 @@ export const GET = handleApi(async ({ params }) => {
     throw new NotFound('Invalid category ID');
   }
 
-  const category = await categoryCrud.getById(id);
+  const category = await categoryRepo.findOne({ id_category: id, deleted_at: null });
 
   if (!category) {
     throw new NotFound('Category not found');
@@ -33,17 +28,15 @@ export const PATCH = handleApi(async ({ req, params }) => {
 
   const data = await req.json();
 
-  const exist = await categoryCrud.existsById(id);
+  const exist = await categoryRepo.exists({ id_category: id });
   if (!exist) {
     throw new NotFound('Category not found');
   }
 
-  await categoryCrud.updateById(id, {
+  const updated = await categoryRepo.updateById(id, {
     name: data.name,
     description: data.description,
   });
-
-  const updated = await categoryCrud.getById(id);
 
   return ok(updated, { message: 'Category updated successfully' });
 });
@@ -55,12 +48,12 @@ export const DELETE = handleApi(async ({ params }) => {
     throw new BadRequest('Invalid category ID');
   }
 
-  const exist = await categoryCrud.getById(id);
+  const exist = await categoryRepo.findById(id);
   if (!exist) {
     throw new NotFound('Category not found');
   }
 
-  await categoryCrud.destroyById(id);
+  await categoryRepo.deleteById(id);
 
   return ok(null, { message: 'Category deleted successfully' });
 });

@@ -66,11 +66,11 @@ export const dbMappings = {
       userId: 'user_id',
       memberCode: 'member_code',
       fullName: 'full_name',
-      class: 'class',
-      addrress: 'address',
+      memberClass: 'member_class',
+      address: 'address',
+      nis: 'nis',
       phone: 'phone',
       major: 'major',
-      memberType: 'member_type',
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       deletedAt: 'deleted_at',
@@ -79,12 +79,20 @@ export const dbMappings = {
 
   loans: {
     repo: {
-      table: ' loans',
+      table: 'loans',
       pk: 'id_loan',
       alias: 'l',
     },
     columns: {
       id: 'id_loan',
+      memberId: 'member_id',
+      bookId: 'book_id',
+      reservationId: 'reservation_id',
+      loanDate: 'loan_date',
+      dueDate: 'due_date',
+      quantity: 'quantity',
+      status: 'status',
+      notes: 'notes',
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       deletedAt: 'deleted_at',
@@ -99,12 +107,18 @@ export const dbMappings = {
     },
     columns: {
       id: 'id_return',
+      loanId: 'loan_id',
+      returnedAt: 'returned_at',
+      extendedDueDate: 'extended_due_date',
+      fineAmount: 'fine_amount',
+      status: 'status',
+      notes: 'notes',
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       deletedAt: 'deleted_at',
     },
   },
-  
+
   reservations: {
     repo: {
       table: 'reservations',
@@ -113,6 +127,15 @@ export const dbMappings = {
     },
     columns: {
       id: 'id_reservation',
+      reservationCode: 'reservation_code',
+      memberId: 'member_id',
+      bookId: 'book_id',
+      status: 'status',
+      reservedAt: 'reserved_at',
+      approvedAt: 'approved_at',
+      approvedBy: 'approved_by',
+      exporesAt: 'expires_at',
+      notes: 'notes',
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       deletedAt: 'deleted_at',
@@ -122,14 +145,16 @@ export const dbMappings = {
 
 export function mapDb<T extends keyof typeof dbMappings>(table: T, data: Partial<Record<keyof (typeof dbMappings)[T]['columns'], any>>) {
   const { columns } = dbMappings[table];
-  const result: Record<string, any> = {};
 
-  for (const key in data) {
-    if (key in columns) {
-      const col = columns[key as keyof typeof columns];
-      result[col] = data[key as keyof typeof data];
-    }
-  }
+  return Object.fromEntries(
+    Object.entries(data)
+      .filter(([key]) => key in columns)
+      .map(([key, value]) => [columns[key as keyof typeof columns], value])
+  );
+}
 
-  return result;
+export function col<T extends keyof typeof dbMappings>(table: T, key: keyof (typeof dbMappings)[T]['columns']) {
+  const map = dbMappings[table];
+  const alias = map.repo.alias ?? map.repo.table;
+  return `${alias}.${map.columns[key as keyof typeof map.columns]}`;
 }
