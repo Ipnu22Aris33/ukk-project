@@ -1,9 +1,9 @@
-import { handleApi } from '@/lib/handleApi';
+import { handleApi } from '@/lib/utils/handleApi';
 import { NextRequest, NextResponse } from 'next/server';
-import { ok } from '@/lib/apiResponse';
+import { ok } from '@/lib/utils/apiResponse';
 import { crudHelper } from '@/lib/db/crudHelper';
-import { NotFound, UnprocessableEntity } from '@/lib/httpErrors';
-import { verifyPassword, createToken } from '@/lib/auth';
+import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
+import { verifyPassword, createToken } from '@/lib/utils/auth';
 import { userRepo } from '@/config/dbMappings';
 
 export const POST = handleApi(async ({ req, res }) => {

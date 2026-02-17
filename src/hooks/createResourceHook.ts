@@ -2,8 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { ApiResponse } from '@/lib/apiResponse';
-import { HttpError } from '@/lib/httpErrors';
+import { ApiResponse } from '@/lib/utils/apiResponse';
+import { HttpError } from '@/lib/utils/httpErrors';
 import { toast } from 'sonner';
 
 /* =======================

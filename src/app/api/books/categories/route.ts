@@ -1,8 +1,8 @@
-import { ok } from '@/lib/apiResponse';
-import { handleApi } from '@/lib/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
+import { handleApi } from '@/lib/utils/handleApi';
 import { PgRepo } from '@/lib/pgRepo';
-import { parseQuery } from '@/lib/query';
-import { slugify } from '@/lib/slugify';
+import { parseQuery } from '@/lib/utils/parseQuery';
+import { slugify } from '@/lib/utils/slugify';
 
 const categoryRepo = new PgRepo({
   table: 'categories',

@@ -1,5 +1,5 @@
-import { ok } from '@/lib/apiResponse';
-import { handleApi } from '@/lib/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
+import { handleApi } from '@/lib/utils/handleApi';
 import { PgRepo } from '@/lib/pgRepo';
 
 const userRepo = new PgRepo<any>({

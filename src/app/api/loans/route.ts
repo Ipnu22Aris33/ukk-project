@@ -1,8 +1,8 @@
-import { handleApi } from '@/lib/handleApi';
-import { ok } from '@/lib/apiResponse';
+import { handleApi } from '@/lib/utils/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
 import { crudHelper } from '@/lib/db/crudHelper';
-import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/httpErrors';
-import { parseQuery } from '@/lib/query';
+import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
+import { parseQuery } from '@/lib/utils/parseQuery';
 import { PgRepo } from '@/lib/pgRepo';
 import { loanRepo } from '@/config/dbMappings';
 

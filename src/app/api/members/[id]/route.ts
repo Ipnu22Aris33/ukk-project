@@ -1,7 +1,7 @@
 import { crudHelper } from '@/lib/db/crudHelper';
-import { handleApi } from '@/lib/handleApi';
-import { ok } from '@/lib/apiResponse';
-import { NotFound } from '@/lib/httpErrors';
+import { handleApi } from '@/lib/utils/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
+import { NotFound } from '@/lib/utils/httpErrors';
 const memeberRepo = crudHelper({
   table: 'members',
   key: 'id_member',
@@ -22,6 +22,3 @@ export const GET = handleApi(async ({ params }) => {
 
   return ok(book, { message: 'Book retrieved successfully' });
 });
-
-// export const PATCH = handleApi(async ()=> {})
-// export const DELETE = handleApi(async ()=> {})

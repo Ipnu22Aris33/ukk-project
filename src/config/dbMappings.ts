@@ -1,179 +1,135 @@
-import { pgRepo, PgRepo } from '@/lib/pgRepo';
-
 export const dbMappings = {
   books: {
     repo: {
       table: 'books',
-      key: 'id_book',
+      pk: 'id_book',
       alias: 'b',
-      hasCreatedAt: true,
-      hasUpdatedAt: true,
-      hasDeletedAt: true,
     },
-
-    searchable: ['b.title', 'b.author', 'b.publisher', 'b.isbn'],
-    sortable: ['b.created_at', 'b.title', 'b.author', 'b.year', 'b.stock'],
-
-    joins: {
-      category: {
-        type: 'LEFT',
-        table: 'categories c',
-        on: 'c.id_category = b.category_id',
-      },
-    },
-
-    select: {
-      default: `
-        b.*,
-        c.id_category,
-        c.name as category_name,
-        c.slug as category_slug
-      `,
+    columns: {
+      id: 'id_book',
+      title: 'title',
+      author: 'author',
+      categoryId: 'category_id',
+      publisher: 'publisher',
+      stock: 'stock',
+      slug: 'slug',
+      isbn: 'isbn',
+      year: 'year',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
     },
   },
 
   categories: {
     repo: {
       table: 'categories',
-      key: 'id_category',
+      pk: 'id_category',
       alias: 'c',
-      hasCreatedAt: true,
-      hasUpdatedAt: false,
-      hasDeletedAt: true,
     },
-
-    searchable: ['c.name'],
-    sortable: ['c.created_at', 'c.name'],
-
-    select: {
-      default: 'c.*',
+    columns: {
+      id: 'id_category',
+      name: 'name',
+      slug: 'slug',
+      description: 'description',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
     },
   },
 
   users: {
     repo: {
       table: 'users',
-      key: 'id_user',
+      pk: 'id_user',
       alias: 'u',
-      hasCreatedAt: true,
-      hasUpdatedAt: true,
-      hasDeletedAt: true,
     },
-
-    searchable: ['u.name', 'u.email', 'u.username'],
-    sortable: ['u.created_at', 'u.name', 'u.email'],
-
-    select: {
-      default: 'u.*',
-      profile: 'u.id_user, u.name, u.email, u.avatar',
+    columns: {
+      id: 'id_user',
+      username: 'username',
+      email: 'email',
+      password: 'password',
+      role: 'role',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
     },
   },
 
-  // 👇 MEMBERS
   members: {
     repo: {
       table: 'members',
-      key: 'id_member',
+      pk: 'id_member',
       alias: 'm',
-      hasCreatedAt: true,
-      hasUpdatedAt: true,
-      hasDeletedAt: true,
     },
-
-    searchable: ['m.name', 'm.email', 'm.phone', 'm.member_number'],
-    sortable: ['m.created_at', 'm.name', 'm.member_number'],
-
-    select: {
-      default: 'm.*',
+    columns: {
+      id: 'id_member',
+      userId: 'user_id',
+      memberCode: 'member_code',
+      fullName: 'full_name',
+      class: 'class',
+      addrress: 'address',
+      phone: 'phone',
+      major: 'major',
+      memberType: 'member_type',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
     },
   },
 
-  // 👇 LOANS (peminjaman)
   loans: {
     repo: {
-      table: 'loans',
-      key: 'id_loan',
+      table: ' loans',
+      pk: 'id_loan',
       alias: 'l',
-      hasCreatedAt: true,
-      hasUpdatedAt: true,
-      hasDeletedAt: false, // Loans biasanya hard delete atau status aja
     },
-
-    searchable: ['l.loan_code', 'm.name', 'b.title'],
-    sortable: ['l.created_at', 'l.due_date', 'l.status'],
-
-    joins: {
-      member: {
-        type: 'LEFT',
-        table: 'members m',
-        on: 'm.id_member = l.member_id',
-      },
-      book: {
-        type: 'LEFT',
-        table: 'books b',
-        on: 'b.id_book = l.book_id',
-      },
-    },
-
-    select: {
-      default: `
-        l.*,
-        m.name as member_name,
-        m.member_number,
-        b.title as book_title,
-        b.author as book_author
-      `,
+    columns: {
+      id: 'id_loan',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
     },
   },
 
-  // 👇 RETURNS (pengembalian)
   returns: {
     repo: {
       table: 'returns',
-      key: 'id_return',
+      pk: 'id_return',
       alias: 'r',
-      hasCreatedAt: true,
-      hasUpdatedAt: true,
-      hasDeletedAt: false,
     },
-
-    searchable: ['r.return_code', 'l.loan_code', 'm.name'],
-    sortable: ['r.created_at', 'r.return_date'],
-
-    joins: {
-      loan: {
-        type: 'LEFT',
-        table: 'loans l',
-        on: 'l.id_loan = r.loan_id',
-      },
-      member: {
-        type: 'LEFT',
-        table: 'members m',
-        on: 'm.id_member = l.member_id',
-      },
-      book: {
-        type: 'LEFT',
-        table: 'books b',
-        on: 'b.id_book = l.book_id',
-      },
-    },
-
-    select: {
-      default: `
-        r.*,
-        l.loan_code,
-        m.name as member_name,
-        b.title as book_title,
-        b.author as book_author,
-        l.due_date
-      `,
+    columns: {
+      id: 'id_return',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
     },
   },
-} as const;
+  
+  reservations: {
+    repo: {
+      table: 'reservations',
+      pk: 'id_reservation',
+      alias: 'rn',
+    },
+    columns: {
+      id: 'id_reservation',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
+    },
+  },
+};
 
-export const bookRepo = new PgRepo(dbMappings.books.repo);
-export const categoryRepo = new PgRepo(dbMappings.categories.repo);
-export const userRepo = new PgRepo(dbMappings.users.repo);
-export const memberRepo = new PgRepo(dbMappings.members.repo);
-export const loanRepo = new PgRepo(dbMappings.loans.repo);
-export const returnRepo = new PgRepo(dbMappings.returns.repo);
+export function mapDb<T extends keyof typeof dbMappings>(table: T, data: Partial<Record<keyof (typeof dbMappings)[T]['columns'], any>>) {
+  const { columns } = dbMappings[table];
+  const result: Record<string, any> = {};
+
+  for (const key in data) {
+    if (key in columns) {
+      const col = columns[key as keyof typeof columns];
+      result[col] = data[key as keyof typeof data];
+    }
+  }
+
+  return result;
+}

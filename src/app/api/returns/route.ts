@@ -1,8 +1,8 @@
-import { handleApi } from '@/lib/handleApi';
-import { ok } from '@/lib/apiResponse';
-import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/httpErrors';
+import { handleApi } from '@/lib/utils/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
+import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
 import { crudHelper } from '@/lib/db/crudHelper';
-import { parseQuery } from '@/lib/query';
+import { parseQuery } from '@/lib/utils/parseQuery';
 
 export interface ReturnModel {
   id_return: string;

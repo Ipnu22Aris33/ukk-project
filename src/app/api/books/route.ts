@@ -1,21 +1,12 @@
-import { handleApi } from '@/lib/handleApi';
-import { ok } from '@/lib/apiResponse';
-import { PgRepo } from '@/lib/pgRepo';
-import { slugify } from '@/lib/slugify';
-import { parseQuery } from '@/lib/query';
-
-const bookRepo = new PgRepo({
-  table: 'books',
-  key: 'id_book',
-  alias: 'b',
-  hasCreatedAt: true,
-  hasUpdatedAt: true,
-  hasDeletedAt: true
-});
+// pages/api/books.ts
+import { handleApi } from '@/lib/utils/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
+import { bookRepo } from '@/config/dbRepo';
+import { parseQuery } from '@/lib/utils/parseQuery';
+import { mapDb } from '@/config/dbMappings';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
-
   const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
 
   const { data, meta } = await bookRepo.paginate({
@@ -24,41 +15,36 @@ export const GET = handleApi(async ({ req }) => {
     search,
     orderBy,
     orderDir,
-    searchable: ['b.title', 'b.author'],
-    sortable: ['b.created_at', 'b.title', 'b.year'],
-    select: `
-      b.*,
-      c.name AS category
-    `,
+    searchable: ['b.title', 'b.author', 'c.name'],
+    sortable: ['b.created_at', 'b.title', 'c.name'],
+    select: ['b.id_book', 'b.title', 'b.author', 'c.name as category'],
     joins: [
       {
         type: 'LEFT',
-        table: 'categories c',
+        table: 'categories',
+        alias: 'c',
         on: 'c.id_category = b.category_id',
       },
     ],
   });
 
-  return ok(data, {
-    message: 'Books retrieved successfully',
-    meta,
-  });
+  return ok(data, { message: 'Books retrieved successfully', meta });
 });
 
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
 
-  const newBook = await bookRepo.create({
+  // pakai mapDb supaya tidak perlu menulis kolom DB satu per satu
+  const bookData = mapDb('books', {
     title: body.title,
     author: body.author,
-    slug: slugify(body.title),
+    categoryId: body.category_id,
     publisher: body.publisher,
-    category_id: body.category_id,
     stock: body.stock,
     year: body.year,
   });
 
-  return ok(newBook, {
-    message: 'Book created successfully',
-  });
+  const newBook = await bookRepo.insertOne(bookData);
+
+  return ok(newBook, { message: 'Book created successfully' });
 });

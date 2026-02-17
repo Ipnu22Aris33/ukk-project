@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { ApiResponse, fail } from '@/lib/apiResponse';
-import { HttpError } from '@/lib/httpErrors';
+import { ApiResponse, fail } from '@/lib/utils/apiResponse';
+import { HttpError } from '@/lib/utils/httpErrors';
 import { ZodError } from 'zod';
 
 type HandlerContext = {

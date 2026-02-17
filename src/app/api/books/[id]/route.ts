@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
-import { handleApi } from '@/lib/handleApi';
-import { ok } from '@/lib/apiResponse';
-import { NotFound } from '@/lib/httpErrors';
+import { handleApi } from '@/lib/utils/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
+import { NotFound } from '@/lib/utils/httpErrors';
 import { crudHelper } from '@/lib/db/crudHelper';
-import { BadRequest } from '@/lib/httpErrors';
+import { BadRequest } from '@/lib/utils/httpErrors';
 
 const bookCrud = crudHelper({
   table: 'books',

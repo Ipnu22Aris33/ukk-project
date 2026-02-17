@@ -2,7 +2,7 @@
 
 import type { SVGProps } from 'react';
 import * as Icons from '@/components/icons';
-import { InternalServerError } from '@/lib/httpErrors';
+import { InternalServerError } from '@/lib/utils/httpErrors';
 
 export type IconName = keyof typeof Icons;
 

@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { pgPool } from './pg';
+import { pgPool } from './db/pg';
 import { dbMappings } from '@/config/dbMappings';
 // Type untuk semua repositori
 type AllRepos = {

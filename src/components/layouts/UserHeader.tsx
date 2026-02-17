@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useResponsive } from '@/hooks/useResponsive';
 import { ThemeToggle } from '../ui/ThemeToggle';
-import { getInitials } from '@/lib/getInitials';
+import { getInitials } from '@/lib/utils/getInitials';
 
 interface UserHeaderProps {
   schoolName: string;

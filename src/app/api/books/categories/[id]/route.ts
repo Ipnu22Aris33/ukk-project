@@ -1,6 +1,6 @@
-import { handleApi } from '@/lib/handleApi';
-import { ok } from '@/lib/apiResponse';
-import { NotFound, BadRequest } from '@/lib/httpErrors';
+import { handleApi } from '@/lib/utils/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
+import { NotFound, BadRequest } from '@/lib/utils/httpErrors';
 import { crudHelper } from '@/lib/db/crudHelper';
 
 const categoryCrud = crudHelper({

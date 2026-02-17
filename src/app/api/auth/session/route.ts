@@ -1,7 +1,7 @@
-import { handleApi } from '@/lib/handleApi';
-import { ok } from '@/lib/apiResponse';
-import { Unauthorized, NotFound } from '@/lib/httpErrors';
-import { verifyToken } from '@/lib/auth';
+import { handleApi } from '@/lib/utils/handleApi';
+import { ok } from '@/lib/utils/apiResponse';
+import { Unauthorized, NotFound } from '@/lib/utils/httpErrors';
+import { verifyToken } from '@/lib/utils/auth';
 import { crudHelper } from '@/lib/db/crudHelper';
 
 const userCrud = crudHelper({
