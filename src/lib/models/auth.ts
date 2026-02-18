@@ -10,11 +10,11 @@ export const registerSchema = z.object({
   email: z.email('Format email tidak valid').min(1, 'Email wajib diisi'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
   full_name: z.string().min(1, 'Nama wajib diisi').max(150),
-  nis: z.string().max(50).optional(),
-  member_class: z.string().max(100).optional(),
-  major: z.string().max(100).optional(),
-  phone: z.string().max(50).optional(),
-  address: z.string().max(255).optional(),
+  nis: z.string().min(1, 'NIS wajib diisi').max(50),
+  member_class: z.string().min(1, 'Kelas wajib diisi').max(100),
+  major: z.string().min(1, 'Jurusan wajib diisi').max(100),
+  phone: z.string().min(1, 'Nomor telepon wajib diisi').max(50),
+  address: z.string().min(1, 'Alamat wajib diisi').max(255),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

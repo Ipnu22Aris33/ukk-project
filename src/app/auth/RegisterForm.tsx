@@ -5,20 +5,21 @@ import * as Form from '@radix-ui/react-form';
 import { FormCard, FormActions, InputField, SelectField } from '@/components/features/forms';
 import { Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
-import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
-import { RegisterInput, registerSchema } from '@/lib/schemas/auth';
 import { useAuth } from '@/hooks/useAuth';
+import { registerSchema } from '@/lib/models/auth';
 
 export default function RegisterForm({ setActiveTab }: { setActiveTab: () => void }) {
   const { register } = useAuth();
 
   const form = useForm({
     defaultValues: {
-      name: '',
+      full_name: '',
+      username: '',
       email: '',
+      nis: '',
+      address: '',
       password: '',
-      class: '',
+      member_class: '',
       major: '',
       phone: '',
     },
@@ -36,6 +37,7 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
       }
     },
   });
+
   return (
     <FormCard maxWidth='500px' title='Daftar Akun' description='Isi data diri Anda untuk membuat akun baru'>
       <Form.Root
@@ -47,9 +49,9 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
           form.handleSubmit();
         }}
       >
-        {/* NAME */}
+        {/* FULL NAME */}
         <form.Field
-          name='name'
+          name='full_name'
           validators={{
             onChange: ({ value }) => {
               if (!value) return 'Nama lengkap wajib diisi';
@@ -65,6 +67,28 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
               placeholder='Masukkan nama lengkap Anda'
               required
               icon={<Icon icon='mdi:account-outline' />}
+            />
+          )}
+        </form.Field>
+
+        {/* USERNAME */}
+        <form.Field
+          name='username'
+          validators={{
+            onChange: ({ value }) => {
+              if (!value) return 'Username wajib diisi';
+              if (value.length < 3) return 'Username minimal 3 karakter';
+              return undefined;
+            },
+          }}
+        >
+          {(field) => (
+            <InputField
+              field={field}
+              label='Username'
+              placeholder='Masukkan username Anda'
+              required
+              icon={<Icon icon='mdi:account-circle-outline' />}
             />
           )}
         </form.Field>
@@ -111,9 +135,24 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
           )}
         </form.Field>
 
+        {/* NIS */}
+        <form.Field
+          name='nis'
+          validators={{
+            onChange: ({ value }) => {
+              if (!value) return 'NIS wajib diisi';
+              return undefined;
+            },
+          }}
+        >
+          {(field) => (
+            <InputField field={field} label='NIS' placeholder='Masukkan NIS Anda' required icon={<Icon icon='mdi:card-account-details-outline' />} />
+          )}
+        </form.Field>
+
         {/* CLASS */}
         <form.Field
-          name='class'
+          name='member_class'
           validators={{
             onChange: ({ value }) => {
               if (!value) return 'Kelas wajib diisi';
@@ -180,6 +219,27 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
               placeholder='Contoh: 081234567890'
               required
               icon={<Icon icon='mdi:phone-outline' />}
+            />
+          )}
+        </form.Field>
+
+        {/* ADDRESS */}
+        <form.Field
+          name='address'
+          validators={{
+            onChange: ({ value }) => {
+              if (!value) return 'Alamat wajib diisi';
+              return undefined;
+            },
+          }}
+        >
+          {(field) => (
+            <InputField
+              field={field}
+              label='Alamat'
+              placeholder='Masukkan alamat lengkap Anda'
+              required
+              icon={<Icon icon='mdi:map-marker-outline' />}
             />
           )}
         </form.Field>
