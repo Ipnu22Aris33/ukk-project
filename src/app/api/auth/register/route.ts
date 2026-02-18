@@ -47,29 +47,31 @@ export const POST = handleApi(async ({ req }) => {
 
     return userRepo.findOne(
       { column: col('users', 'id'), value: newUser.id_user },
-      [
-        col('users', 'id'),
-        col('users', 'username'),
-        col('users', 'email'),
-        col('users', 'role'),
-        col('members', 'id'),
-        col('members', 'nis'),
-        col('members', 'fullName'),
-        col('members', 'memberClass'),
-        col('members', 'phone'),
-      ],
-      [
-        {
-          table: 'members',
-          alias: 'm',
-          type: 'LEFT',
-          on: {
-            left: col('users', 'id'),
-            right: col('members', 'userId'),
-            operator: '=',
+      {
+        select: [
+          col('users', 'id'),
+          col('users', 'username'),
+          col('users', 'email'),
+          col('users', 'role'),
+          col('members', 'id'),
+          col('members', 'nis'),
+          col('members', 'fullName'),
+          col('members', 'memberClass'),
+          col('members', 'phone'),
+        ],
+        joins: [
+          {
+            table: 'members',
+            alias: 'm',
+            type: 'LEFT',
+            on: {
+              left: col('users', 'id'),
+              right: col('members', 'userId'),
+              operator: '=',
+            },
           },
-        },
-      ]
+        ],
+      }
     );
   });
 

@@ -1,14 +1,22 @@
 export type JoinOperator = '=' | '>' | '<' | '>=' | '<=';
 
+export type JoinOnCondition = {
+  left: string;
+  operator?: JoinOperator;
+  right: string;
+};
+
+export type JoinOnOption = JoinOnCondition | { AND: JoinOnOption[] } | { OR: JoinOnOption[] };
+
 export type JoinOption = {
   type?: 'INNER' | 'LEFT' | 'RIGHT';
   table: string;
   alias?: string;
-  on: {
-    left: string;
-    operator?: JoinOperator;
-    right: string;
-  };
+  on: JoinOnOption;
+};
+
+export type CountOptions = {
+  joins?: JoinOption[];
 };
 
 export type ComparisonOperator = '=' | '>' | '<' | '>=' | '<=' | 'ILIKE';
@@ -18,8 +26,8 @@ export type WhereOption =
       column: string;
       operator?: ComparisonOperator;
       value?: any;
-      isNull?: true;
-      isNotNull?: true;
+      isNull?: boolean;
+      isNotNull?: boolean;
     }
   | {
       AND: WhereOption[];
@@ -27,6 +35,14 @@ export type WhereOption =
   | {
       OR: WhereOption[];
     };
+
+export type QueryOptions = {
+  select?: string | string[];
+  joins?: JoinOption[];
+  orderBy?: string;
+  limit?: number;
+  offset?: number;
+};
 
 export type PaginateOption = {
   page?: number;

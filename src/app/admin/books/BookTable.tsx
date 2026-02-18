@@ -122,7 +122,6 @@ export function BookTable() {
       title: '',
       author: '',
       publisher: '',
-      slug: '',
       stock: 1,
       year: new Date().getFullYear(),
       isbn: '',

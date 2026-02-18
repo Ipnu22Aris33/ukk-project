@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { pgPool } from './pg';
-import { JoinOption, PaginateOption, PaginateResult, WhereOption, BulkInsertOption } from './types';
+import { JoinOption, JoinOnOption, PaginateOption, PaginateResult, WhereOption, BulkInsertOption, CountOptions, QueryOptions } from './types';
 
 export class RepoBuilder<T = any> {
   private table: string;
@@ -21,24 +21,51 @@ export class RepoBuilder<T = any> {
    * @param joins
    * @returns
    */
-  async findOne(where: WhereOption, select: string | string[] = '*', joins?: JoinOption[]) {
+  async findOne(where: WhereOption, options?: QueryOptions) {
     const { sql, values } = this.buildWhere(where);
-    const selectClause = Array.isArray(select) ? select.join(', ') : select;
-    const joinClause = this.buildJoinClause(joins);
-    const query = `SELECT ${selectClause} FROM ${this.tableWithAlias} ${joinClause} ${sql} LIMIT 1`;
+    const selectClause = Array.isArray(options?.select) ? options!.select.join(', ') : (options?.select ?? '*');
+
+    const joinClause = this.buildJoinClause(options?.joins);
+
+    const orderClause = options?.orderBy ? `ORDER BY ${options.orderBy}` : '';
+    const limitClause = 'LIMIT 1';
+
+    const query = `
+    SELECT ${selectClause}
+    FROM ${this.tableWithAlias}
+    ${joinClause}
+    ${sql}
+    ${orderClause}
+    ${limitClause}
+  `;
     const result = await this.pool.query(query, values);
     return result.rows[0] ?? null;
   }
 
-  async findByPk(pk: number | string, select: string | string[] = '*', joins?: JoinOption[]) {
-    return this.findOne(this.pkWhere(pk), select, joins);
+  async findByPk(pk: number | string, options?: QueryOptions) {
+    return this.findOne(this.pkWhere(pk), options);
   }
 
-  async findMany(where?: WhereOption, select: string | string[] = '*', joins?: JoinOption[]) {
+  async findMany(where?: WhereOption, options?: QueryOptions) {
     const { sql, values } = this.buildWhere(where);
-    const selectClause = Array.isArray(select) ? select.join(', ') : select;
-    const joinClause = this.buildJoinClause(joins);
-    const query = `SELECT ${selectClause} FROM ${this.tableWithAlias} ${joinClause} ${sql}`;
+    const selectClause = Array.isArray(options?.select) ? options!.select.join(', ') : (options?.select ?? '*');
+
+    const joinClause = this.buildJoinClause(options?.joins);
+
+    const orderClause = options?.orderBy ? `ORDER BY ${options.orderBy}` : '';
+    const limitClause = options?.limit ? `LIMIT ${options.limit}` : '';
+    const offsetClause = options?.offset ? `OFFSET ${options.offset}` : '';
+
+    const query = `
+    SELECT ${selectClause}
+    FROM ${this.tableWithAlias}
+    ${joinClause}
+    ${sql}
+    ${orderClause}
+    ${limitClause}
+    ${offsetClause}
+  `;
+
     const result = await this.pool.query(query, values);
     return result.rows;
   }
@@ -358,9 +385,17 @@ export class RepoBuilder<T = any> {
     return this.increment(where, column, -amount);
   }
 
-  async count(where?: WhereOption): Promise<number> {
+  async count(where?: WhereOption, options?: CountOptions): Promise<number> {
+    const joinClause = this.buildJoinClause(options?.joins);
     const { sql, values } = this.buildWhere(where);
-    const query = `SELECT COUNT(*)::int AS total FROM ${this.tableWithAlias} ${sql}`;
+
+    const query = `
+    SELECT COUNT(*)::int AS total
+    FROM ${this.tableWithAlias}
+    ${joinClause}
+    ${sql}
+  `;
+
     const result = await this.pool.query(query, values);
     return result.rows[0]?.total ?? 0;
   }
@@ -419,7 +454,6 @@ export class RepoBuilder<T = any> {
     if (!joins?.length) return '';
 
     const allowedJoinTypes = ['INNER', 'LEFT', 'RIGHT'] as const;
-    const allowedOperators = ['=', '>', '<', '>=', '<='] as const;
 
     return joins
       .map((j) => {
@@ -430,21 +464,34 @@ export class RepoBuilder<T = any> {
         }
 
         const table = this.escapeIdentifier(j.table);
-
         const aliasPart = j.alias ? ` AS ${this.escapeIdentifier(j.alias)}` : '';
 
-        const left = this.escapeIdentifier(j.on.left);
-        const right = this.escapeIdentifier(j.on.right);
+        const onClause = this.buildJoinOnClause(j.on);
 
-        const operator = j.on.operator ?? '=';
-
-        if (!allowedOperators.includes(operator)) {
-          throw new Error(`Invalid join operator: ${operator}`);
-        }
-
-        return `${type} JOIN ${table}${aliasPart} ON ${left} ${operator} ${right}`;
+        return `${type} JOIN ${table}${aliasPart} ON ${onClause}`;
       })
       .join(' ');
+  }
+
+  private buildJoinOnClause(on: JoinOnOption): string {
+    const process = (node: JoinOnOption): string => {
+      if ('AND' in node) {
+        return node.AND.map((child) => `(${process(child)})`).join(' AND ');
+      }
+
+      if ('OR' in node) {
+        return node.OR.map((child) => `(${process(child)})`).join(' OR ');
+      }
+
+      const operator = node.operator ?? '=';
+
+      const left = this.escapeIdentifier(node.left);
+      const right = this.escapeIdentifier(node.right);
+
+      return `${left} ${operator} ${right}`;
+    };
+
+    return process(on);
   }
 
   private buildWhere(where?: WhereOption, startIdx = 1): { sql: string; values: any[] } {
