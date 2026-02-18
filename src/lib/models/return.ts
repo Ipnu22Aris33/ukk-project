@@ -10,7 +10,6 @@ export const returnSchema = z.object({
   loan_id: z.number().int().positive(),
 
   returned_at: z.iso.datetime(),
-  extended_due_date: z.iso.datetime().nullable().optional(),
 
   fine_amount: z.number().min(0),
 
@@ -24,12 +23,14 @@ export const returnSchema = z.object({
 });
 
 /* CREATE */
-export const createReturnSchema = returnSchema.omit({
-  id_return: true,
-  created_at: true,
-  updated_at: true,
-  deleted_at: true,
-});
+export const createReturnSchema = returnSchema
+  .omit({
+    id_return: true,
+    created_at: true,
+    updated_at: true,
+    deleted_at: true,
+  })
+  .extend({ returned_at: z.iso.datetime().optional() });
 
 /* UPDATE */
 export const updateReturnSchema = createReturnSchema.partial();

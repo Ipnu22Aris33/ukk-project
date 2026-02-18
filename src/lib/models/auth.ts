@@ -7,18 +7,14 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   username: z.string().min(3, 'Username minimal 3 karakter').max(100),
-
   email: z.email('Format email tidak valid').min(1, 'Email wajib diisi'),
-
   password: z.string().min(6, 'Password minimal 6 karakter'),
-
   full_name: z.string().min(1, 'Nama wajib diisi').max(150),
-
+  nis: z.string().max(50).optional(),
   member_class: z.string().max(100).optional(),
-
   major: z.string().max(100).optional(),
-
   phone: z.string().max(50).optional(),
+  address: z.string().max(255).optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

@@ -1,9 +1,9 @@
 // pages/api/books.ts
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
-import { bookRepo } from '@/config/dbRepo';
+import { bookRepo } from '@/lib/db/dbRepo';
 import { parseQuery } from '@/lib/utils/parseQuery';
-import { mapDb, col, dbMappings } from '@/config/dbMappings';
+import { mapDb, col, dbMappings } from '@/lib/db/dbMappings';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
@@ -23,7 +23,7 @@ export const GET = handleApi(async ({ req }) => {
         type: 'LEFT',
         table: dbMappings.categories.repo.table,
         alias: dbMappings.categories.repo.alias,
-        on: `${col('categories', 'id')} = ${col('books', 'categoryId')}`,
+        on: { left: col('categories', 'id'), operator: '=', right: col('books', 'categoryId') },
       },
     ],
   });

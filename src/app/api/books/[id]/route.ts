@@ -2,13 +2,9 @@ import { NextRequest } from 'next/server';
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound } from '@/lib/utils/httpErrors';
-import { crudHelper } from '@/lib/db/crudHelper';
 import { BadRequest } from '@/lib/utils/httpErrors';
-
-const bookCrud = crudHelper({
-  table: 'books',
-  key: 'id_book',
-});
+import { bookRepo, mapDb } from '@/lib/db';
+import { validateUpdateBook } from '@/lib/models/book';
 
 export const GET = handleApi(async ({ params }) => {
   const id = params?.id;
@@ -17,7 +13,7 @@ export const GET = handleApi(async ({ params }) => {
     throw new NotFound('Invalid book ID');
   }
 
-  const book = await bookCrud.getById(id);
+  const book = await bookRepo.findByPk(id);
 
   if (!book) {
     throw new NotFound('Book not found');
@@ -34,21 +30,25 @@ export const PATCH = handleApi(async ({ req, params }) => {
   }
 
   const data = await req.json();
+  const { title, author, category_id, publisher, stock, isbn, year } = validateUpdateBook(data);
 
-  const exist = await bookCrud.existsById(id);
+  const exist = await bookRepo.existsByPk(id);
   if (!exist) {
     throw new NotFound('Book not found');
   }
 
-  await bookCrud.updateById(id, {
-    title: data.title,
-    author: data.author,
-    publisher: data.publisher,
-    category_id: data.category_id,
-    stock: data.stock,
-  });
-
-  const updated = await bookCrud.getById(id);
+  const updated = await bookRepo.updateByPk(
+    id,
+    mapDb('books', {
+      title,
+      author,
+      categoryId: category_id,
+      publisher,
+      stock,
+      isbn,
+      year,
+    })
+  );
 
   return ok(updated, { message: 'Book updated successfully' });
 });
@@ -60,12 +60,12 @@ export const DELETE = handleApi(async ({ params }) => {
     throw new BadRequest('Invalid book ID');
   }
 
-  const exist = await bookCrud.getById(id);
+  const exist = await bookRepo.existsByPk(id);
   if (!exist) {
     throw new NotFound('Book not found');
   }
 
-  await bookCrud.destroyById(id);
+  await bookRepo.deleteByPk(id);
 
   return ok(null, { message: 'Book deleted successfully' });
 });

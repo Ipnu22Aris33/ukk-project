@@ -2,8 +2,8 @@ import { ok } from '@/lib/utils/apiResponse';
 import { handleApi } from '@/lib/utils/handleApi';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { slugify } from '@/lib/utils/slugify';
-import { categoryRepo } from '@/config/dbRepo';
-import { col, mapDb } from '@/config/dbMappings';
+import { categoryRepo } from '@/lib/db/dbRepo';
+import { col, mapDb } from '@/lib/db/dbMappings';
 import { validateCreateCategory } from '@/lib/models/category';
 
 export const GET = handleApi(async ({ req }) => {
@@ -16,7 +16,7 @@ export const GET = handleApi(async ({ req }) => {
     search,
     orderBy,
     orderDir,
-    where: { deleted_at: null},
+    where: { column: col('categories', 'deletedAt'), isNull: true },
     searchable: [col('categories', 'name'), col('categories', 'slug')],
     sortable: [col('categories', 'id'), col('categories', 'name'), col('categories', 'createdAt')],
     select: [

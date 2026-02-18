@@ -1,11 +1,7 @@
-import { crudHelper } from '@/lib/db/crudHelper';
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound } from '@/lib/utils/httpErrors';
-const memeberRepo = crudHelper({
-  table: 'members',
-  key: 'id_member',
-});
+import { memberRepo } from '@/lib/db';
 
 export const GET = handleApi(async ({ params }) => {
   const id = params?.id;
@@ -14,7 +10,7 @@ export const GET = handleApi(async ({ params }) => {
     throw new NotFound('Invalid book ID');
   }
 
-  const book = await memeberRepo.getById(id);
+  const book = await memberRepo.findByPk(id);
 
   if (!book) {
     throw new NotFound('Book not found');

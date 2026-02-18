@@ -1,12 +1,9 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
-import { crudHelper } from '@/lib/db/crudHelper';
-import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
+import { BadRequest, NotFound } from '@/lib/utils/httpErrors';
 import { parseQuery } from '@/lib/utils/parseQuery';
-import { loanRepo, bookRepo, memberRepo } from '@/config/dbRepo';
-import { withTransaction } from '@/lib/db';
 import { validateCreateLoan } from '@/lib/models/loan';
-import { mapDb, col, dbMappings } from '@/config/dbMappings';
+import { mapDb, col, dbMappings, withTransaction, loanRepo, bookRepo, memberRepo } from '@/lib/db';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
@@ -14,12 +11,12 @@ export const POST = handleApi(async ({ req }) => {
   const { member_id, book_id, quantity, notes, loan_date, due_date } = validateCreateLoan(data);
 
   const result = await withTransaction(async () => {
-    const book = await bookRepo.findOne({ id_book: book_id });
+    const book = await bookRepo.findByPk(book_id);
     if (!book) {
       throw new NotFound('Book not found');
     }
 
-    const member = await memberRepo.exists({ id_member: member_id });
+    const member = await memberRepo.findByPk(member_id);
     if (!member) {
       throw new NotFound('Member not found');
     }
@@ -55,7 +52,7 @@ export const POST = handleApi(async ({ req }) => {
     );
 
     // 🔥 Kurangi stok
-    await bookRepo.updateOne({ id_book: book_id }, { stock: book.stock - quantity });
+    await bookRepo.updateByPk(book_id, { stock: book.stock - quantity });
 
     return loan;
   });
@@ -100,13 +97,13 @@ export const GET = handleApi(async ({ req }) => {
       {
         table: dbMappings.books.repo.table,
         alias: dbMappings.books.repo.alias,
-        on: `${col('books', 'id')} = ${col('loans', 'bookId')}`,
+        on: { left: col('books', 'id'), operator: '=', right: col('loans', 'bookId') },
         type: 'INNER',
       },
       {
         table: dbMappings.members.repo.table,
         alias: dbMappings.members.repo.alias,
-        on: `${col('members', 'id')} = ${col('loans', 'memberId')}`,
+        on: { left: col('members', 'id'), operator: '=', right: col('loans', 'bookId') },
         type: 'INNER',
       },
     ],

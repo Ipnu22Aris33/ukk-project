@@ -7,7 +7,7 @@ import { Text, Flex, Link } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { loginSchema } from '@/lib/schemas/auth';
+import { loginSchema } from '@/lib/models/auth';
 
 export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }) {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
 
   const form = useForm({
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
     validators: {
@@ -48,12 +48,10 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
       >
         {/* EMAIL */}
         <form.Field
-          name='email'
+          name='identifier'
           validators={{
             onChange: ({ value }) => {
               if (!value) return 'Email wajib diisi';
-              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-              if (!emailRegex.test(value)) return 'Format email tidak valid';
               return undefined;
             },
           }}

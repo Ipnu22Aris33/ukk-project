@@ -5,9 +5,9 @@ import { Conflict } from '@/lib/utils/httpErrors';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { createMemberSchema } from '@/lib/schemas/member.schema';
 import crypto from 'crypto';
-import { userRepo, memberRepo } from '@/config/dbRepo';
+import { userRepo, memberRepo } from '@/lib/db/dbRepo';
 import { withTransaction } from '@/lib/db/withTransaction';
-import { mapDb } from '@/config/dbMappings';
+import { mapDb, col } from '@/lib/db/dbMappings';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
@@ -19,9 +19,31 @@ export const GET = handleApi(async ({ req }) => {
     search,
     orderBy,
     orderDir,
-    searchable: ['m.full_name', 'm.phone', 'm.class', 'u.email'],
-    select: ['m.id_member', 'm.full_name', 'm.phone', 'm.class', 'm.user_id', 'u.email'],
-    joins: [{ type: 'INNER', table: 'users u', on: 'u.id_user = m.user_id' }],
+    where: { column: col('members', 'deletedAt'), isNull: true },
+    sortable: [col('members', 'createdAt'), col('members', 'fullName'), col('members', 'userId')],
+    searchable: [
+      col('members', 'fullName'),
+      col('members', 'memberCode'),
+      col('members', 'memberClass'),
+      col('users', 'username'),
+      col('users', 'email'),
+    ],
+    select: [
+      col('members', 'id'),
+      col('members', 'userId'),
+      col('members', 'nis'),
+      col('members', 'memberCode'),
+      col('members', 'fullName'),
+      col('users', 'username'),
+      col('users', 'email'),
+      col('members', 'phone'),
+      col('members', 'memberClass'),
+      col('members', 'major'),
+      col('members', 'address'),
+      col('members', 'createdAt'),
+      col('members', 'updatedAt'),
+    ],
+    joins: [{ type: 'INNER', table: 'users', alias: 'u', on: { left: col('users', 'id'), operator: '=', right: col('members', 'userId') } }],
   });
   return ok(data, { message: 'Members Succes fetch', meta });
 });
@@ -32,7 +54,7 @@ export const POST = handleApi(async ({ req }) => {
 
   const result = await withTransaction(async () => {
     // cek email
-    if (await userRepo.exists({ email: parsedData.email })) {
+    if (await userRepo.exists({ column: col('users', 'email'), value: data.email })) {
       throw new Conflict('Email already registered');
     }
 

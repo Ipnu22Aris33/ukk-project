@@ -2,7 +2,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { LoginInput, RegisterInput } from '@/lib/schemas/auth';
+import { LoginInput, RegisterInput } from '@/lib/models/auth';
 
 export function useAuth() {
   const queryClient = useQueryClient();

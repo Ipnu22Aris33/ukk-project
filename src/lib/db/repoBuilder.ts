@@ -1,40 +1,6 @@
 import { Pool } from 'pg';
 import { pgPool } from './pg';
-
-export type JoinOption = {
-  type?: 'INNER' | 'LEFT' | 'RIGHT';
-  table: string;
-  alias?: string;
-  on: string;
-};
-
-export type PaginateOption = {
-  page?: number;
-  limit?: number;
-  select?: string | string[];
-  orderBy?: string;
-  orderDir?: 'asc' | 'desc';
-  where?: Record<string, any>;
-  joins?: JoinOption[];
-  search?: string;
-  searchable?: string[];
-  sortable?: string[];
-};
-
-export type PaginateResult<T> = {
-  data: T[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasPrev: boolean;
-    hasNext: boolean;
-    search: string | null;
-    orderBy: string;
-    orderDir: string;
-  };
-};
+import { JoinOption, PaginateOption, PaginateResult, WhereOption, BulkInsertOption } from './types';
 
 export class RepoBuilder<T = any> {
   private table: string;
@@ -48,15 +14,14 @@ export class RepoBuilder<T = any> {
     this.alias = opts.alias;
     this.pool = pool;
   }
-
-  private get tableWithAlias() {
-    return this.alias ? `${this.table} AS ${this.alias}` : this.table;
-  }
-
-  // ===========================
-  // SELECT
-  // ===========================
-  async findOne(where: Record<string, any>, select: string | string[] = '*', joins?: JoinOption[]) {
+  /**
+   *
+   * @param where
+   * @param select
+   * @param joins
+   * @returns
+   */
+  async findOne(where: WhereOption, select: string | string[] = '*', joins?: JoinOption[]) {
     const { sql, values } = this.buildWhere(where);
     const selectClause = Array.isArray(select) ? select.join(', ') : select;
     const joinClause = this.buildJoinClause(joins);
@@ -65,11 +30,11 @@ export class RepoBuilder<T = any> {
     return result.rows[0] ?? null;
   }
 
-  async findById(id: number | string, select: string | string[] = '*', joins?: JoinOption[]) {
-    return this.findOne({ [`${this.alias ?? this.table}.${this.pk}`]: id }, select, joins);
+  async findByPk(pk: number | string, select: string | string[] = '*', joins?: JoinOption[]) {
+    return this.findOne(this.pkWhere(pk), select, joins);
   }
 
-  async findMany(where?: Record<string, any>, select: string | string[] = '*', joins?: JoinOption[]) {
+  async findMany(where?: WhereOption, select: string | string[] = '*', joins?: JoinOption[]) {
     const { sql, values } = this.buildWhere(where);
     const selectClause = Array.isArray(select) ? select.join(', ') : select;
     const joinClause = this.buildJoinClause(joins);
@@ -78,9 +43,11 @@ export class RepoBuilder<T = any> {
     return result.rows;
   }
 
-  // ===========================
-  // INSERT
-  // ===========================
+  /**
+   *
+   * @param data
+   * @returns
+   */
   async insertOne(data: Partial<T>) {
     const columns = Object.keys(data);
     const values = Object.values(data);
@@ -100,14 +67,7 @@ export class RepoBuilder<T = any> {
     return result.rows;
   }
 
-  async bulkInsert(
-    items: Partial<T>[],
-    options?: {
-      chunkSize?: number;
-      conflictColumn?: string;
-      ignoreDuplicates?: boolean;
-    }
-  ): Promise<T[]> {
+  async bulkInsert(items: Partial<T>[], options?: BulkInsertOption): Promise<T[]> {
     if (!items.length) return [];
 
     const chunkSize = options?.chunkSize ?? 1000;
@@ -141,10 +101,13 @@ export class RepoBuilder<T = any> {
     return results.flat();
   }
 
-  // ===========================
-  // UPDATE
-  // ===========================
-  async updateOne(where: Record<string, any>, data: Partial<T>) {
+  /**
+   *
+   * @param pk
+   * @param data
+   * @returns
+   */
+  async updateOne(where: WhereOption, data: Partial<T>) {
     const { setClause, values: setValues } = this.buildSetClause(data);
     const { sql: whereSql, values: whereValues } = this.buildWhere(where, setValues.length + 1);
     const query = `UPDATE ${this.table} SET ${setClause} ${whereSql} RETURNING *`;
@@ -152,11 +115,11 @@ export class RepoBuilder<T = any> {
     return result.rows[0] ?? null;
   }
 
-  async updateById(id: number | string, data: Partial<T>) {
-    return this.updateOne({ [this.pk]: id }, data);
+  async updateByPk(pk: number | string, data: Partial<T>) {
+    return this.updateOne(this.pkWhere(pk), data);
   }
 
-  async updateMany(where: Record<string, any>, data: Partial<T>) {
+  async updateMany(where: WhereOption, data: Partial<T>) {
     const { setClause, values: setValues } = this.buildSetClause(data);
     const { sql: whereSql, values: whereValues } = this.buildWhere(where, setValues.length + 1);
     const query = `UPDATE ${this.table} SET ${setClause} ${whereSql} RETURNING *`;
@@ -209,32 +172,23 @@ export class RepoBuilder<T = any> {
     return result.rows;
   }
 
-  // ===========================
-  // DELETE / DESTROY
-  // ===========================
-  async delete(where: Record<string, any>) {
+  /**
+   *
+   * @param where
+   * @returns
+   */
+  async deleteOne(where: WhereOption) {
     const { sql, values } = this.buildWhere(where);
     const query = `UPDATE ${this.table} SET deleted_at=NOW() ${sql} RETURNING *`;
     const result = await this.pool.query(query, values);
     return result.rows;
   }
 
-  async destroy(where: Record<string, any>) {
-    const { sql, values } = this.buildWhere(where);
-    const query = `DELETE FROM ${this.table} ${sql} RETURNING *`;
-    const result = await this.pool.query(query, values);
-    return result.rows;
+  async deleteByPk(pk: number | string) {
+    return this.deleteOne(this.pkWhere(pk));
   }
 
-  async deleteById(id: number | string) {
-    return this.delete({ [this.pk]: id });
-  }
-
-  async destroyById(id: number | string) {
-    return this.destroy({ [this.pk]: id });
-  }
-
-  async deleteMany(where: Record<string, any>) {
+  async deleteMany(where: WhereOption) {
     const { sql, values } = this.buildWhere(where);
 
     const query = `
@@ -247,6 +201,7 @@ export class RepoBuilder<T = any> {
     const result = await this.pool.query(query, values);
     return result.rows;
   }
+
   async bulkDelete(ids: (number | string)[]) {
     if (!ids.length) return [];
 
@@ -261,7 +216,23 @@ export class RepoBuilder<T = any> {
     return result.rows;
   }
 
-  async destroyMany(where: Record<string, any>) {
+  /**
+   *
+   * @param where
+   * @returns
+   */
+  async destroyOne(where: WhereOption) {
+    const { sql, values } = this.buildWhere(where);
+    const query = `DELETE FROM ${this.table} ${sql} RETURNING *`;
+    const result = await this.pool.query(query, values);
+    return result.rows;
+  }
+
+  async destroyByPk(pk: number | string) {
+    return this.destroyOne(this.pkWhere(pk));
+  }
+
+  async destroyMany(where: WhereOption) {
     const { sql, values } = this.buildWhere(where);
 
     const query = `
@@ -287,9 +258,11 @@ export class RepoBuilder<T = any> {
     return result.rows;
   }
 
-  // ===========================
-  // PAGINATE
-  // ===========================
+  /**
+   *
+   * @param opts
+   * @returns
+   */
   async paginate(opts: PaginateOption): Promise<PaginateResult<T>> {
     const page = opts.page ?? 1;
     const limit = opts.limit ?? 10;
@@ -367,121 +340,167 @@ export class RepoBuilder<T = any> {
     };
   }
 
-  // ===========================
-  // UTILITY
-  // ===========================
-  async count(where?: Record<string, any>) {
+  /**
+   *
+   * @param where
+   * @returns
+   */
+  async increment(where: WhereOption, column: string, amount: number = 1) {
+    const col = this.escapeIdentifier(column);
+    const { sql: whereSql, values: whereValues } = this.buildWhere(where, 2);
+
+    const query = `UPDATE ${this.table} SET ${col} = ${col} + $1 ${whereSql} RETURNING *`;
+    const result = await this.pool.query(query, [amount, ...whereValues]);
+    return result.rows[0] ?? null;
+  }
+
+  async decrement(where: WhereOption, column: string, amount: number = 1) {
+    return this.increment(where, column, -amount);
+  }
+
+  async count(where?: WhereOption): Promise<number> {
     const { sql, values } = this.buildWhere(where);
     const query = `SELECT COUNT(*)::int AS total FROM ${this.tableWithAlias} ${sql}`;
     const result = await this.pool.query(query, values);
     return result.rows[0]?.total ?? 0;
   }
 
-  async exists(where: Record<string, any>) {
-    const { sql, values } = this.buildWhere(where);
-    const query = `SELECT 1 FROM ${this.tableWithAlias} ${sql} LIMIT 1`;
-    const result = await this.pool.query(query, values);
-    return result.rows.length > 0;
+  async countByPk(pk: string | number) {
+    return this.count(this.pkWhere(pk));
   }
 
-  async lock(where: Record<string, any>) {
+  async exists(where: WhereOption): Promise<boolean> {
+    const { sql, values } = this.buildWhere(where);
+    const query = `SELECT EXISTS(SELECT 1 FROM ${this.tableWithAlias} ${sql}) AS "exists"`;
+    const result = await this.pool.query(query, values);
+    return result.rows[0]?.exists ?? false;
+  }
+
+  async existsByPk(pk: string | number) {
+    return this.exists(this.pkWhere(pk));
+  }
+
+  async lock(where: WhereOption): Promise<T[]> {
     const { sql, values } = this.buildWhere(where);
     const query = `SELECT * FROM ${this.tableWithAlias} ${sql} FOR UPDATE`;
     const result = await this.pool.query(query, values);
     return result.rows;
   }
 
-  // ===========================
-  // PRIVATE
-  // ===========================
+  async lockByPk(pk: string | number): Promise<T[]> {
+    return this.lock(this.pkWhere(pk));
+  }
+
+  /**
+   * Private method
+   * @returns
+   */
+  private get tableWithAlias() {
+    return this.alias ? `${this.table} AS ${this.alias}` : this.table;
+  }
+
+  private pkWhere(pk: number | string): WhereOption {
+    return { column: `${this.alias ?? this.table}.${this.pk}`, value: pk };
+  }
+
+  private escapeIdentifier(identifier: string): string {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(identifier)) {
+      throw new Error(`Invalid identifier: ${identifier}`);
+    }
+
+    // Support schema.table or table.column
+    return identifier
+      .split('.')
+      .map((part) => `"${part}"`)
+      .join('.');
+  }
+
   private buildJoinClause(joins?: JoinOption[]) {
     if (!joins?.length) return '';
+
+    const allowedJoinTypes = ['INNER', 'LEFT', 'RIGHT'] as const;
+    const allowedOperators = ['=', '>', '<', '>=', '<='] as const;
+
     return joins
       .map((j) => {
-        const aliasPart = j.alias ? ` AS ${j.alias}` : '';
-        return `${j.type ?? 'LEFT'} JOIN ${j.table}${aliasPart} ON ${j.on}`;
+        const type = j.type ?? 'LEFT';
+
+        if (!allowedJoinTypes.includes(type)) {
+          throw new Error(`Invalid join type: ${type}`);
+        }
+
+        const table = this.escapeIdentifier(j.table);
+
+        const aliasPart = j.alias ? ` AS ${this.escapeIdentifier(j.alias)}` : '';
+
+        const left = this.escapeIdentifier(j.on.left);
+        const right = this.escapeIdentifier(j.on.right);
+
+        const operator = j.on.operator ?? '=';
+
+        if (!allowedOperators.includes(operator)) {
+          throw new Error(`Invalid join operator: ${operator}`);
+        }
+
+        return `${type} JOIN ${table}${aliasPart} ON ${left} ${operator} ${right}`;
       })
       .join(' ');
   }
 
-  private buildWhere(where?: Record<string, any>, startIdx = 1): { sql: string; values: any[] } {
-    if (!where || !Object.keys(where).length) {
-      return { sql: '', values: [] };
-    }
+  private buildWhere(where?: WhereOption, startIdx = 1): { sql: string; values: any[] } {
+    if (!where) return { sql: '', values: [] };
 
-    const process = (conditions: Record<string, any>, index: number): { clause: string; values: any[]; nextIndex: number } => {
-      return Object.entries(conditions).reduce(
-        (acc, [key, value]) => {
-          // ===== OR SUPPORT =====
-          if (key === 'OR' && Array.isArray(value)) {
-            const orResult = value.reduce(
-              (orAcc, cond) => {
-                const res = process(cond, orAcc.nextIndex);
-
-                return {
-                  clauses: [...orAcc.clauses, `(${res.clause})`],
-                  values: [...orAcc.values, ...res.values],
-                  nextIndex: res.nextIndex,
-                };
-              },
-              { clauses: [] as string[], values: [] as any[], nextIndex: acc.nextIndex }
-            );
-
-            const clause = `(${orResult.clauses.join(' OR ')})`;
+    const process = (node: WhereOption, index: number): { clause: string; values: any[]; nextIndex: number } => {
+      // ===== AND =====
+      if ('AND' in node) {
+        return node.AND.reduce(
+          (acc, child) => {
+            const res = process(child, acc.nextIndex);
 
             return {
-              clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
-              values: [...acc.values, ...orResult.values],
-              nextIndex: orResult.nextIndex,
+              clause: acc.clause ? `${acc.clause} AND (${res.clause})` : `(${res.clause})`,
+              values: [...acc.values, ...res.values],
+              nextIndex: res.nextIndex,
             };
-          }
+          },
+          { clause: '', values: [] as any[], nextIndex: index }
+        );
+      }
 
-          // ===== NULL SUPPORT =====
-          if (value === null) {
-            const clause = `${key} IS NULL`;
+      // ===== OR =====
+      if ('OR' in node) {
+        return node.OR.reduce(
+          (acc, child) => {
+            const res = process(child, acc.nextIndex);
 
             return {
-              clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
-              values: acc.values,
-              nextIndex: acc.nextIndex,
+              clause: acc.clause ? `${acc.clause} OR (${res.clause})` : `(${res.clause})`,
+              values: [...acc.values, ...res.values],
+              nextIndex: res.nextIndex,
             };
-          }
+          },
+          { clause: '', values: [] as any[], nextIndex: index }
+        );
+      }
 
-          // ===== NOT NULL SUPPORT =====
-          if (value === '__NOT_NULL__') {
-            const clause = `${key} IS NOT NULL`;
+      // ===== SIMPLE CONDITION =====
+      const { column, operator = '=', value, isNull, isNotNull } = node;
 
-            return {
-              clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
-              values: acc.values,
-              nextIndex: acc.nextIndex,
-            };
-          }
+      const col = this.escapeIdentifier(column);
 
-          const paramIndex = acc.nextIndex;
+      if (isNull) {
+        return { clause: `${col} IS NULL`, values: [], nextIndex: index };
+      }
 
-          // ===== ARRAY (IN) SUPPORT =====
-          if (Array.isArray(value)) {
-            const clause = `${key} = ANY($${paramIndex})`;
+      if (isNotNull) {
+        return { clause: `${col} IS NOT NULL`, values: [], nextIndex: index };
+      }
 
-            return {
-              clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
-              values: [...acc.values, value],
-              nextIndex: acc.nextIndex + 1,
-            };
-          }
-
-          // ===== DEFAULT "=" =====
-          const clause = `${key} = $${paramIndex}`;
-
-          return {
-            clause: acc.clause ? `${acc.clause} AND ${clause}` : clause,
-            values: [...acc.values, value],
-            nextIndex: acc.nextIndex + 1,
-          };
-        },
-        { clause: '', values: [] as any[], nextIndex: index }
-      );
+      return {
+        clause: `${col} ${operator} $${index}`,
+        values: [value],
+        nextIndex: index + 1,
+      };
     };
 
     const { clause, values } = process(where, startIdx);
@@ -494,8 +513,15 @@ export class RepoBuilder<T = any> {
 
   private buildSetClause(data: Partial<T>) {
     const keys = Object.keys(data);
-    const setClause = keys.map((k, i) => `${k}=$${i + 1}`).join(', ');
+
+    if (!keys.length) {
+      throw new Error('No data provided');
+    }
+
+    const setClause = keys.map((k, i) => `${this.escapeIdentifier(k)}=$${i + 1}`).join(', ');
+
     const values = Object.values(data);
+
     return { setClause, values };
   }
 }

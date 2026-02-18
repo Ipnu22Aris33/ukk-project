@@ -16,14 +16,7 @@ import { useDataTable } from '@/hooks/useDataTable';
 import { useMembers } from '@/hooks/useMembers';
 import { Icon } from '@iconify/react';
 import type { ColumnDef } from '@tanstack/react-table';
-
-interface Member {
-  id_member: number;
-  name: string;
-  phone: string;
-  class: string;
-  major: string;
-}
+import { Member } from '@/lib/models/member';
 
 interface MemberFormData {
   member_name: string;
@@ -57,9 +50,9 @@ export function MemberTable() {
   const columns: ColumnDef<Member>[] = [
     col.selectColumn(),
     col.textColumn('id_member', 'ID', { color: 'gray' }),
-    col.textColumn('name', 'Name', { weight: 'medium' }),
+    col.textColumn('full_name', 'Name', { weight: 'medium' }),
     col.textColumn('phone', 'Phone'),
-    col.textColumn('class', 'Class'),
+    col.textColumn('member_class', 'Class'),
     col.textColumn('major', 'Major'),
     col.actionsColumn({
       useDefault: true,

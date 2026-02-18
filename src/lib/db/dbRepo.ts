@@ -1,5 +1,5 @@
 import { dbMappings } from './dbMappings';
-import { RepoBuilder } from '../lib/db/repoBuilder';
+import { RepoBuilder } from './repoBuilder';
 
 export const bookRepo = new RepoBuilder(dbMappings.books.repo);
 export const categoryRepo = new RepoBuilder(dbMappings.categories.repo);
