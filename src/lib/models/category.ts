@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const categorySchema = z.object({
-  id_category: z.number().int().positive(),
+  id: z.number().int().positive(),
 
   name: z.string().min(1).max(255),
   slug: z.string().min(1).max(255),
@@ -14,7 +14,7 @@ export const categorySchema = z.object({
 
 /* CREATE */
 export const createCategorySchema = categorySchema.omit({
-  id_category: true,
+  id: true,
   created_at: true,
   updated_at: true,
   deleted_at: true,

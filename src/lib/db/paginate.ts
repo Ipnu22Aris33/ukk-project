@@ -16,8 +16,9 @@ type PaginateOptions<TTable> = {
   orderDir?: 'asc' | 'desc';
 
   where?: SQL | SQL[];
-
   with?: any;
+
+  select?: any; // <--- tambahkan select di sini
 };
 
 export async function paginate<TTable>({
@@ -33,6 +34,7 @@ export async function paginate<TTable>({
   orderDir = 'desc',
   where,
   with: relations,
+  select, // <--- destructure select
 }: PaginateOptions<TTable>) {
   /* ===============================
      SAFE PAGINATION
@@ -40,14 +42,15 @@ export async function paginate<TTable>({
 
   const safePage = Number.isFinite(page) && page > 0 ? page : 1;
   const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 100) : 10;
-
   const offset = (safePage - 1) * safeLimit;
 
   /* ===============================
      SEARCH CONDITION
   =============================== */
 
-  const searchCondition = search && searchable.length ? or(...searchable.map((col) => ilike(col as any, `%${search}%`))) : undefined;
+  const searchCondition = search && searchable.length
+    ? or(...searchable.map((col) => ilike(col as any, `%${search}%`)))
+    : undefined;
 
   /* ===============================
      WHERE MERGE (SAFER)
@@ -72,8 +75,11 @@ export async function paginate<TTable>({
   =============================== */
 
   const sortKeys = Object.keys(sortable);
-
-  const orderColumn = orderBy && sortable[orderBy] ? sortable[orderBy] : sortKeys.length > 0 ? sortable[sortKeys[0]] : undefined;
+  const orderColumn = orderBy && sortable[orderBy]
+    ? sortable[orderBy]
+    : sortKeys.length > 0
+      ? sortable[sortKeys[0]]
+      : undefined;
 
   const order = orderColumn && (orderDir === 'asc' ? asc(orderColumn) : desc(orderColumn));
 
@@ -87,6 +93,7 @@ export async function paginate<TTable>({
     limit: safeLimit,
     offset,
     orderBy: order ? [order] : undefined,
+    select, // <--- pass select ke query
   });
 
   /* ===============================
@@ -94,9 +101,7 @@ export async function paginate<TTable>({
   =============================== */
 
   const countQuery = db.select({ count: sql<number>`count(*)` }).from(table);
-
   const countResult = finalWhere ? await countQuery.where(finalWhere) : await countQuery;
-
   const total = Number(countResult[0]?.count ?? 0);
 
   /* ===============================

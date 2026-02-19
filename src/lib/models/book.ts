@@ -29,7 +29,7 @@ export const bookSchema = z.object({
 });
 
 export const categoryResponseSchema = z.object({
-  id_category: z.number().int().positive(),
+  id: z.number().int().positive(),
   name: z.string(),
   slug: z.string(),
   description: z.string().nullable(),
@@ -39,7 +39,7 @@ export const categoryResponseSchema = z.object({
    BOOK RESPONSE
 ====================== */
 export const bookResponseSchema = z.object({
-  id_book: z.number().int().positive(),
+  id: z.number().int().positive(),
   title: z.string(),
   author: z.string(),
   publisher: z.string(),

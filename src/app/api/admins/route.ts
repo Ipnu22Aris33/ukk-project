@@ -21,6 +21,7 @@ export const GET = handleApi(async ({ req }) => {
   const result = await paginate({
     db,
     table: users,
+    query: db.query.users,
     page,
     limit,
     search,

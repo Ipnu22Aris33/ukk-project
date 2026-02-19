@@ -20,7 +20,7 @@ export const useDashboard = () => {
   });
 
   // getOne bisa dipakai, id tidak perlu, kita anggap 'singleton'
-  const dashboardQuery = dashboardCRUD.getOne('dashboard', true);
+  const dashboardQuery = dashboardCRUD.getOne('/', true);
 
   return dashboardQuery;
 };
