@@ -58,8 +58,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
   const router = useRouter();
   const { logout, session } = useAuth();
   const handleLogout = async () => {
-    await logout(); // hapus token / session
-    router.replace('/'); // redirect ke root
+    await logout();
+    router.replace('/');
   };
 
   return (
@@ -86,7 +86,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
       >
         <AppIcon name='MaterialSymbolsLocalLibraryOutline' />
 
-        {/* Heading dengan absolute positioning saat expanded */}
         <Box
           style={{
             position: sidebarCollapsed ? 'absolute' : 'relative',
@@ -127,6 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
         {menuItems.map((item) => {
           const pathname = usePathname();
           const isActive = pathname === item.href || item.children?.some((c) => pathname.startsWith(c.href));
+
           if (!item.children) {
             return (
               <Button
@@ -143,19 +143,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                 }}
                 title={sidebarCollapsed ? item.label : undefined}
               >
-                <Link href={item.href} style={{ textDecoration: 'none' }}>
-                  <Box
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                      width: sidebarCollapsed ? '100%' : 'auto',
-                      gap: sidebarCollapsed ? 0 : '10px',
-                    }}
-                  >
-                    <AppIcon name={item.icon} size={24} />
-                    {!sidebarCollapsed && <Text>{item.label}</Text>}
-                  </Box>
+                <Link href={item.href} style={{ display: 'flex', alignItems: 'center', gap: sidebarCollapsed ? 0 : '10px', width: '100%' }}>
+                  <AppIcon name={item.icon} size={24} />
+                  {!sidebarCollapsed && <Text>{item.label}</Text>}
                 </Link>
               </Button>
             );
@@ -163,9 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
 
           return (
             <Collapsible.Root key={item.id} defaultOpen={isActive}>
-              {/* ===== TRIGGER (BUTTON UTAMA) ===== */}
               {sidebarCollapsed ? (
-                // POPOVER MODE (ketika sidebar collapsed)
                 <Popover.Root>
                   <Popover.Trigger>
                     <Button
@@ -192,43 +180,51 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                     }}
                   >
                     <Flex direction='column' gap='1'>
-                      {/* Header */}
                       <Flex align='center' gap='2' px='2' py='1'>
                         <Icon icon={item.icon} width='14' height='14' style={{ flexShrink: 0 }} />
-                        <Text
-                          size='1'
-                          weight='bold'
-                          style={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                        <Text size='1' weight='bold' style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.label}
                         </Text>
                       </Flex>
 
                       <Separator size='4' my='1' />
 
-                      {/* Sub menu items */}
                       {item.children.map((child) => {
                         const isChildActive = pathname === child.href;
-
                         return (
                           <Button
-                            asChild
                             key={child.id}
+                            asChild
                             variant={isChildActive ? 'solid' : 'soft'}
                             onClick={onCloseMobile}
                             style={{
-                              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                              justifyContent: 'flex-start',
                               padding: sidebarCollapsed ? '10px' : '10px 12px',
                               width: '100%',
                               overflow: 'hidden',
                             }}
                           >
-                            <Link href={child.href} style={{ textDecoration: 'none' }}>
-                              <Text style={{ marginLeft: sidebarCollapsed ? 0 : '10px' }}>{child.label}</Text>
+                            <Link
+                              href={child.href}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                width: '100%', // full width
+                              }}
+                            >
+                              {child.icon && <AppIcon name={child.icon} size={18} />}
+                              <Text
+                                size='2'
+                                style={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  width: '100%',
+                                }}
+                              >
+                                {child.label}
+                              </Text>
                             </Link>
                           </Button>
                         );
@@ -237,7 +233,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                   </Popover.Content>
                 </Popover.Root>
               ) : (
-                // COLLAPSIBLE MODE (ketika sidebar expanded)
                 <>
                   <Collapsible.Trigger asChild>
                     <Button
@@ -250,21 +245,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                     >
                       <Flex align='center' gap='2' style={{ flex: 1, minWidth: 0 }}>
                         <AppIcon name={item.icon} size={18} />
-                        <Text
-                          style={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {item.label}
-                        </Text>
+                        <Text style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</Text>
                         <ChevronDownIcon style={{ marginLeft: 'auto' }} />
                       </Flex>
                     </Button>
                   </Collapsible.Trigger>
 
-                  {/* ===== SUB MENU ===== */}
                   <Collapsible.Content>
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
@@ -276,12 +262,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                       <Flex direction='column' gap='1' mt='3'>
                         {item.children.map((child, index) => {
                           const isChildActive = pathname === child.href;
-
                           return (
                             <Box key={child.id} style={{ width: '100%' }}>
-                              {/* WRAPPER FLEX: ICON + BUTTON */}
                               <Flex align='center' style={{ width: '100%' }}>
-                                {/* ICON CHEVRON */}
                                 <ChevronRightIcon
                                   style={{
                                     transform: isChildActive ? 'rotate(90deg)' : 'rotate(0deg)',
@@ -290,10 +273,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                                   }}
                                 />
 
-                                {/* BUTTON */}
-                                <Button asChild variant={isChildActive ? 'solid' : 'soft'} style={{ flex: 1, textAlign: 'left' }}>
-                                  <Link href={child.href} onClick={onCloseMobile} style={{ textDecoration: 'none', width: '100%' }}>
-                                    <AppIcon name={child.icon} size={18} />
+                                <Button
+                                  asChild
+                                  variant={isChildActive ? 'solid' : 'soft'}
+                                  style={{ flex: 1, textAlign: 'left' }}
+                                  onClick={onCloseMobile}
+                                >
+                                  <Link
+                                    href={child.href}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      width: '100%', // full width
+                                    }}
+                                  >
+                                    {child.icon && <AppIcon name={child.icon} size={18} />}
                                     <Text
                                       size='2'
                                       style={{
@@ -301,7 +296,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                                         textOverflow: 'ellipsis',
                                         whiteSpace: 'nowrap',
                                         width: '100%',
-                                        display: 'block',
                                       }}
                                     >
                                       {child.label}
@@ -324,7 +318,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
         })}
       </Flex>
 
-      {/* User Profile - tetap seperti sebelumnya */}
+      {/* User Profile */}
       <Flex direction='column' gap='2' style={{ marginTop: 'auto' }}>
         <Separator size='4' />
 
@@ -373,7 +367,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                 />
               </Box>
 
-              {/* User Info - hanya muncul saat expanded */}
               {!sidebarCollapsed && (
                 <Box
                   style={{
@@ -401,7 +394,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                 </Box>
               )}
 
-              {/* Chevron Icon - hanya muncul saat expanded */}
               {!sidebarCollapsed && (
                 <Icon
                   icon='radix-icons:chevron-down'
@@ -416,7 +408,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
             </Flex>
           </DropdownMenu.Trigger>
 
-          {/* Dropdown Content */}
           <DropdownMenu.Content
             sideOffset={5}
             align='center'

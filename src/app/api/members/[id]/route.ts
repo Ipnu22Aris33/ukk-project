@@ -1,20 +1,24 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound } from '@/lib/utils/httpErrors';
-import { memberRepo } from '@/lib/db';
+import { db } from '@/lib/db';
+import { members } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const GET = handleApi(async ({ params }) => {
-  const id = params?.id;
+  const id = Number(params?.id);
 
-  if (!id || isNaN(parseInt(id))) {
-    throw new NotFound('Invalid book ID');
+  if (!id || Number.isNaN(id)) {
+    throw new NotFound('Invalid member ID');
   }
 
-  const book = await memberRepo.findByPk(id);
+  const member = await db.query.members.findFirst({
+    where: eq(members.id, id),
+  });
 
-  if (!book) {
-    throw new NotFound('Book not found');
+  if (!member) {
+    throw new NotFound('Member not found');
   }
 
-  return ok(book, { message: 'Book retrieved successfully' });
+  return ok(member, { message: 'Member retrieved successfully' });
 });

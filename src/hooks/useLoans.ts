@@ -1,3 +1,11 @@
-import { createResourceHook } from './createResourceHook';
+import { createCRUD } from '@/hooks/useCRUD';
+import { Loan, CreateLoanInput } from '@/lib/models/loan';
 
-export const useLoans = createResourceHook('loans', '/api/loans');
+export const useLoans = createCRUD<CreateLoanInput, Loan[], Loan>('/api/loans', {
+  resourceName: 'loans',
+  messages: {
+    create: 'Loan berhasil ditambahkan!',
+    update: 'Loan berhasil diperbarui!',
+    delete: 'Loan berhasil dihapus!',
+  },
+});

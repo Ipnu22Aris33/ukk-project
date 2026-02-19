@@ -5,10 +5,10 @@ import { InternalServerError } from './httpErrors';
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
 
-interface TokenPayload extends JwtPayload {
-  sub: string;
+interface TokenPayload {
+  sub: string | number;
   email: string;
-  role: 'admin' | 'member';
+  role: 'admin' | 'member' | 'staff';
 }
 
 export const hashPassword = (p: string) => bcrypt.hash(p, 10);

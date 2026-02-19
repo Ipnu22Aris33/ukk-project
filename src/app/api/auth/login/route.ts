@@ -2,18 +2,21 @@ import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
 import { verifyPassword, createToken } from '@/lib/utils/auth';
-import { col, userRepo } from '@/lib/db';
 import { validateLogin } from '@/lib/models/auth';
+
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { eq, or, and, isNull } from 'drizzle-orm';
 
 export const POST = handleApi(async ({ req, res }) => {
   const data = await req.json();
   const { password, identifier } = validateLogin(data);
 
-  const user = await userRepo.findOne({
-    OR: [
-      { column: col('users', 'email'), value: identifier },
-      { column: col('users', 'username'), value: identifier },
-    ],
+  const user = await db.query.users.findFirst({
+    where: and(
+      isNull(users.deletedAt), // ⬅️ support soft delete
+      or(eq(users.email, identifier), eq(users.username, identifier))
+    ),
   });
 
   if (!user) {
@@ -26,7 +29,7 @@ export const POST = handleApi(async ({ req, res }) => {
   }
 
   const token = createToken({
-    sub: user.id_user,
+    sub: user.id,
     email: user.email,
     role: user.role,
   });
@@ -43,7 +46,7 @@ export const POST = handleApi(async ({ req, res }) => {
 
   return ok(
     {
-      id_user: user.id_user,
+      id: user.id,
       email: user.email,
       role: user.role,
       token,

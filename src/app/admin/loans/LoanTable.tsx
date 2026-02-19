@@ -14,105 +14,121 @@ import { DataTableBody } from '@/components/features/datatable/DataTableBody';
 import { DataTableFooter } from '@/components/features/datatable/DataTableFooter';
 import { useDataTable } from '@/hooks/useDataTable';
 import { useLoans } from '@/hooks/useLoans';
-import { Icon } from '@iconify/react';
-import type { ColumnDef } from '@tanstack/react-table';
 import { useMembers } from '@/hooks/useMembers';
 import { useBooks } from '@/hooks/useBooks';
+import { Icon } from '@iconify/react';
+import type { ColumnDef } from '@tanstack/react-table';
 
-type LoanStatus = 'borrowed' | 'returned' | 'overdue' | 'late';
+// ====================
+// TYPES
+// ====================
 
-interface Loan {
+type LoanStatus = 'borrowed' | 'returned' | 'late' | 'cancelled';
+
+interface LoanRow {
   id_loan: number;
-  count: number;
+  member_id: number;
+  book_id: number;
   loan_date: string;
   due_date: string;
+  quantity: number;
   status: LoanStatus;
-  book_id: number;
-  book_title: string;
-  book_author: string;
-  book_publisher: string;
-  book_category: number;
-  member_id: number;
-  member_name: string;
-  member_phone: string;
-  member_class: string;
-  member_major: string;
+  created_at: string;
+  updated_at: string;
+  member_name: string; // computed
+  book_title: string; // computed
 }
 
+// Form data dari user
 interface LoanFormData {
-  member_id: string;
+  member_id: string; // select value comes as string
   book_id: string;
   count: number;
   due_date: string;
 }
 
+// ====================
+// COMPONENT
+// ====================
+
 export function LoanTable() {
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  // State untuk pencarian di form dialog
   const [memberSearch, setMemberSearch] = useState('');
   const [bookSearch, setBookSearch] = useState('');
 
-  const { list, create } = useLoans({
+  // Hooks CRUD
+  const loans = useLoans();
+  const members = useMembers();
+  const books = useBooks();
+
+  // Fetch loans list
+  const loansList = loans.list({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
     debounceMs: 400,
   });
 
-  // Fetch members untuk dropdown
-  const { list: memberList } = useMembers({
+  // Fetch members for select dropdown
+  const memberList = members.list({
     page: 1,
-    limit: 100, // Ambil banyak untuk dropdown
+    limit: 100,
     search: memberSearch,
     debounceMs: 400,
   });
 
-  // Fetch books untuk dropdown
-  const { list: bookList } = useBooks({
+  // Fetch books for select dropdown
+  const bookList = books.list({
     page: 1,
-    limit: 100, // Ambil banyak untuk dropdown
+    limit: 100,
     search: bookSearch,
     debounceMs: 400,
   });
 
-  const tableData = list.data?.data ?? [];
-  const metaData = list.data?.meta;
-  const isLoading = list.isLoading;
-  const refetch = list.refetch;
+  const tableData: LoanRow[] =
+    (loansList.data?.data || []).map((l: any) => ({
+      ...l,
+      member_name: l.member?.full_name ?? '',
+      book_title: l.book?.title ?? '',
+    })) || [];
 
-  // Konversi members ke format Option
-  const memberOptions = (memberList.data?.data || []).map((member) => ({
-    value: String(member.id_member),
-    label: `${member.name} (${member.class})`, // Sesuaikan dengan struktur data member Anda
-  }));
+  const metaData = loansList.data?.meta;
+  const isLoading = loansList.isLoading;
+  const refetch = loansList.refetch;
 
-  // Konversi books ke format Option
-  const bookOptions = (bookList.data?.data || []).map((book) => ({
-    value: String(book.id_book),
-    label: `${book.title} - ${book.author}`,
-  }));
+  // Members & books options
+  const memberOptions =
+    (memberList.data?.data || []).map((m: any) => ({
+      value: String(m.id_member),
+      label: `${m.full_name} (${m.member_class})`,
+    })) || [];
 
-  const col = ColumnFactory<Loan>();
+  const bookOptions =
+    (bookList.data?.data || []).map((b: any) => ({
+      value: String(b.id_book),
+      label: `${b.title} - ${b.author}`,
+    })) || [];
 
-  const columns: ColumnDef<Loan>[] = [
+  // ====================
+  // TABLE COLUMNS
+  // ====================
+  const col = ColumnFactory<LoanRow>();
+
+  const columns: ColumnDef<LoanRow>[] = [
     col.selectColumn(),
     col.textColumn('id_loan', 'ID', { color: 'gray' }),
     col.textColumn('member_name', 'Member', { weight: 'medium' }),
     col.textColumn('book_title', 'Book'),
-    col.numberColumn('count', 'Qty'),
+    col.numberColumn('quantity', 'Qty'), // gunakan quantity
     col.dateColumn('loan_date', 'Loan Date'),
     col.dateColumn('due_date', 'Due Date'),
     col.statusBadgeColumn('status', 'Status', {
       borrowed: { label: 'Borrowed', color: 'blue' },
       returned: { label: 'Returned', color: 'jade' },
-      overdue: { label: 'Overdue', color: 'red' },
       late: { label: 'Late', color: 'crimson' },
+      cancelled: { label: 'Cancelled', color: 'gray' },
     }),
     col.actionsColumn({
       useDefault: true,
@@ -130,7 +146,9 @@ export function LoanTable() {
     pageSize: metaData?.limit || 10,
   });
 
+  // ====================
   // FORM
+  // ====================
   const form = useForm({
     defaultValues: {
       member_id: '',
@@ -140,16 +158,18 @@ export function LoanTable() {
     },
     onSubmit: async ({ value }) => {
       try {
-        await create.mutateAsync({
-          ...value,
+        await loans.create.mutateAsync({
+          member_id: Number(value.member_id),
+          book_id: Number(value.book_id),
+          quantity: value.count, // rename count → quantity
           loan_date: new Date().toISOString().split('T')[0],
+          due_date: value.due_date,
+          status: 'borrowed',
         });
 
         setDialogOpen(false);
         form.reset();
         refetch();
-
-        // Reset search states
         setMemberSearch('');
         setBookSearch('');
       } catch (err: any) {
@@ -158,7 +178,9 @@ export function LoanTable() {
     },
   });
 
-  // Table actions
+  // ====================
+  // TABLE ACTIONS
+  // ====================
   const tableActions = (
     <>
       <Button variant='soft' size='2' onClick={() => window.print()}>
@@ -173,13 +195,12 @@ export function LoanTable() {
         Export
       </Button>
 
-      {/* DIALOG WITH FORM */}
+      {/* Dialog with form */}
       <Dialog.Root
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) {
-            // Reset form and search when dialog closes
             form.reset();
             setMemberSearch('');
             setBookSearch('');
@@ -207,14 +228,11 @@ export function LoanTable() {
             }}
           >
             <Box className='space-y-4'>
-              {/* MEMBER SELECT */}
+              {/* Member select */}
               <form.Field
                 name='member_id'
                 validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return 'Member wajib dipilih';
-                    return undefined;
-                  },
+                  onChange: ({ value }) => (!value ? 'Member wajib dipilih' : undefined),
                 }}
               >
                 {(field) => (
@@ -225,21 +243,18 @@ export function LoanTable() {
                     options={memberOptions}
                     placeholder='Cari member...'
                     required
-                    searchable={true}
+                    searchable
                     search={memberSearch}
                     onSearchChange={setMemberSearch}
                   />
                 )}
               </form.Field>
 
-              {/* BOOK SELECT */}
+              {/* Book select */}
               <form.Field
                 name='book_id'
                 validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return 'Buku wajib dipilih';
-                    return undefined;
-                  },
+                  onChange: ({ value }) => (!value ? 'Buku wajib dipilih' : undefined),
                 }}
               >
                 {(field) => (
@@ -250,14 +265,14 @@ export function LoanTable() {
                     options={bookOptions}
                     placeholder='Cari buku...'
                     required
-                    searchable={true}
+                    searchable
                     search={bookSearch}
                     onSearchChange={setBookSearch}
                   />
                 )}
               </form.Field>
 
-              {/* QUANTITY */}
+              {/* Quantity */}
               <form.Field
                 name='count'
                 validators={{
@@ -281,14 +296,11 @@ export function LoanTable() {
                 )}
               </form.Field>
 
-              {/* DUE DATE */}
+              {/* Due date */}
               <form.Field
                 name='due_date'
                 validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return 'Tanggal kembali wajib diisi';
-                    return undefined;
-                  },
+                  onChange: ({ value }) => (!value ? 'Tanggal kembali wajib diisi' : undefined),
                 }}
               >
                 {(field) => (
@@ -303,7 +315,7 @@ export function LoanTable() {
                 )}
               </form.Field>
 
-              {/* FORM ACTIONS */}
+              {/* Form actions */}
               <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
                 {([canSubmit, isSubmitting]) => (
                   <Flex gap='3' mt='4' justify='end'>
@@ -325,7 +337,9 @@ export function LoanTable() {
     </>
   );
 
-  // Context value untuk provider
+  // ====================
+  // PROVIDER
+  // ====================
   const dataTableState = {
     table,
     pagination,

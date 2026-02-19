@@ -1,46 +1,95 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
-import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
+import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
+import { validateCreateReturn } from '@/lib/models/return';
+import { paginate } from '@/lib/db/paginate';
 import { parseQuery } from '@/lib/utils/parseQuery';
-import { returnRepo, loanRepo, bookRepo, withTransaction, mapDb, col } from '@/lib/db';
-import { createReturnSchema, validateCreateReturn } from '@/lib/models/return';
+
+import { db } from '@/lib/db';
+import { returns, loans, books } from '@/lib/db/schema';
+
+import { eq, isNull, and, sql } from 'drizzle-orm';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
+  const { loan_id, notes, condition } = validateCreateReturn(data);
+  
+  // Ensure condition is one of the allowed enum values
+  const validConditions = ['lost', 'good', 'damaged'] as const;
+  if (!validConditions.includes(condition as any)) {
+    throw new UnprocessableEntity('Invalid condition value');
+  }
+  const typedCondition = condition as typeof validConditions[number];
 
-  const { loan_id, notes } = validateCreateReturn(data);
+  const result = await db.transaction(async (tx) => {
+    /* ===============================
+       FIND LOAN (ONLY ACTIVE)
+    =============================== */
 
-  const result = await withTransaction(async () => {
-    const loan = await loanRepo.findByPk(loan_id);
+    const loan = await tx.query.loans.findFirst({
+      where: and(eq(loans.id, loan_id), isNull(loans.deletedAt)),
+    });
 
     if (!loan) {
       throw new NotFound('Data peminjaman tidak ditemukan');
     }
 
-    if (loan.return_at) {
+    if (loan.status === 'returned') {
       throw new UnprocessableEntity('Buku sudah dikembalikan');
     }
 
+    /* ===============================
+       FINE CALCULATION
+    =============================== */
+
     const now = new Date();
-    const dueDate = new Date(loan.due_date);
+    const dueDate = new Date(loan.dueDate);
 
     const lateDays = now > dueDate ? Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
     const fineAmount = lateDays * 1000;
     const fineStatus = fineAmount > 0 ? 'unpaid' : 'paid';
 
-    const inserted = await returnRepo.insertOne({
-      loan_id: loan.id_loan,
-      returned_at: now,
-      fine_amount: fineAmount,
-      status: fineStatus,
-      notes: notes ?? null,
-    });
+    /* ===============================
+       INSERT RETURN
+    =============================== */
 
-    await loanRepo.updateByPk(loan.id_loan, { status: 'returned' });
+    const [insertedReturn] = await tx
+      .insert(returns)
+      .values({
+        loanId: loan.id,
+        returnedAt: now,
+        fineAmount: fineAmount.toString(), // karena numeric
+        fineStatus,
+        condition: typedCondition,
+        notes: notes ?? null,
+      })
+      .returning();
 
-    await bookRepo.increment({ column: col('books', 'id'), value: loan.book_id }, col('books', 'stock'), loan.quantity);
+    /* ===============================
+       UPDATE LOAN STATUS
+    =============================== */
 
-    return returnRepo.findByPk(inserted.id_return);
+    await tx
+      .update(loans)
+      .set({
+        status: 'returned',
+        updatedAt: new Date(),
+      })
+      .where(eq(loans.id, loan.id));
+
+    /* ===============================
+       INCREMENT BOOK STOCK
+    =============================== */
+
+    await tx
+      .update(books)
+      .set({
+        stock: sql`${books.stock} + ${loan.quantity}`,
+      })
+      .where(eq(books.id, loan.bookId));
+
+    return insertedReturn;
   });
 
   return ok(result, { message: 'Book returned successfully' });
@@ -48,60 +97,36 @@ export const POST = handleApi(async ({ req }) => {
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
-  const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
+  const { page, limit, search, orderBy, orderDir } = parseQuery(url);
 
-  const { data, meta } = await returnRepo.paginate({
+  const result = await paginate({
+    db,
+    table: returns,
+    query: db.query.returns,
     page,
     limit,
     search,
+    searchable: [returns.id, returns.fineStatus, returns.condition],
+    sortable: {
+      id: returns.id,
+      returnedAt: returns.returnedAt,
+      fineAmount: returns.fineAmount,
+    },
     orderBy,
     orderDir,
-    searchable: [col('returns', 'id'), col('returns', 'status'), col('members', 'fullName'), col('users', 'email'), col('books', 'title')],
-    select: [
-      col('returns', 'id'),
-      col('returns', 'loanId'),
-      col('returns', 'returnedAt'),
-      col('returns', 'fineAmount'),
-      col('returns', 'status'),
-
-      col('loans', 'id'),
-      col('loans', 'loanDate'),
-      col('loans', 'dueDate'),
-      `${col('loans', 'status')} AS loan_status`,
-
-      col('members', 'id'),
-      `${col('members', 'fullName')} AS member_name`,
-      `${col('members', 'phone')} AS member_phone`,
-      `${col('members', 'memberClass')} AS member_class`,
-      `${col('members', 'major')} AS member_major`,
-
-      col('books', 'id'),
-      `${col('books', 'title')} AS book_title`,
-      `${col('books', 'author')} AS book_author`,
-      `${col('books', 'publisher')} AS book_publisher`,
-      `${col('books', 'categoryId')} AS book_category`,
-    ],
-    joins: [
-      {
-        type: 'INNER',
-        table: 'loans',
-        alias: 'l',
-        on: { left: col('loans', 'id'), right: col('returns', 'loanId') },
+    where: isNull(returns.deletedAt),
+    with: {
+      loan: {
+        with: {
+          member: true,
+          book: true,
+        },
       },
-      {
-        type: 'LEFT',
-        table: 'members',
-        alias: 'm',
-        on: { left: col('members', 'id'), right: col('loans', 'memberId') },
-      },
-      {
-        type: 'LEFT',
-        table: 'books',
-        alias: 'b',
-        on: { left: col('books', 'id'), right: col('loans', 'bookId') },
-      },
-    ],
+    },
   });
 
-  return ok(data, { message: 'Returns retrieved successfully', meta });
+  return ok(result.data, {
+    message: 'Returns retrieved successfully',
+    meta: result.meta,
+  });
 });

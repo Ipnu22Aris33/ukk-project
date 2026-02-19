@@ -18,12 +18,6 @@ import { Icon } from '@iconify/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Member } from '@/lib/models/member';
 
-interface MemberFormData {
-  member_name: string;
-  member_phone: string;
-  member_class: string;
-  member_major: string;
-}
 
 export function MemberTable() {
   const [pagination, setPagination] = useState({
@@ -33,17 +27,19 @@ export function MemberTable() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { list } = useMembers({
+  const members = useMembers()
+
+  const memberList = members.list({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
     debounceMs: 400,
-  });
+  })
 
-  const tableData = list.data?.data ?? [];
-  const metaData = list.data?.meta;
-  const isLoading = list.isLoading;
-  const refetch = list.refetch;
+  const tableData = memberList.data?.data ?? [];
+  const metaData = memberList.data?.meta;
+  const isLoading = memberList.isLoading;
+  const refetch = memberList.refetch;
 
   const col = ColumnFactory<Member>();
 

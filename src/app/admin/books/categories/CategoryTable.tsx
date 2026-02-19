@@ -12,20 +12,9 @@ import { DataTableFooter } from '@/components/features/datatable/DataTableFooter
 import { DataTableEmpty } from '@/components/features/datatable/DataTableEmpty';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useDataTable } from '@/hooks/useDataTable';
-import { useCategory } from '@/hooks/useCategory';
+import { useCategories } from '@/hooks/useCategories';
 import type { ColumnDef } from '@tanstack/react-table';
-
-// ============================================
-// CATEGORY TABLE COMPONENT
-// ============================================
-
-interface Category {
-  id_category: string;
-  name: string;
-  slug: string;
-  description?: string;
-  created_at?: string;
-}
+import { Category } from '@/lib/models/category';
 
 export function CategoryTable() {
   // =========================
@@ -44,17 +33,20 @@ export function CategoryTable() {
   // =========================
   // FETCH DATA
   // =========================
-  const { list, remove, create } = useCategory({
+  const categories = useCategories();
+  const categoryList = categories.list({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
     debounceMs: 400,
   });
 
-  const tableData = list.data?.data ?? [];
-  const metaData = list.data?.meta;
-  const isLoading = list.isLoading;
-  const refetch = list.refetch;
+  const { remove, create } = categories;
+
+  const tableData = categoryList.data?.data ?? [];
+  const metaData = categoryList.data?.meta;
+  const isLoading = categoryList.isLoading;
+  const refetch = categoryList.refetch;
 
   // =========================
   // COLUMN DEFINITIONS
@@ -132,8 +124,8 @@ export function CategoryTable() {
   return (
     <DataTableProvider value={dataTableState}>
       <Flex direction='column'>
-        <DataTableHeader title='Categories' description='Manage book categories'  />
-        <DataTableToolbar actions={tableActions}/>
+        <DataTableHeader title='Categories' description='Manage book categories' />
+        <DataTableToolbar actions={tableActions} />
         {tableData.length === 0 ? (
           <DataTableEmpty title='No categories found' description='Try adjusting your search or add a new category' />
         ) : (

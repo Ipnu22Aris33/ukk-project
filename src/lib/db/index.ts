@@ -1,5 +1,7 @@
-export { pgPool } from './pg';
-export { RepoBuilder } from './repoBuilder';
-export { withTransaction } from './withTransaction';
-export { dbMappings, col, mapDb } from './dbMappings';
-export { bookRepo, userRepo, memberRepo, loanRepo, reservationRepo, returnRepo, categoryRepo } from './dbRepo';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import * as schema from './schema';
+
+const sql = neon(process.env.DATABASE_URL!);
+
+export const db = drizzle(sql, { schema });

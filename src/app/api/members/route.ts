@@ -3,58 +3,46 @@ import { hashPassword } from '@/lib/utils/auth';
 import { handleApi } from '@/lib/utils/handleApi';
 import { Conflict } from '@/lib/utils/httpErrors';
 import { parseQuery } from '@/lib/utils/parseQuery';
-import { createMemberSchema } from '@/lib/schemas/member.schema';
 import crypto from 'crypto';
-import { userRepo, memberRepo } from '@/lib/db/dbRepo';
-import { withTransaction } from '@/lib/db/withTransaction';
-import { mapDb, col } from '@/lib/db/dbMappings';
+import { db } from '@/lib/db';
+import { members, users } from '@/lib/db/schema';
+import { eq, isNull, ilike } from 'drizzle-orm';
+import { paginate } from '@/lib/db/paginate';
+import { createMemberSchema, validateCreateMember } from '@/lib/models/member';
+import { validateRegister } from '@/lib/models/auth';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
   const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
 
-  const { data, meta } = await memberRepo.paginate({
+  const result = await paginate({
+    db,
+    table: members,
+    query: db.query.members,
     page,
     limit,
     search,
+    searchable: [members.fullName, members.memberCode, members.memberClass, users.username, users.email],
+    sortable: { createdAt: members.createdAt, fullName: members.fullName, userId: members.userId },
     orderBy,
     orderDir,
-    where: { column: col('members', 'deletedAt'), isNull: true },
-    sortable: [col('members', 'createdAt'), col('members', 'fullName'), col('members', 'userId')],
-    searchable: [
-      col('members', 'fullName'),
-      col('members', 'memberCode'),
-      col('members', 'memberClass'),
-      col('users', 'username'),
-      col('users', 'email'),
-    ],
-    select: [
-      col('members', 'id'),
-      col('members', 'userId'),
-      col('members', 'nis'),
-      col('members', 'memberCode'),
-      col('members', 'fullName'),
-      col('users', 'username'),
-      col('users', 'email'),
-      col('members', 'phone'),
-      col('members', 'memberClass'),
-      col('members', 'major'),
-      col('members', 'address'),
-      col('members', 'createdAt'),
-      col('members', 'updatedAt'),
-    ],
-    joins: [{ type: 'INNER', table: 'users', alias: 'u', on: { left: col('users', 'id'), operator: '=', right: col('members', 'userId') } }],
+    where: isNull(members.deletedAt),
+    with: {
+      user: true, // otomatis join ke tabel users
+    },
   });
-  return ok(data, { message: 'Members Succes fetch', meta });
+
+  return ok(result.data, { message: 'Members fetched successfully', meta: result.meta });
 });
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
-  const parsedData = createMemberSchema.parse(data);
+  const parsedData = validateRegister(data)
 
-  const result = await withTransaction(async () => {
+  const result = await db.transaction(async (tx) => {
     // cek email
-    if (await userRepo.exists({ column: col('users', 'email'), value: data.email })) {
+    const existingUser = await tx.query.users.findFirst({ where: eq(users.email, parsedData.email) });
+    if (existingUser) {
       throw new Conflict('Email already registered');
     }
 
@@ -64,31 +52,33 @@ export const POST = handleApi(async ({ req }) => {
     const memberCode = 'MBR-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
     // insert user
-    const newUser = await userRepo.insertOne(
-      mapDb('users', {
+    const [newUser] = await tx
+      .insert(users)
+      .values({
         username: parsedData.username,
         email: parsedData.email,
         password: passwordHash,
         role: 'member',
       })
-    );
+      .returning({ id: users.id, username: users.username, email: users.email });
 
     // insert member
-    const newMember = await memberRepo.insertOne(
-      mapDb('members', {
+    const [newMember] = await tx
+      .insert(members)
+      .values({
         fullName: parsedData.full_name,
         memberCode,
         phone: parsedData.phone,
         memberClass: parsedData.member_class,
         major: parsedData.major,
-        userId: newUser.id_user,
+        userId: newUser.id,
       })
-    );
+      .returning({ id: members.id, fullName: members.fullName, memberCode: members.memberCode });
 
     return {
-      full_name: newMember.full_name,
-      member_code: memberCode,
-      email: parsedData.email,
+      full_name: newMember.fullName,
+      member_code: newMember.memberCode,
+      email: newUser.email,
       password,
     };
   });

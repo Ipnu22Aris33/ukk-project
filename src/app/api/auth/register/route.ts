@@ -2,11 +2,13 @@ import { ok } from '@/lib/utils/apiResponse';
 import { hashPassword } from '@/lib/utils/auth';
 import { handleApi } from '@/lib/utils/handleApi';
 import { Conflict, BadRequest } from '@/lib/utils/httpErrors';
-import { userRepo, memberRepo, col } from '@/lib/db';
-import { withTransaction } from '@/lib/db/withTransaction';
-import { mapDb } from '@/lib/db';
-import crypto from 'crypto';
 import { validateRegister } from '@/lib/models/auth';
+
+import { db } from '@/lib/db';
+import { users, members } from '@/lib/db/schema';
+
+import { eq, and, isNull } from 'drizzle-orm';
+import crypto from 'crypto';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
@@ -17,63 +19,82 @@ export const POST = handleApi(async ({ req }) => {
     throw new BadRequest('Required fields are missing');
   }
 
-  const result = await withTransaction(async () => {
-    // cek duplikat
-    if (
-      await userRepo.exists({
-        AND: [
-          { column: col('users', 'username'), value: username },
-          { column: col('users', 'email'), value: email },
-        ],
-      })
-    ) {
+  const result = await db.transaction(async (tx) => {
+    /* =========================
+       CHECK DUPLICATE USER
+    ========================= */
+
+    const existingUser = await tx.query.users.findFirst({
+      where: and(isNull(users.deletedAt), eq(users.username, username)),
+    });
+
+    if (existingUser) {
       throw new Conflict('Username already registered');
     }
-    if (await memberRepo.exists({ column: col('members', 'nis'), value: nis })) {
-      throw new Conflict('Nis already exist');
+
+    const existingEmail = await tx.query.users.findFirst({
+      where: and(isNull(users.deletedAt), eq(users.email, email)),
+    });
+
+    if (existingEmail) {
+      throw new Conflict('Email already registered');
     }
 
-    // hash password
+    const existingNis = await tx.query.members.findFirst({
+      where: eq(members.nis, nis),
+    });
+
+    if (existingNis) {
+      throw new Conflict('NIS already exists');
+    }
+
+    /* =========================
+       CREATE USER
+    ========================= */
+
     const hashPw = await hashPassword(password);
     const memberCode = 'MBR-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
-    // insert user
-    const newUser = await userRepo.insertOne(mapDb('users', { username, email, password: hashPw, role: 'member' }));
+    const [newUser] = await tx
+      .insert(users)
+      .values({
+        username,
+        email,
+        password: hashPw,
+        role: 'member',
+      })
+      .returning();
 
-    // insert member
-    await memberRepo.insertOne(
-      mapDb('members', { userId: newUser.id_user, fullName: full_name, memberCode, memberClass: member_class, address, phone, major, nis })
-    );
+    /* =========================
+       CREATE MEMBER
+    ========================= */
 
-    return userRepo.findOne(
-      { column: col('users', 'id'), value: newUser.id_user },
-      {
-        select: [
-          col('users', 'id'),
-          col('users', 'username'),
-          col('users', 'email'),
-          col('users', 'role'),
-          col('members', 'id'),
-          col('members', 'nis'),
-          col('members', 'fullName'),
-          col('members', 'memberClass'),
-          col('members', 'phone'),
-        ],
-        joins: [
-          {
-            table: 'members',
-            alias: 'm',
-            type: 'LEFT',
-            on: {
-              left: col('users', 'id'),
-              right: col('members', 'userId'),
-              operator: '=',
-            },
-          },
-        ],
-      }
-    );
+    await tx.insert(members).values({
+      userId: newUser.id,
+      fullName: full_name,
+      memberCode,
+      memberClass: member_class,
+      address,
+      phone,
+      major,
+      nis,
+    });
+
+    /* =========================
+       RETURN JOINED DATA
+    ========================= */
+
+    const created = await tx.query.users.findFirst({
+      where: eq(users.id, newUser.id),
+      with: {
+        member: true, // pastikan relasi sudah didefinisikan di schema
+      },
+    });
+
+    return created;
   });
 
-  return ok(result, { message: 'Member registered successfully' });
+  return ok(result, {
+    message: 'Member registered successfully',
+  });
 });

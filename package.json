@@ -12,10 +12,15 @@
     "clean": "rimraf .next",
     "dev:clean": "rimraf .next && next dev",
     "build:clean": "rimraf .next && next build",
-    "start:clean": "rimraf .next && next start"
+    "start:clean": "rimraf .next && next start",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",
+    "@neondatabase/serverless": "^1.0.2",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -34,6 +39,8 @@
     "bcryptjs": "^3.0.3",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
     "framer-motion": "^12.29.0",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.16.1",
@@ -61,10 +68,12 @@
     "@types/react-dom": "^19",
     "@vitest/ui": "^4.0.16",
     "baseline-browser-mapping": "^2.9.19",
+    "drizzle-kit": "^0.31.9",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
     "rimraf": "^6.1.2",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.0.16"
   }

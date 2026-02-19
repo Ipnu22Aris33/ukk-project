@@ -1,3 +1,4 @@
+// components/datatable/BookTable.tsx
 'use client';
 
 import { useState } from 'react';
@@ -9,49 +10,40 @@ import { InputField, SelectField } from '@/components/features/forms';
 import { ColumnFactory, DataTableProvider, DataTableHeader, DataTableToolbar, DataTableBody, DataTableFooter } from '@/components/features/datatable';
 import { useDataTable } from '@/hooks/useDataTable';
 import { useBooks } from '@/hooks/useBooks';
-import { useCategory } from '@/hooks/useCategory';
+import { useCategories } from '@/hooks/useCategories';
 import { Icon } from '@iconify/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { BookAlert } from './BookAlert';
 import { BookModal } from './BookModal';
+import { Book } from '@/lib/models/book';
 
-interface Book {
-  id_book: string;
-  title: string;
-  author: string;
-  publisher: string;
-  slug: string;
-  stock: number;
-  year: number;
-  isbn: string;
-  category: number;
-  category_id: number;
-}
-
+// ====================
+// COMPONENT
+// ====================
 export function BookTable() {
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
 
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [editOpen, setEditOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
-  const { list, create, remove, update } = useBooks({
+  const { list: useList, create, remove, update } = useBooks();
+
+  const list = useList({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
     debounceMs: 400,
   });
 
-  const { list: categoryList } = useCategory({
+  const categories = useCategories();
+
+  const categoryList = categories.list({
     page: 1,
     limit: 100,
     search: categorySearch,
@@ -79,7 +71,7 @@ export function BookTable() {
     col.textColumn('isbn', 'ISBN', { color: 'gray' }),
     col.textColumn('slug', 'Slug', { color: 'gray' }),
     col.numberColumn('stock', 'Stock'),
-    col.textColumn('category', 'Category'),
+    col.textColumn('category_id', 'Category'), // pakai category_id sesuai backend
     col.actionsColumn({
       useDefault: true,
       handlers: {
@@ -95,21 +87,6 @@ export function BookTable() {
       },
     }),
   ];
-
-  const handleConfirmDelete = async () => {
-    if (!selectedId) return;
-
-    await remove.mutateAsync(selectedId);
-    setDeleteOpen(false);
-    setSelectedId(null);
-  };
-
-  const handleUpdate = async (data: any, id: string) => {
-    await update.mutateAsync({ id, ...data });
-    setEditOpen(false);
-    setSelectedBook(null);
-    refetch();
-  };
 
   const { table } = useDataTable({
     data: tableData,
@@ -142,6 +119,20 @@ export function BookTable() {
     },
   });
 
+  const handleConfirmDelete = async () => {
+    if (!selectedId) return;
+    await remove.mutateAsync(selectedId);
+    setDeleteOpen(false);
+    setSelectedId(null);
+  };
+
+  const handleUpdate = async (data: any, id: number) => {
+    await update.mutateAsync({ id, ...data });
+    setEditOpen(false);
+    setSelectedBook(null);
+    refetch();
+  };
+
   const tableActions = (
     <>
       <Button variant='soft' size='2' onClick={() => window.print()}>
@@ -162,10 +153,7 @@ export function BookTable() {
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open);
-          if (!open) {
-            form.reset();
-            setCategorySearch('');
-          }
+          if (!open) form.reset();
         }}
       >
         <Dialog.Trigger>
@@ -280,16 +268,7 @@ export function BookTable() {
     </>
   );
 
-  const dataTableState = {
-    table,
-    pagination,
-    setPagination,
-    search,
-    setSearch,
-    meta: metaData,
-    isLoading,
-    refetch,
-  };
+  const dataTableState = { table, pagination, setPagination, search, setSearch, meta: metaData, isLoading, refetch };
 
   return (
     <DataTableProvider value={dataTableState}>

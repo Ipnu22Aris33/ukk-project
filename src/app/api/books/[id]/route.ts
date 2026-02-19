@@ -1,19 +1,25 @@
-import { NextRequest } from 'next/server';
+import { eq, and, isNull } from 'drizzle-orm';
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
-import { NotFound } from '@/lib/utils/httpErrors';
-import { BadRequest } from '@/lib/utils/httpErrors';
-import { bookRepo, mapDb } from '@/lib/db';
+import { NotFound, BadRequest } from '@/lib/utils/httpErrors';
+import { db } from '@/lib/db';
+import { books } from '@/lib/db/schema';
 import { validateUpdateBook } from '@/lib/models/book';
+import { slugify } from '@/lib/utils/slugify';
 
+/* ======================================================
+   GET /api/books/[id]
+====================================================== */
 export const GET = handleApi(async ({ params }) => {
-  const id = params?.id;
+  const id = Number(params?.id);
 
-  if (!id || isNaN(parseInt(id))) {
+  if (!id || isNaN(id)) {
     throw new NotFound('Invalid book ID');
   }
 
-  const book = await bookRepo.findByPk(id);
+  const book = await db.query.books.findFirst({
+    where: and(eq(books.id, id), isNull(books.deletedAt)),
+  });
 
   if (!book) {
     throw new NotFound('Book not found');
@@ -22,50 +28,68 @@ export const GET = handleApi(async ({ params }) => {
   return ok(book, { message: 'Book retrieved successfully' });
 });
 
+/* ======================================================
+   PATCH /api/books/[id]
+====================================================== */
 export const PATCH = handleApi(async ({ req, params }) => {
-  const id = params?.id;
+  const id = Number(params?.id);
 
-  if (!id || isNaN(Number(id))) {
+  if (!id || isNaN(id)) {
     throw new BadRequest('Invalid book ID');
   }
 
-  const data = await req.json();
-  const { title, author, category_id, publisher, stock, isbn, year } = validateUpdateBook(data);
+  const body = await req.json();
+  const { title, author, category_id, publisher, stock, isbn, year } = validateUpdateBook(body);
 
-  const exist = await bookRepo.existsByPk(id);
-  if (!exist) {
+  const existing = await db.query.books.findFirst({
+    where: eq(books.id, id),
+  });
+
+  if (!existing) {
     throw new NotFound('Book not found');
   }
 
-  const updated = await bookRepo.updateByPk(
-    id,
-    mapDb('books', {
+  const [updated] = await db
+    .update(books)
+    .set({
       title,
       author,
+      slug: slugify(title),
       categoryId: category_id,
       publisher,
       stock,
       isbn,
       year,
+      updatedAt: new Date(),
     })
-  );
+    .where(eq(books.id, id))
+    .returning();
 
   return ok(updated, { message: 'Book updated successfully' });
 });
 
+/* ======================================================
+   DELETE /api/books/[id]
+====================================================== */
 export const DELETE = handleApi(async ({ params }) => {
-  const id = params?.id;
+  const id = Number(params?.id);
 
-  if (!id || isNaN(Number(id))) {
+  if (!id || isNaN(id)) {
     throw new BadRequest('Invalid book ID');
   }
 
-  const exist = await bookRepo.existsByPk(id);
-  if (!exist) {
+  const [deleted] = await db
+    .update(books)
+    .set({
+      deletedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(books.id, id))
+    .returning();
+
+  if (!deleted) {
     throw new NotFound('Book not found');
   }
 
-  await bookRepo.deleteByPk(id);
-
-  return ok(null, { message: 'Book deleted successfully' });
+  return ok(null, { message: 'Book deleted successfully (soft delete)' });
 });

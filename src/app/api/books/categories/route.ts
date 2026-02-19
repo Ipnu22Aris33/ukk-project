@@ -2,42 +2,69 @@ import { ok } from '@/lib/utils/apiResponse';
 import { handleApi } from '@/lib/utils/handleApi';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { slugify } from '@/lib/utils/slugify';
-import { categoryRepo } from '@/lib/db/dbRepo';
-import { col, mapDb } from '@/lib/db/dbMappings';
 import { validateCreateCategory } from '@/lib/models/category';
+
+import { db } from '@/lib/db';
+import { categories } from '@/lib/db/schema';
+import { paginate } from '@/lib/db/paginate';
+
+import { isNull } from 'drizzle-orm';
+
+/* =====================================================
+   GET (Paginated)
+===================================================== */
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
-  const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
+  const { page, limit, search, orderBy, orderDir } = parseQuery(url);
 
-  const { data, meta } = await categoryRepo.paginate({
+  const result = await paginate({
+    db,
+    table: categories,
+    query: db.query.categories,
+
     page,
     limit,
     search,
+
+    searchable: [categories.name, categories.slug],
+
+    sortable: {
+      id: categories.id,
+      name: categories.name,
+      createdAt: categories.createdAt,
+    },
+
     orderBy,
     orderDir,
-    where: { column: col('categories', 'deletedAt'), isNull: true },
-    searchable: [col('categories', 'name'), col('categories', 'slug')],
-    sortable: [col('categories', 'id'), col('categories', 'name'), col('categories', 'createdAt')],
-    select: [
-      col('categories', 'id'),
-      col('categories', 'name'),
-      col('categories', 'slug'),
-      col('categories', 'description'),
-      col('categories', 'createdAt'),
-      col('categories', 'updatedAt'),
-    ],
+
+    where: isNull(categories.deletedAt),
   });
 
-  return ok(data, { meta });
+  return ok(result.data, {
+    meta: result.meta,
+  });
 });
+
+/* =====================================================
+   POST (Create)
+===================================================== */
 
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
-  const { name, description } = validateCreateCategory(body);
-  const result = await categoryRepo.insertOne(mapDb('categories', { name, description, slug: slugify(name) }));
 
-  return ok(result, {
+  const { name, description } = validateCreateCategory(body);
+
+  const [newCategory] = await db
+    .insert(categories)
+    .values({
+      name,
+      slug: slugify(name),
+      description,
+    })
+    .returning();
+
+  return ok(newCategory, {
     message: 'Category created successfully',
   });
 });

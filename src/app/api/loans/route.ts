@@ -2,115 +2,91 @@ import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { BadRequest, NotFound } from '@/lib/utils/httpErrors';
 import { parseQuery } from '@/lib/utils/parseQuery';
-import { validateCreateLoan } from '@/lib/models/loan';
-import { mapDb, col, dbMappings, withTransaction, loanRepo, bookRepo, memberRepo } from '@/lib/db';
+import { paginate } from '@/lib/db/paginate';
+import { db } from '@/lib/db';
+import { loans, books, members } from '@/lib/db/schema';
+import { eq, and, isNull, sql, asc, desc, or } from 'drizzle-orm';
 
+// =========================
+// POST - Create Loan
+// =========================
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
+  const { member_id, book_id, quantity, notes, loan_date, due_date } = data;
 
-  const { member_id, book_id, quantity, notes, loan_date, due_date } = validateCreateLoan(data);
+  if (!member_id || !book_id || !quantity) {
+    throw new BadRequest('Required fields are missing');
+  }
 
-  const result = await withTransaction(async () => {
-    const book = await bookRepo.findByPk(book_id);
-    if (!book) {
-      throw new NotFound('Book not found');
-    }
+  const [book, member] = await Promise.all([
+    db.query.books.findFirst({ where: eq(books.id, book_id) }),
+    db.query.members.findFirst({ where: eq(members.id, member_id) }),
+  ]);
 
-    const member = await memberRepo.findByPk(member_id);
-    if (!member) {
-      throw new NotFound('Member not found');
-    }
+  if (!book) throw new NotFound('Book not found');
+  if (!member) throw new NotFound('Member not found');
+  if (book.stock < quantity) throw new BadRequest('Book stock is insufficient');
 
-    // 🔥 AUTO DATE LOGIC
-    const now = new Date();
+  const now = new Date();
+  const finalLoanDate = loan_date ? new Date(loan_date) : now;
+  const finalDueDate = due_date ? new Date(due_date) : new Date(finalLoanDate.getTime() + 3 * 24 * 60 * 60 * 1000);
 
-    const finalLoanDate = loan_date ? new Date(loan_date) : now;
+  if (finalDueDate <= finalLoanDate) throw new BadRequest('Due date must be after loan date');
 
-    const finalDueDate = due_date ? new Date(due_date) : new Date(finalLoanDate.getTime() + 3 * 24 * 60 * 60 * 1000);
-
-    // Optional: validasi due_date tidak boleh kurang dari loan_date
-    if (finalDueDate <= finalLoanDate) {
-      throw new BadRequest('Due date must be after loan date');
-    }
-
-    // Optional: cek stok cukup
-    if (book.stock < quantity) {
-      throw new BadRequest('Book stock is insufficient');
-    }
-
-    // Insert Loan
-    const loan = await loanRepo.insertOne(
-      mapDb('loans', {
+  const [insertedLoan] = await db.transaction(async (tx) => {
+    const [loan] = await tx
+      .insert(loans)
+      .values({
         memberId: member_id,
         bookId: book_id,
         quantity,
-        notes,
-        loanDate: finalLoanDate.toISOString(),
-        dueDate: finalDueDate.toISOString(),
+        notes: notes ?? null,
+        loanDate: finalLoanDate,
+        dueDate: finalDueDate,
         status: 'borrowed',
       })
-    );
+      .returning();
 
-    // 🔥 Kurangi stok
-    await bookRepo.updateByPk(book_id, { stock: book.stock - quantity });
+    await tx
+      .update(books)
+      .set({ stock: sql`${books.stock} - ${quantity}` })
+      .where(eq(books.id, book_id));
 
-    return loan;
+    return [loan];
   });
 
-  return ok(result, { message: 'Loan created successfully' });
+  return ok(insertedLoan, { message: 'Loan created successfully' });
 });
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
   const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
-  const { data, meta } = await loanRepo.paginate({
+
+  const result = await paginate({
+    db,
+    table: loans,
+    query: db.query.loans,
     page,
     limit,
     search,
+    searchable: [books.title, members.fullName],
+    sortable: {
+      id: loans.id,
+      loanDate: loans.loanDate,
+      dueDate: loans.dueDate,
+      status: loans.status,
+    },
     orderBy,
     orderDir,
-    searchable: ['b.title', 'm.full_name'],
-
-    select: [
-      col('loans', 'id'),
-      col('loans', 'quantity'),
-      col('loans', 'status'),
-      col('loans', 'loanDate'),
-      col('loans', 'dueDate'),
-      col('loans', 'notes'),
-
-      // ===== BOOKS =====
-      `${col('books', 'id')} AS book_id`,
-      `${col('books', 'title')} AS book_title`,
-      `${col('books', 'author')} AS book_author`,
-      `${col('books', 'publisher')} AS book_publisher`,
-      `${col('books', 'categoryId')} AS book_category_id`,
-
-      // ===== MEMBERS =====
-      `${col('members', 'id')} AS member_id`,
-      `${col('members', 'fullName')} AS member_name`,
-      `${col('members', 'phone')} AS member_phone`,
-      `${col('members', 'memberClass')} AS member_class`,
-    ],
-
-    joins: [
-      {
-        table: dbMappings.books.repo.table,
-        alias: dbMappings.books.repo.alias,
-        on: { left: col('books', 'id'), operator: '=', right: col('loans', 'bookId') },
-        type: 'INNER',
-      },
-      {
-        table: dbMappings.members.repo.table,
-        alias: dbMappings.members.repo.alias,
-        on: { left: col('members', 'id'), operator: '=', right: col('loans', 'bookId') },
-        type: 'INNER',
-      },
-    ],
+    where: isNull(loans.deletedAt),
+    with: {
+      book: true,
+      member: true,
+    },
   });
 
-  return ok(data, {
+  return ok(result.data, {
     message: 'Loans retrieved successfully',
-    meta,
+    meta: result.meta,
   });
 });

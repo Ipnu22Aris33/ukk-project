@@ -16,30 +16,8 @@ import {
 import { useDataTable } from '@/hooks/useDataTable';
 import { useReturns } from '@/hooks/useReturns';
 import type { ColumnDef } from '@tanstack/react-table';
+import { ReturnResponse } from '@/lib/models/return';
 
-interface Return {
-  id_return: number;
-  loan_id: number;
-  return_date: string;
-  fine_amount: number;
-  fine_status: string;
-
-  id_loan: number;
-  loan_date: string;
-  due_date: string;
-  loan_status: string;
-
-  id_member: number;
-  member_name: string;
-  member_phone: string;
-  member_class: string;
-  member_major: string;
-
-  id_book: number;
-  book_title: string;
-  book_author: string;
-  book_publisher: string;
-}
 
 export function ReturnTable() {
   const [pagination, setPagination] = useState({
@@ -49,34 +27,38 @@ export function ReturnTable() {
 
   const [search, setSearch] = useState('');
 
-  const { list } = useReturns({
+  const returns = useReturns()
+
+  const returnList = returns.list({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search,
     debounceMs: 200,
   });
 
-  const tableData = list.data?.data ?? [];
-  const metaData = list.data?.meta;
-  const isLoading = list.isLoading;
-  const refetch = list.refetch;
+  const tableData = returnList.data?.data ?? [];
+  const metaData = returnList.data?.meta;
+  const isLoading = returnList.isLoading;
+  const refetch = returnList.refetch;
 
-  const col = ColumnFactory<Return>();
+  const col = ColumnFactory<ReturnResponse>();
 
-  const columns: ColumnDef<Return>[] = [
+  const columns: ColumnDef<ReturnResponse>[] = [
     col.selectColumn(),
 
-    col.numberColumn('id_return', 'Return ID'),
-    col.textColumn('member_name', 'Member'),
-    col.textColumn('member_class', 'Class'),
-    col.textColumn('member_major', 'Major'),
+    col.numberColumn('id', 'Return ID'),
+    col.textColumnPath('member.id', 'Member', {
+      
+    }),
+    col.textColumn('fineAmount', 'Class'),
+    col.textColumn('fineStatus', 'Major'),
 
-    col.textColumn('book_title', 'Book Title'),
-    col.textColumn('book_author', 'Author'),
+    // col.textColumn('book_title', 'Book Title'),
+    // col.textColumn('book_author', 'Author'),
 
-    col.textColumn('loan_status', 'Loan Status'),
-    col.textColumn('fine_status', 'Fine Status'),
-    col.numberColumn('fine_amount', 'Fine Amount'),
+    // col.textColumn('loan_status', 'Loan Status'),
+    // col.textColumn('fine_status', 'Fine Status'),
+    // col.numberColumn('fine_amount', 'Fine Amount'),
 
     col.actionsColumn({
       useDefault: true,
