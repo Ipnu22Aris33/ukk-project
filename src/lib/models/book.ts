@@ -28,6 +28,39 @@ export const bookSchema = z.object({
   deleted_at: z.iso.datetime().nullable(),
 });
 
+export const categoryResponseSchema = z.object({
+  id_category: z.number().int().positive(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().nullable(),
+});
+
+/* ======================
+   BOOK RESPONSE
+====================== */
+export const bookResponseSchema = z.object({
+  id_book: z.number().int().positive(),
+  title: z.string(),
+  author: z.string(),
+  publisher: z.string(),
+   slug: z.string().min(1).max(255),
+  stock: z.number().int().min(0),
+  isbn: z.string(),
+  year: z.number().int(),
+
+  created_at: z.string(),
+  updated_at: z.string(),
+  deleted_at: z.string().nullable(),
+
+  category: categoryResponseSchema, // nested
+});
+
+/* ======================
+   TYPE INFERENCE
+====================== */
+export type CategoryResponse = z.infer<typeof categoryResponseSchema>;
+export type BookResponse = z.infer<typeof bookResponseSchema>;
+
 /* CREATE */
 export const createBookSchema = bookSchema.omit({
   id_book: true,

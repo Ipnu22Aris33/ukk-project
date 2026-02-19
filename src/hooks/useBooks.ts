@@ -1,7 +1,7 @@
 import { createCRUD } from '@/hooks/useCRUD';
-import { Book, CreateBookInput } from '@/lib/models/book';
+import { Book, BookResponse, CreateBookInput } from '@/lib/models/book';
 
-export const useBooks = createCRUD<CreateBookInput, Book[], Book>('/api/books', {
+export const useBooks = createCRUD<CreateBookInput, BookResponse[], Book>('/api/books', {
   resourceName: 'books',
   messages: {
     create: 'Buku berhasil ditambahkan!',

@@ -1,7 +1,7 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
-import { validateCreateReturn } from '@/lib/models/return';
+import { ReturnResponse, validateCreateReturn } from '@/lib/models/return';
 import { paginate } from '@/lib/db/paginate';
 import { parseQuery } from '@/lib/utils/parseQuery';
 

@@ -16,6 +16,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { BookAlert } from './BookAlert';
 import { BookModal } from './BookModal';
 import { Book } from '@/lib/models/book';
+import { BookResponse } from '@/lib/models/book';
 
 // ====================
 // COMPONENT
@@ -56,13 +57,13 @@ export function BookTable() {
   const refetch = list.refetch;
 
   const categoryOptions = (categoryList.data?.data || []).map((cat) => ({
-    value: String(cat.id_category),
+    value: String(cat.id),
     label: cat.name,
   }));
 
-  const col = ColumnFactory<Book>();
+  const col = ColumnFactory<BookResponse>();
 
-  const columns: ColumnDef<Book>[] = [
+  const columns: ColumnDef<BookResponse>[] = [
     col.selectColumn(),
     col.textColumn('title', 'Title', { weight: 'medium' }),
     col.textColumn('author', 'Author'),
@@ -71,21 +72,12 @@ export function BookTable() {
     col.textColumn('isbn', 'ISBN', { color: 'gray' }),
     col.textColumn('slug', 'Slug', { color: 'gray' }),
     col.numberColumn('stock', 'Stock'),
-    col.textColumn('category_id', 'Category'), // pakai category_id sesuai backend
-    col.actionsColumn({
-      useDefault: true,
-      handlers: {
-        view: (row) => console.log('view', row),
-        edit: (row) => {
-          setSelectedBook(row);
-          setEditOpen(true);
-        },
-        delete: (row) => {
-          setSelectedId(row.id_book);
-          setDeleteOpen(true);
-        },
-      },
-    }),
+    col.textColumn('category.name', 'Category'),
+    col.actionsColumn(() => [
+      { key: 'view', label: 'View', icon: <Icon icon={'mdi:eye'}/>, onClick: () => console.log('View') },
+      { key: 'edit', label: 'Edit', color: 'blue', onClick: () => console.log('Edit') },
+      { key: 'delete', label: 'Delete', color: 'red', onClick: () => console.log('Delete') },
+    ]),
   ];
 
   const { table } = useDataTable({
@@ -275,7 +267,13 @@ export function BookTable() {
       <Flex direction='column'>
         <DataTableHeader title='Books Management' description='Manage library books' />
         <DataTableToolbar actions={tableActions} />
-        <DataTableBody />
+        <DataTableBody
+          rowActions={() => [
+            { key: 'view', label: 'View', onClick: () => console.log('View') },
+            { key: 'edit', label: 'Edit', color: 'blue', onClick: () => console.log('Edit') },
+            { key: 'delete', label: 'Delete', color: 'red', onClick: () => console.log('Delete') },
+          ]}
+        />
         <DataTableFooter />
       </Flex>
       <BookAlert open={deleteOpen} onOpenChange={setDeleteOpen} onConfirm={handleConfirmDelete} loading={remove.isPending} />

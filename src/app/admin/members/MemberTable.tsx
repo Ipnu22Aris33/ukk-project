@@ -50,14 +50,7 @@ export function MemberTable() {
     col.textColumn('phone', 'Phone'),
     col.textColumn('member_class', 'Class'),
     col.textColumn('major', 'Major'),
-    col.actionsColumn({
-      useDefault: true,
-      handlers: {
-        view: (row) => console.log('View', row),
-        edit: (row) => console.log('Edit', row),
-        delete: (row) => console.log('Delete', row),
-      },
-    }),
+    
   ];
 
   const { table } = useDataTable({

@@ -130,14 +130,6 @@ export function LoanTable() {
       late: { label: 'Late', color: 'crimson' },
       cancelled: { label: 'Cancelled', color: 'gray' },
     }),
-    col.actionsColumn({
-      useDefault: true,
-      handlers: {
-        view: (row) => console.log('View', row),
-        edit: (row) => console.log('Edit', row),
-        delete: (row) => console.log('Delete', row),
-      },
-    }),
   ];
 
   const { table } = useDataTable({
@@ -356,7 +348,13 @@ export function LoanTable() {
       <Flex direction='column'>
         <DataTableHeader title='Loan Management' description='Manage and track all book loans' />
         <DataTableToolbar actions={tableActions} />
-        <DataTableBody />
+        <DataTableBody
+          rowActions={() => [
+            { key: 'view', label: 'View', onClick: () => console.log('View') },
+            { key: 'edit', label: 'Edit', color: 'blue', onClick: () => console.log('Edit') },
+            { key: 'delete', label: 'Delete', color: 'red', onClick: () => console.log('Delete') },
+          ]}
+        />
         <DataTableFooter />
       </Flex>
     </DataTableProvider>

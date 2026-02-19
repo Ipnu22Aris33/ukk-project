@@ -18,6 +18,7 @@ export const memberSchema = z.object({
   deleted_at: z.iso.datetime().nullable(),
 });
 
+
 /* CREATE */
 export const createMemberSchema = memberSchema.omit({
   id_member: true,

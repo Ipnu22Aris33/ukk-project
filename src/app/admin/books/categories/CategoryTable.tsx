@@ -58,14 +58,6 @@ export function CategoryTable() {
     col.textColumn('name', 'Name', { weight: 'medium' }),
     col.textColumn('slug', 'Slug', { color: 'gray' }),
     col.textColumn('description', 'Description'),
-    col.actionsColumn({
-      useDefault: true,
-      handlers: {
-        view: (row) => console.log('View', row),
-        edit: (row) => console.log('Edit', row),
-        delete: (row) => remove.mutateAsync(row.id_category),
-      },
-    }),
   ];
 
   // =========================
@@ -129,7 +121,13 @@ export function CategoryTable() {
         {tableData.length === 0 ? (
           <DataTableEmpty title='No categories found' description='Try adjusting your search or add a new category' />
         ) : (
-          <DataTableBody />
+          <DataTableBody
+            rowActions={() => [
+              { key: 'view', label: 'View', onClick: () => console.log('View') },
+              { key: 'edit', label: 'Edit', color: 'blue', onClick: () => console.log('Edit') },
+              { key: 'delete', label: 'Delete', color: 'red', onClick: () => console.log('Delete') },
+            ]}
+          />
         )}
         {tableData.length > 0 && <DataTableFooter />}
       </Flex>
