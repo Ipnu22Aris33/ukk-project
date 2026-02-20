@@ -1,5 +1,5 @@
 import { createCRUD } from '@/hooks/useCRUD';
-import { Category, CreateCategoryInput } from '@/lib/models/category';
+import { Category, CreateCategoryInput } from '@/lib/schema/category';
 
 export const useCategories = createCRUD<CreateCategoryInput, Category[], Category>('/api/books/categories', {
   resourceName: 'categories',

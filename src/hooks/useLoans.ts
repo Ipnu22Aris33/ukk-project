@@ -1,5 +1,5 @@
 import { createCRUD } from '@/hooks/useCRUD';
-import { Loan, CreateLoanInput } from '@/lib/models/loan';
+import { Loan, CreateLoanInput } from '@/lib/schema/loan';
 
 export const useLoans = createCRUD<CreateLoanInput, Loan[], Loan>('/api/loans', {
   resourceName: 'loans',

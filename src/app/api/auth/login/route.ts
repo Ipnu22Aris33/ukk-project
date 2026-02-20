@@ -2,15 +2,15 @@ import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
 import { verifyPassword, createToken } from '@/lib/utils/auth';
-import { validateLogin } from '@/lib/models/auth';
-
+import { loginSchema } from '@/lib/schema/auth';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq, or, and, isNull } from 'drizzle-orm';
+import { validateSchema } from '@/lib/utils/validate';
 
 export const POST = handleApi(async ({ req, res }) => {
   const data = await req.json();
-  const { password, identifier } = validateLogin(data);
+  const { password, identifier } = validateSchema(loginSchema, data);
 
   const user = await db.query.users.findFirst({
     where: and(

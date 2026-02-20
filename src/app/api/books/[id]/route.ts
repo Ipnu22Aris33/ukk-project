@@ -4,8 +4,9 @@ import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, BadRequest } from '@/lib/utils/httpErrors';
 import { db } from '@/lib/db';
 import { books } from '@/lib/db/schema';
-import { validateUpdateBook } from '@/lib/models/book';
 import { slugify } from '@/lib/utils/slugify';
+import { validateSchema } from '@/lib/utils/validate';
+import { updateBookSchema } from '@/lib/schema/book';
 
 /* ======================================================
    GET /api/books/[id]
@@ -39,7 +40,7 @@ export const PATCH = handleApi(async ({ req, params }) => {
   }
 
   const body = await req.json();
-  const { title, author, category_id, publisher, stock, isbn, year } = validateUpdateBook(body);
+  const { title, author, categoryId, publisher, stock, isbn, year } = validateSchema(updateBookSchema,body);
 
   const existing = await db.query.books.findFirst({
     where: eq(books.id, id),
@@ -55,7 +56,7 @@ export const PATCH = handleApi(async ({ req, params }) => {
       title,
       author,
       slug: slugify(title),
-      categoryId: category_id,
+      categoryId,
       publisher,
       stock,
       isbn,

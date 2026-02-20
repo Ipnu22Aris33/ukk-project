@@ -7,7 +7,7 @@ import { Text, Flex, Link } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { loginSchema } from '@/lib/models/auth';
+import { loginSchema } from '@/lib/schema/auth';
 
 export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }) {
   const router = useRouter();

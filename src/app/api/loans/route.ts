@@ -6,21 +6,20 @@ import { paginate } from '@/lib/db/paginate';
 import { db } from '@/lib/db';
 import { loans, books, members } from '@/lib/db/schema';
 import { eq, and, isNull, sql, asc, desc, or } from 'drizzle-orm';
+import { validateSchema } from '@/lib/utils/validate';
+import { createLoanSchema } from '@/lib/schema/loan';
 
 // =========================
 // POST - Create Loan
 // =========================
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
-  const { member_id, book_id, quantity, notes, loan_date, due_date } = data;
+  const { memberId, bookId, quantity, notes, loanDate, dueDate } = validateSchema(createLoanSchema, data);
 
-  if (!member_id || !book_id || !quantity) {
-    throw new BadRequest('Required fields are missing');
-  }
 
   const [book, member] = await Promise.all([
-    db.query.books.findFirst({ where: eq(books.id, book_id) }),
-    db.query.members.findFirst({ where: eq(members.id, member_id) }),
+    db.query.books.findFirst({ where: eq(books.id, bookId) }),
+    db.query.members.findFirst({ where: eq(members.id, memberId) }),
   ]);
 
   if (!book) throw new NotFound('Book not found');
@@ -28,8 +27,8 @@ export const POST = handleApi(async ({ req }) => {
   if (book.stock < quantity) throw new BadRequest('Book stock is insufficient');
 
   const now = new Date();
-  const finalLoanDate = loan_date ? new Date(loan_date) : now;
-  const finalDueDate = due_date ? new Date(due_date) : new Date(finalLoanDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const finalLoanDate = loanDate ? new Date(loanDate) : now;
+  const finalDueDate = dueDate ? new Date(dueDate) : new Date(finalLoanDate.getTime() + 3 * 24 * 60 * 60 * 1000);
 
   if (finalDueDate <= finalLoanDate) throw new BadRequest('Due date must be after loan date');
 
@@ -37,8 +36,8 @@ export const POST = handleApi(async ({ req }) => {
     const [loan] = await tx
       .insert(loans)
       .values({
-        memberId: member_id,
-        bookId: book_id,
+        memberId,
+        bookId,
         quantity,
         notes: notes ?? null,
         loanDate: finalLoanDate,
@@ -50,7 +49,7 @@ export const POST = handleApi(async ({ req }) => {
     await tx
       .update(books)
       .set({ stock: sql`${books.stock} - ${quantity}` })
-      .where(eq(books.id, book_id));
+      .where(eq(books.id, bookId));
 
     return [loan];
   });

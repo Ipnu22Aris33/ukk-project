@@ -2,7 +2,6 @@ import { ok } from '@/lib/utils/apiResponse';
 import { handleApi } from '@/lib/utils/handleApi';
 import { Conflict } from '@/lib/utils/httpErrors';
 import { hashPassword } from '@/lib/utils/auth';
-import { validateCreateUser } from '@/lib/models/user';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { paginate } from '@/lib/db/paginate';
 
@@ -10,6 +9,9 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 
 import { eq, and, isNull, or } from 'drizzle-orm';
+import { validateSchema } from '@/lib/utils/validate';
+import { registerSchema } from '@/lib/schema/auth';
+import { createUserInputSchema } from '@/lib/schema/user';
 
 // =========================
 // GET - List Users
@@ -46,7 +48,7 @@ export const GET = handleApi(async ({ req }) => {
 // =========================
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
-  const { username, email, password } = validateCreateUser(body);
+  const { username, email, password } = validateSchema(createUserInputSchema, body);
 
   // cek apakah username atau email sudah ada
   const existing = await db

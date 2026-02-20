@@ -1,5 +1,5 @@
 import { createCRUD } from '@/hooks/useCRUD';
-import { ReturnResponse, CreateReturnInput } from '@/lib/models/return';
+import { ReturnResponse, CreateReturnInput } from '@/lib/schema/return';
 
 export const useReturns = createCRUD<CreateReturnInput, ReturnResponse[], ReturnResponse>('/api/returns', {
   resourceName: 'returns',

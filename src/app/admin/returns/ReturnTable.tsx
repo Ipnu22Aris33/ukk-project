@@ -16,7 +16,7 @@ import {
 import { useDataTable } from '@/hooks/useDataTable';
 import { useReturns } from '@/hooks/useReturns';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ReturnResponse } from '@/lib/models/return';
+import { ReturnResponse } from '@/lib/schema/return';
 
 export function ReturnTable() {
   const [pagination, setPagination] = useState({

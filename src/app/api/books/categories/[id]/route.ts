@@ -1,12 +1,13 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, BadRequest } from '@/lib/utils/httpErrors';
-import { validateUpdateCategory } from '@/lib/models/category';
+import { updateCategorySchema } from '@/lib/schema/category';
 import { slugify } from '@/lib/utils/slugify';
 
 import { db } from '@/lib/db';
 import { categories } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
+import { validateSchema } from '@/lib/utils/validate';
 
 // =========================
 // GET - Detail Category
@@ -40,7 +41,7 @@ export const PATCH = handleApi(async ({ req, params }) => {
   }
 
   const data = await req.json();
-  const { name, description } = validateUpdateCategory(data);
+  const { name, description } = validateSchema(updateCategorySchema, data);
 
   const existing = await db.query.categories.findFirst({
     where: (c, { and }) => and(eq(c.id, Number(id)), isNull(c.deletedAt)),

@@ -2,18 +2,17 @@ import { ok } from '@/lib/utils/apiResponse';
 import { hashPassword } from '@/lib/utils/auth';
 import { handleApi } from '@/lib/utils/handleApi';
 import { Conflict, BadRequest } from '@/lib/utils/httpErrors';
-import { validateRegister } from '@/lib/models/auth';
-
 import { db } from '@/lib/db';
 import { users, members } from '@/lib/db/schema';
-
 import { eq, and, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
+import { validateSchema } from '@/lib/utils/validate';
+import { registerSchema } from '@/lib/schema/auth';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
 
-  const { username, email, password, nis, full_name, member_class, address, phone, major } = validateRegister(data);
+  const { username, email, password, nis, full_name, member_class, address, phone, major } = validateSchema(registerSchema,data);
 
   if (!username || !email || !password || !nis || !full_name) {
     throw new BadRequest('Required fields are missing');

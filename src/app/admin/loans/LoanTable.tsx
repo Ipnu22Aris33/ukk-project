@@ -18,7 +18,7 @@ import { useMembers } from '@/hooks/useMembers';
 import { useBooks } from '@/hooks/useBooks';
 import { Icon } from '@iconify/react';
 import type { ColumnDef } from '@tanstack/react-table';
-
+import { Loan } from '@/lib/schema/loan';
 // ====================
 // TYPES
 // ====================
@@ -87,7 +87,7 @@ export function LoanTable() {
     debounceMs: 400,
   });
 
-  const tableData: LoanRow[] =
+  const tableData: Loan[] =
     (loansList.data?.data || []).map((l: any) => ({
       ...l,
       member_name: l.member?.full_name ?? '',
@@ -114,14 +114,14 @@ export function LoanTable() {
   // ====================
   // TABLE COLUMNS
   // ====================
-  const col = ColumnFactory<LoanRow>();
+  const col = ColumnFactory<Loan>();
 
-  const columns: ColumnDef<LoanRow>[] = [
+  const columns: ColumnDef<Loan>[] = [
     col.selectColumn(),
-    col.textColumn('id_loan', 'ID', { color: 'gray' }),
-    col.textColumn('member_name', 'Member', { weight: 'medium' }),
-    col.textColumn('book_title', 'Book'),
-    col.numberColumn('quantity', 'Qty'), // gunakan quantity
+    col.textColumn('id', 'ID', { color: 'gray' }),
+    col.textColumn('memberId', 'Member', { weight: 'medium' }),
+    col.textColumn('bookId', 'Book'),
+    col.numberColumn('quantity', 'Qty'),
     col.dateColumn('loan_date', 'Loan Date'),
     col.dateColumn('due_date', 'Due Date'),
     col.statusBadgeColumn('status', 'Status', {
@@ -146,16 +146,16 @@ export function LoanTable() {
       member_id: '',
       book_id: '',
       count: 1,
-      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
     onSubmit: async ({ value }) => {
       try {
         await loans.create.mutateAsync({
-          member_id: Number(value.member_id),
-          book_id: Number(value.book_id),
-          quantity: value.count, // rename count → quantity
-          loan_date: new Date().toISOString().split('T')[0],
-          due_date: value.due_date,
+          memberId: Number(value.member_id),
+          bookId: Number(value.book_id),
+          quantity: value.count,
+          loanDate: new Date(),
+          dueDate: value.due_date,
           status: 'borrowed',
         });
 

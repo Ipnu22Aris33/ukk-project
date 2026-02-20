@@ -264,3 +264,18 @@ export const loansRelations = relations(loans, ({ one }) => ({
     references: [returns.loanId],
   }),
 }));
+
+export const reservationsRelations = relations(reservations, ({ one }) => ({
+  member: one(members, {
+    fields: [reservations.memberId],
+    references: [members.id],
+  }),
+  book: one(books, {
+    fields: [reservations.bookId],
+    references: [books.id],
+  }),
+  approver: one(users, {
+    fields: [reservations.approvedBy],
+    references: [users.id],
+  }),
+}));

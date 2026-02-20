@@ -1,25 +1,24 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
-import { ReturnResponse, validateCreateReturn } from '@/lib/models/return';
+import { createReturnSchema, ReturnResponse, validateCreateReturn } from '@/lib/schema/return';
 import { paginate } from '@/lib/db/paginate';
 import { parseQuery } from '@/lib/utils/parseQuery';
-
 import { db } from '@/lib/db';
 import { returns, loans, books } from '@/lib/db/schema';
-
 import { eq, isNull, and, sql } from 'drizzle-orm';
+import { validateSchema } from '@/lib/utils/validate';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
-  const { loan_id, notes, condition } = validateCreateReturn(data);
-  
+  const { loanId, notes, condition } = validateSchema(createReturnSchema, data);
+
   // Ensure condition is one of the allowed enum values
   const validConditions = ['lost', 'good', 'damaged'] as const;
   if (!validConditions.includes(condition as any)) {
     throw new UnprocessableEntity('Invalid condition value');
   }
-  const typedCondition = condition as typeof validConditions[number];
+  const typedCondition = condition as (typeof validConditions)[number];
 
   const result = await db.transaction(async (tx) => {
     /* ===============================
@@ -27,7 +26,7 @@ export const POST = handleApi(async ({ req }) => {
     =============================== */
 
     const loan = await tx.query.loans.findFirst({
-      where: and(eq(loans.id, loan_id), isNull(loans.deletedAt)),
+      where: and(eq(loans.id, loanId), isNull(loans.deletedAt)),
     });
 
     if (!loan) {

@@ -14,7 +14,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { useDataTable } from '@/hooks/useDataTable';
 import { useCategories } from '@/hooks/useCategories';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Category } from '@/lib/models/category';
+import { Category } from '@/lib/schema/category';
 
 export function CategoryTable() {
   // =========================

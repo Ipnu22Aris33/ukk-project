@@ -6,7 +6,7 @@ import * as Form from '@radix-ui/react-form';
 import { useForm } from '@tanstack/react-form';
 import { InputField, SelectField } from '@/components/features/forms';
 import { Icon } from '@iconify/react';
-import { Book } from '@/lib/models/book';
+import { Book } from '@/lib/schema/book';
 
 interface Props {
   open: boolean;
@@ -41,7 +41,7 @@ export function BookModal({ open, onOpenChange, book, onSubmit, loading = false,
           year: Number(value.year),
           category_id: Number(value.category_id),
         },
-        book.id_book
+        book.id
       );
     },
   });
@@ -56,7 +56,7 @@ export function BookModal({ open, onOpenChange, book, onSubmit, loading = false,
       form.setFieldValue('stock', book.stock);
       form.setFieldValue('year', book.year);
       form.setFieldValue('isbn', book.isbn);
-      form.setFieldValue('category_id', String(book.category_id));
+      form.setFieldValue('category_id', String(book.categoryId));
     }
   }, [book]);
 

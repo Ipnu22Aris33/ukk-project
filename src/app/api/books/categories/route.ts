@@ -2,13 +2,14 @@ import { ok } from '@/lib/utils/apiResponse';
 import { handleApi } from '@/lib/utils/handleApi';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { slugify } from '@/lib/utils/slugify';
-import { validateCreateCategory } from '@/lib/models/category';
+import { createCategorySchema } from '@/lib/schema/category';
 
 import { db } from '@/lib/db';
 import { categories } from '@/lib/db/schema';
 import { paginate } from '@/lib/db/paginate';
 
 import { isNull } from 'drizzle-orm';
+import { validateSchema } from '@/lib/utils/validate';
 
 /* =====================================================
    GET (Paginated)
@@ -53,7 +54,7 @@ export const GET = handleApi(async ({ req }) => {
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
 
-  const { name, description } = validateCreateCategory(body);
+  const { name, description } = validateSchema(createCategorySchema, body);
 
   const [newCategory] = await db
     .insert(categories)

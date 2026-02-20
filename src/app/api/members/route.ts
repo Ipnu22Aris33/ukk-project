@@ -8,8 +8,9 @@ import { db } from '@/lib/db';
 import { members, users } from '@/lib/db/schema';
 import { eq, isNull, ilike } from 'drizzle-orm';
 import { paginate } from '@/lib/db/paginate';
-import { createMemberSchema, validateCreateMember } from '@/lib/models/member';
-import { validateRegister } from '@/lib/models/auth';
+import { createMemberSchema, validateCreateMember } from '@/lib/schema/member';
+import { registerSchema } from '@/lib/schema/auth';
+import { validateSchema } from '@/lib/utils/validate';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
@@ -37,7 +38,7 @@ export const GET = handleApi(async ({ req }) => {
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
-  const parsedData = validateRegister(data)
+  const parsedData = validateSchema(registerSchema,data)
 
   const result = await db.transaction(async (tx) => {
     // cek email

@@ -15,8 +15,8 @@ import { Icon } from '@iconify/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { BookAlert } from './BookAlert';
 import { BookModal } from './BookModal';
-import { Book } from '@/lib/models/book';
-import { BookResponse } from '@/lib/models/book';
+import { Book } from '@/lib/schema/book';
+import { BookResponse } from '@/lib/schema/book';
 
 // ====================
 // COMPONENT
@@ -99,7 +99,7 @@ export function BookTable() {
     onSubmit: async ({ value }) => {
       await create.mutateAsync({
         ...value,
-        category_id: Number(value.category_id),
+        categoryId: Number(value.category_id),
         year: Number(value.year),
         stock: Number(value.stock),
       });

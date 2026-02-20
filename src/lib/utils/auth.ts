@@ -1,5 +1,5 @@
 import jwt, { type JwtPayload } from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { InternalServerError } from './httpErrors';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
