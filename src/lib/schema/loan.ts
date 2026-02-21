@@ -31,7 +31,6 @@ export const loanResponseSchema = loanSchema
     deletedAt: true,
   })
   .extend({
-    id: z.number().int().positive(),
     member: memberResponseSchema,
     book: bookResponseSchema,
     reservation: reservationResponseSchema.nullable(),

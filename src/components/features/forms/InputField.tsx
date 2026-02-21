@@ -1,3 +1,4 @@
+// components/forms/InputField.tsx
 'use client';
 
 import { FieldWrapper } from './FieldWrapper';
@@ -5,8 +6,8 @@ import { TextField, IconButton, Popover, Box, Grid, Flex, Text, Button } from '@
 import type { AnyFieldApi } from '@tanstack/react-form';
 import { EyeOpenIcon, EyeClosedIcon, CalendarIcon } from '@radix-ui/react-icons';
 import { useState } from 'react';
-import { format } from 'date-fns'; // Install: npm install date-fns
-import { id } from 'date-fns/locale'; // Import locale Indonesia
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 interface InputFieldProps {
   field: AnyFieldApi;
@@ -15,9 +16,10 @@ interface InputFieldProps {
   placeholder?: string;
   required?: boolean;
   icon?: React.ReactNode;
+  error?: string;
 }
 
-// Komponen DatePicker yang sudah diperbaiki
+// Komponen DatePicker
 function SimpleDatePicker({ value, onChange, onClose }: { value: string; onChange: (date: string) => void; onClose: () => void }) {
   const [viewDate, setViewDate] = useState(() => {
     if (value) {
@@ -28,7 +30,6 @@ function SimpleDatePicker({ value, onChange, onClose }: { value: string; onChang
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(value ? new Date(value) : null);
 
-  // Generate days in month
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -37,18 +38,15 @@ function SimpleDatePicker({ value, onChange, onClose }: { value: string; onChang
 
     const days = [];
 
-    // Previous month days
     for (let i = 0; i < firstDay.getDay(); i++) {
       const prevDate = new Date(year, month, -i);
       days.unshift({ date: prevDate, currentMonth: false });
     }
 
-    // Current month days
     for (let i = 1; i <= lastDay.getDate(); i++) {
       days.push({ date: new Date(year, month, i), currentMonth: true });
     }
 
-    // Next month days
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({ date: new Date(year, month + 1, i), currentMonth: false });
@@ -221,14 +219,12 @@ function SimpleDatePicker({ value, onChange, onClose }: { value: string; onChang
   );
 }
 
-export function InputField({ field, label, type = 'text', placeholder, required = false, icon }: InputFieldProps) {
+export function InputField({ field, label, type = 'text', placeholder, required = false, icon, error }: InputFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
-  // Tentukan tipe input yang akan digunakan
   const inputType = type === 'password' && showPassword ? 'text' : type;
 
-  // Format date untuk display
   const formatDisplayDate = (dateString: string) => {
     if (!dateString) return '';
     try {
@@ -239,7 +235,7 @@ export function InputField({ field, label, type = 'text', placeholder, required 
   };
 
   return (
-    <FieldWrapper field={field} label={label} required={required}>
+    <FieldWrapper field={field} label={label} required={required} error={error}>
       {type === 'date' ? (
         <Popover.Root open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
           <Popover.Trigger>
@@ -251,6 +247,7 @@ export function InputField({ field, label, type = 'text', placeholder, required 
                 value={formatDisplayDate(field.state.value)}
                 placeholder={placeholder || 'Pilih tanggal'}
                 style={{ cursor: 'pointer' }}
+                color={error ? 'red' : undefined}
               >
                 {icon && <TextField.Slot side='left'>{icon}</TextField.Slot>}
                 <TextField.Slot side='right'>
@@ -284,10 +281,19 @@ export function InputField({ field, label, type = 'text', placeholder, required 
           type={inputType}
           variant='soft'
           value={field.state.value || ''}
-          onChange={(e) => field.handleChange(e.target.value)}
+          onChange={(e) => {
+            const raw = e.target.value;
+
+            if (type === 'number') {
+              field.handleChange(raw === '' ? undefined : Number(raw));
+            } else {
+              field.handleChange(raw);
+            }
+          }}
           onBlur={field.handleBlur}
           placeholder={placeholder}
           className='w-full'
+          color={error ? 'red' : undefined}
         >
           {icon && <TextField.Slot side='left'>{icon}</TextField.Slot>}
 

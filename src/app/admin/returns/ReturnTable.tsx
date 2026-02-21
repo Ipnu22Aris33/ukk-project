@@ -2,111 +2,186 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Flex } from '@radix-ui/themes';
-import { ReloadIcon, DownloadIcon, PlusIcon } from '@radix-ui/react-icons';
-import {
-  ColumnFactory,
-  DataTableProvider,
-  DataTableHeader,
-  DataTableToolbar,
-  DataTableBody,
-  DataTableFooter,
-  DataTableEmpty,
-} from '@/components/features/datatable';
-import { useDataTable } from '@/hooks/useDataTable';
+import { Container, Heading, Flex, Text } from '@radix-ui/themes';
+import { Icon } from '@iconify/react';
+import { useRouter } from 'next/navigation';
+import { DataTable, ColDataTable } from '@/components/features/datatable/DataTable';
 import { useReturns } from '@/hooks/useReturns';
-import type { ColumnDef } from '@tanstack/react-table';
-import { ReturnResponse } from '@/lib/schema/return';
+import { useLoans } from '@/hooks/useLoans';
+import type { ReturnResponse } from '@/lib/schema/return';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 export function ReturnTable() {
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-
+  const router = useRouter();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [loanSearch, setLoanSearch] = useState('');
 
   const returns = useReturns();
+  const loans = useLoans();
 
-  const returnList = returns.list({
-    page: pagination.pageIndex + 1,
-    limit: pagination.pageSize,
+  const { data, isLoading, refetch } = returns.list({
+    page,
     search,
-    debounceMs: 200,
+    limit: 10,
   });
 
-  const tableData = returnList.data?.data ?? [];
-  const metaData = returnList.data?.meta;
-  const isLoading = returnList.isLoading;
-  const refetch = returnList.refetch;
+  const loanList = loans.list({
+    page: 1,
+    limit: 100,
+    search: loanSearch,
+  });
 
-  const col = ColumnFactory<ReturnResponse>();
+  const loanOptions = (loanList.data?.data || []).map((loan) => ({
+    value: String(loan.id),
+    label: `Loan #${loan.id} - ${loan.memberId}`,
+  }));
 
-  const columns: ColumnDef<ReturnResponse>[] = [
-    col.selectColumn(),
-
-    col.numberColumn('id', 'Return ID'),
-    col.textColumn('member.fullName', 'Member', {}),
-    col.textColumn('fineAmount', 'Class'),
-    col.textColumn('fineStatus', 'Major'),
-
-    col.textColumn('book.title', 'Book Title'),
-    col.textColumn('book.author', 'Author'),
-
-    col.textColumn('loan.status', 'Loan Status'),
+  const columns: ColDataTable<ReturnResponse>[] = [
+    {
+      accessorKey: 'id',
+      header: 'Return ID',
+    },
+    {
+      accessorKey: 'member.fullName',
+      header: 'Member',
+    },
+    {
+      accessorKey: 'fineAmount',
+      header: 'Fine Amount',
+      cell: ({ row }) => (
+        <Text>
+          {new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+          }).format(row.original.fineAmount || 0)}
+        </Text>
+      ),
+    },
+    {
+      accessorKey: 'fineStatus',
+      header: 'Fine Status',
+      cell: ({ row }) => {
+        const status = row.original.fineStatus;
+        const colors: Record<string, "green" | "red" | "gray"> = {
+          PAID: 'green',
+          UNPAID: 'red',
+          WAIVED: 'gray',
+        };
+        const color: "green" | "red" | "gray" = colors[status as keyof typeof colors] ?? 'gray';
+        return (
+          <Text color={color}>
+            {status}
+          </Text>
+        );
+      },
+    },
+    {
+      accessorKey: 'book.title',
+      header: 'Book Title',
+    },
+    {
+      accessorKey: 'book.author',
+      header: 'Author',
+    },
+    {
+      accessorKey: 'loan.status',
+      header: 'Loan Status',
+      cell: ({ row }) => {
+        const status = row.original.loan?.status;
+        const colors: Record<string, "green" | "red" | "gray" | "blue"> = {
+          ACTIVE: 'blue',
+          RETURNED: 'green',
+          OVERDUE: 'red',
+        };
+        const color: "green" | "red" | "gray" | "blue" = colors[status as keyof typeof colors] ?? 'gray';
+        return (
+          <Text color={color}>
+            {status}
+          </Text>
+        );
+      },
+    },
+    {
+      accessorKey: 'returnedAt',
+      header: 'Return Date',
+      cell: ({ row }) => new Date(row.original.returnedAt).toLocaleDateString('id-ID'),
+    },
   ];
 
-  const { table } = useDataTable({
-    data: tableData,
-    columns,
-    pageSize: metaData?.limit || 10,
-  });
+  const rowActions = (returnData: ReturnResponse) => [
+    {
+      key: 'view',
+      label: 'View Details',
+      icon: <Icon icon='mdi:eye' />,
+      onClick: () => router.push(`/returns/${returnData.id}`),
+    },
+    {
+      key: 'edit',
+      label: 'Edit Return',
+      color: 'blue' as const,
+      icon: <Icon icon='mdi:pencil' />,
+      onClick: () => router.push(`/returns/${returnData.id}/edit`),
+    },
+    {
+      key: 'delete',
+      label: 'Delete Return',
+      color: 'red' as const,
+      icon: <Icon icon='mdi:delete' />,
+      onClick: async () => {
+        if (confirm(`Delete return #${returnData.id}?`)) {
+          await returns.remove.mutateAsync(returnData.id);
+          refetch();
+        }
+      },
+    },
+  ];
 
-  const tableActions = (
-    <>
-      <Button variant='soft' size='2' onClick={() => window.print()}>
-        Print
-      </Button>
-
-      <Button variant='soft' size='2' onClick={() => refetch()} disabled={isLoading}>
-        {isLoading ? <ReloadIcon className='animate-spin' /> : <ReloadIcon />}
-        Refresh
-      </Button>
-
-      <Button variant='soft' size='2'>
-        <DownloadIcon />
-        Export
-      </Button>
-
-      <Button variant='solid' size='2'>
-        <PlusIcon />
-        New Return
-      </Button>
-    </>
-  );
-
-  const dataTableState = {
-    table,
-    pagination,
-    setPagination,
-    search,
-    setSearch,
-    meta: metaData,
-    isLoading,
-    refetch,
+  const handleCreate = () => {
+    router.push('/admin/returns/create');
   };
 
+  const breadcrumbItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Returns' },
+  ];
+
   return (
-    <DataTableProvider value={dataTableState}>
-      <Flex direction='column'>
-        <DataTableHeader title='Returns Management' description='Manage returned books and fines' />
+    <Container size='4'>
+      <Breadcrumb items={breadcrumbItems} />
 
-        <DataTableToolbar actions={tableActions} />
-
-        {tableData.length === 0 ? <DataTableEmpty title='No returns found' description='Try adjusting your search' /> : <DataTableBody />}
-
-        {tableData.length > 0 && <DataTableFooter />}
+      <Flex justify='between' align='center' mb='6'>
+        <Flex direction='column' gap='1'>
+          <Heading size='8'>Returns Management</Heading>
+          <Text size='2' color='gray'>
+            Total {data?.meta?.total || 0} returns
+          </Text>
+        </Flex>
       </Flex>
-    </DataTableProvider>
+
+      <DataTable
+        data={data?.data ?? []}
+        columns={columns}
+        meta={data?.meta}
+        isLoading={isLoading}
+        onRefresh={() => refetch()}
+        searchValue={search}
+        onSearchChange={setSearch}
+        page={page}
+        onPageChange={setPage}
+        onAdd={handleCreate}
+        showAdd={true}
+        showRefresh={true}
+        showPrint={true}
+        rowActions={rowActions}
+        enableSearch={true}
+        enablePagination={true}
+        enableSorting={true}
+        enablePageSize={true}
+        enableContextMenu={true}
+        emptyMessage='No returns found'
+      />
+    </Container>
   );
 }

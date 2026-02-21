@@ -2,252 +2,122 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Flex, Dialog, Text, Link, Box } from '@radix-ui/themes';
-import { ReloadIcon, DownloadIcon, PlusIcon } from '@radix-ui/react-icons';
-import { useForm } from '@tanstack/react-form';
-import * as Form from '@radix-ui/react-form';
-import { InputField } from '@/components/features/forms';
-import { ColumnFactory, DataTableProvider } from '@/components/features/datatable';
-import { DataTableHeader } from '@/components/features/datatable/DataTableHeader';
-import { DataTableToolbar } from '@/components/features/datatable/DataTableToolbar';
-import { DataTableBody } from '@/components/features/datatable/DataTableBody';
-import { DataTableFooter } from '@/components/features/datatable/DataTableFooter';
-import { useDataTable } from '@/hooks/useDataTable';
-import { useMembers } from '@/hooks/useMembers';
+import { Container, Heading, Flex, Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { Member } from '@/lib/schema/member';
-
+import { useRouter } from 'next/navigation';
+import { DataTable, ColDataTable } from '@/components/features/datatable/DataTable';
+import { useMembers } from '@/hooks/useMembers';
+import type { Member } from '@/lib/schema/member';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 export function MemberTable() {
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const router = useRouter();
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const members = useMembers()
+  const members = useMembers();
 
-  const memberList = members.list({
-    page: pagination.pageIndex + 1,
-    limit: pagination.pageSize,
+  const { data, isLoading, refetch } = members.list({
+    page,
     search,
-    debounceMs: 400,
-  })
+    limit: 10,
+  });
 
-  const tableData = memberList.data?.data ?? [];
-  const metaData = memberList.data?.meta;
-  const isLoading = memberList.isLoading;
-  const refetch = memberList.refetch;
-
-  const col = ColumnFactory<Member>();
-
-  const columns: ColumnDef<Member>[] = [
-    col.selectColumn(),
-    col.textColumn('id', 'ID', { color: 'gray' }),
-    col.textColumn('fullName', 'Name', { weight: 'medium' }),
-    col.textColumn('phone', 'Phone'),
-    col.textColumn('memberClass', 'Class'),
-    col.textColumn('major', 'Major'),
+  const columns: ColDataTable<Member>[] = [
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      cell: ({ row }) => <Text color='gray'>{row.original.id}</Text>,
+    },
+    {
+      accessorKey: 'fullName',
+      header: 'Name',
+      cell: ({ row }) => <Text weight='medium'>{row.original.fullName}</Text>,
+    },
+    {
+      accessorKey: 'phone',
+      header: 'Phone',
+    },
+    {
+      accessorKey: 'memberClass',
+      header: 'Class',
+    },
+    {
+      accessorKey: 'major',
+      header: 'Major',
+    },
     
+    {
+      accessorKey: 'createdAt',
+      header: 'Registered',
+      cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString('id-ID'),
+    },
   ];
 
-  const { table } = useDataTable({
-    data: tableData,
-    columns,
-    pageSize: metaData?.limit || 10,
-  });
-
-  // FORM
-  const form = useForm({
-    defaultValues: {
-      member_name: '',
-      member_phone: '',
-      member_class: '',
-      member_major: '',
+  const rowActions = (member: Member) => [
+    {
+      key: 'view',
+      label: 'View Details',
+      icon: <Icon icon='mdi:eye' />,
+      onClick: () => router.push(`/members/${member.id}`),
     },
-    onSubmit: async ({ value }) => {
-      try {
-        console.log('Create new member:', value);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setDialogOpen(false);
-        form.reset();
-        refetch();
-      } catch (err: any) {
-        alert(err.message);
-      }
+    {
+      key: 'edit',
+      label: 'Edit Member',
+      color: 'blue' as const,
+      icon: <Icon icon='mdi:pencil' />,
+      onClick: () => router.push(`/members/${member.id}/edit`),
     },
-  });
+    {
+      key: 'delete',
+      label: 'Delete Member',
+      color: 'red' as const,
+      icon: <Icon icon='mdi:delete' />,
+      onClick: async () => {
+        if (confirm(`Delete member "${member.fullName}"?`)) {
+          await members.remove.mutateAsync(member.id);
+          refetch();
+        }
+      },
+    },
+  ];
 
-  // Table actions
-  const tableActions = (
-    <>
-      <Button variant='soft' size='2' onClick={() => refetch()} disabled={isLoading}>
-        {isLoading ? <ReloadIcon className='animate-spin' /> : <ReloadIcon />}
-        Refresh
-      </Button>
-      <Button variant='soft' size='2'>
-        <DownloadIcon />
-        Export
-      </Button>
-      
-      <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Dialog.Trigger>
-          <Button variant='solid' size='2'>
-            <PlusIcon />
-            Add Member
-          </Button>
-        </Dialog.Trigger>
-
-        <Dialog.Content maxWidth="500px">
-          <Dialog.Title>Add New Member</Dialog.Title>
-          <Dialog.Description size="2" mb="4">
-            Register a new library member
-          </Dialog.Description>
-
-          <Form.Root
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              form.handleSubmit();
-            }}
-          >
-            <Box className="space-y-4">
-              <form.Field
-                name="member_name"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return 'Nama wajib diisi';
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <InputField 
-                    field={field} 
-                    label="Name" 
-                    placeholder="Masukkan nama"
-                    required 
-                    icon={<Icon icon="mdi:user" />}
-                  />
-                )}
-              </form.Field>
-
-              <form.Field
-                name="member_phone"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return 'Nomor telepon wajib diisi';
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <InputField 
-                    field={field} 
-                    label="Phone" 
-                    placeholder="08xxxxxxxxxx"
-                    required 
-                    icon={<Icon icon="mdi:phone" />}
-                  />
-                )}
-              </form.Field>
-
-              <Flex gap="3">
-                <Box >
-                  <form.Field
-                    name="member_class"
-                    validators={{
-                      onChange: ({ value }) => {
-                        if (!value) return 'Kelas wajib diisi';
-                        return undefined;
-                      },
-                    }}
-                  >
-                    {(field) => (
-                      <InputField 
-                        field={field} 
-                        label="Class" 
-                        placeholder="X, XI, XII"
-                        required 
-                        icon={<Icon icon="mdi:school" />}
-                      />
-                    )}
-                  </form.Field>
-                </Box>
-                <Box>
-                  <form.Field
-                    name="member_major"
-                    validators={{
-                      onChange: ({ value }) => {
-                        if (!value) return 'Jurusan wajib diisi';
-                        return undefined;
-                      },
-                    }}
-                  >
-                    {(field) => (
-                      <InputField 
-                        field={field} 
-                        label="Major" 
-                        placeholder="IPA, IPS"
-                        required 
-                        icon={<Icon icon="mdi:book-education" />}
-                      />
-                    )}
-                  </form.Field>
-                </Box>
-              </Flex>
-
-              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                {([canSubmit, isSubmitting]) => (
-                  <Flex gap="3" mt="4" justify="end">
-                    <Dialog.Close>
-                      <Button variant="soft" color="gray">
-                        Cancel
-                      </Button>
-                    </Dialog.Close>
-                    <Button 
-                      type="submit" 
-                      variant="solid" 
-                      disabled={!canSubmit}
-                      loading={isSubmitting}
-                    >
-                      {isSubmitting ? 'Creating...' : 'Create Member'}
-                    </Button>
-                  </Flex>
-                )}
-              </form.Subscribe>
-            </Box>
-          </Form.Root>
-        </Dialog.Content>
-      </Dialog.Root>
-    </>
-  );
-
-  const dataTableState = {
-    table,
-    pagination,
-    setPagination,
-    search,
-    setSearch,
-    meta: metaData,
-    isLoading,
-    refetch,
-  };
+  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }];
 
   return (
-    <DataTableProvider value={dataTableState}>
-      <Flex direction='column'>
-        <DataTableHeader 
-          title='Member Management' 
-          description='Manage library members' 
-        />
-        <DataTableToolbar actions={tableActions}/>
-        <DataTableBody />
-        <DataTableFooter />
+    <Container size='4'>
+      <Breadcrumb items={breadcrumbItems} />
+
+      <Flex justify='between' align='center' mb='6'>
+        <Flex direction='column' gap='1'>
+          <Heading size='8'>Member Management</Heading>
+          <Text size='2' color='gray'>
+            Total {data?.meta?.total || 0} members
+          </Text>
+        </Flex>
       </Flex>
-    </DataTableProvider>
+
+      <DataTable
+        data={data?.data ?? []}
+        columns={columns}
+        meta={data?.meta}
+        isLoading={isLoading}
+        onRefresh={() => refetch()}
+        searchValue={search}
+        onSearchChange={setSearch}
+        page={page}
+        onPageChange={setPage}
+        showAdd={false} // Create functionality will be added later
+        showRefresh={true}
+        showPrint={true}
+        rowActions={rowActions}
+        enableSearch={true}
+        enablePagination={true}
+        enableSorting={true}
+        enablePageSize={true}
+        enableContextMenu={true}
+        emptyMessage='No members found'
+      />
+    </Container>
   );
 }

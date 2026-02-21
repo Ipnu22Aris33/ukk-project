@@ -4,7 +4,6 @@ import { relations } from 'drizzle-orm';
 export const userRoleEnum = pgEnum('user_role_enum', ['admin', 'staff', 'member']);
 export const loanStatusEnum = pgEnum('loan_status_enum', ['borrowed', 'returned', 'late', 'lost']);
 export const reservationStatusEnum = pgEnum('reservation_status_enum', ['pending', 'approved', 'rejected', 'expired', 'completed', 'canceled']);
-export const reservationTypeEnum = pgEnum('reservation_type_enum', ['onsite', 'take_home']);
 export const fineStatusEnum = pgEnum('fine_status_enum', ['none', 'paid', 'unpaid']);
 export const returnConditionEnum = pgEnum('return_condition_enum', ['good', 'damaged', 'lost']);
 
@@ -124,7 +123,6 @@ export const reservations = pgTable(
   {
     id: serial('id_reservation').primaryKey(),
     reservationCode: varchar('reservation_code', { length: 100 }).notNull(),
-    reservationType: reservationTypeEnum('reservation_type').notNull(),
     memberId: integer('member_id')
       .notNull()
       .references(() => members.id, { onDelete: 'cascade' }),
@@ -147,7 +145,6 @@ export const reservations = pgTable(
     index('reservations_member_idx').on(table.memberId),
     index('reservations_book_idx').on(table.bookId),
     index('reservations_status_idx').on(table.status),
-    index('reservations_type_idx').on(table.reservationType),
     index('reservations_deleted_at_idx').on(table.deletedAt),
     index('reservations_member_status_idx').on(table.memberId, table.status),
   ]

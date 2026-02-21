@@ -108,7 +108,6 @@ export const POST = handleApi(async ({ req, user }) => {
     const [insertedReservation] = await tx
       .insert(reservations)
       .values({
-        reservationType: 'onsite',
         reservationCode,
         memberId: member.id,
         bookId,

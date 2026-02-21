@@ -218,12 +218,12 @@ export function useCRUD<TPayload extends Record<string, any> = any, TListRespons
   // ---------------------------
   // UPDATE (PATCH)
   // ---------------------------
-  const update = useMutation<ApiResponse, HttpError, TPayload & { id: string | string }>({
+  const update = useMutation<ApiResponse, HttpError, TPayload & { id: string | number }>({
     mutationFn: ({ id, ...payload }) => fetchApi(`${baseApi}/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
     onSuccess: (data, variables) => {
       if (!disableToasts) toast.success(messages.update ?? data.message ?? 'Updated successfully');
       qc.invalidateQueries({ queryKey: keys.lists() });
-      qc.invalidateQueries({ queryKey: keys.detail(variables.id) });
+      qc.invalidateQueries({ queryKey: keys.detail(String(variables.id)) });
       onUpdateSuccess?.(data, variables.id);
     },
     onError: (err) => {

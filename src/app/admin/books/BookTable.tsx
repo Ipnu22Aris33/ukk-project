@@ -1,292 +1,140 @@
-// components/datatable/BookTable.tsx
+// app/books/page.tsx
 'use client';
 
-import { useState } from 'react';
-import { Button, Flex, Dialog, Box } from '@radix-ui/themes';
-import { ReloadIcon, DownloadIcon, PlusIcon } from '@radix-ui/react-icons';
-import { useForm } from '@tanstack/react-form';
-import * as Form from '@radix-ui/react-form';
-import { InputField, SelectField } from '@/components/features/forms';
-import { ColumnFactory, DataTableProvider, DataTableHeader, DataTableToolbar, DataTableBody, DataTableFooter } from '@/components/features/datatable';
-import { useDataTable } from '@/hooks/useDataTable';
+import { ColDataTable, DataTable } from '@/components/features/datatable/DataTable';
 import { useBooks } from '@/hooks/useBooks';
 import { useCategories } from '@/hooks/useCategories';
+import { Container, Heading, Flex, Button, Box, Text } from '@radix-ui/themes';
+import { PlusIcon } from '@radix-ui/react-icons';
 import { Icon } from '@iconify/react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { BookAlert } from './BookAlert';
-import { BookModal } from './BookModal';
-import { Book } from '@/lib/schema/book';
-import { BookResponse } from '@/lib/schema/book';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import type { Book, BookResponse } from '@/lib/schema/book';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
-// ====================
-// COMPONENT
-// ====================
 export function BookTable() {
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const router = useRouter();
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
   const [categorySearch, setCategorySearch] = useState('');
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-
-  const [editOpen, setEditOpen] = useState(false);
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-
-  const { list: useList, create, remove, update } = useBooks();
-
-  const list = useList({
-    page: pagination.pageIndex + 1,
-    limit: pagination.pageSize,
-    search,
-    debounceMs: 400,
-  });
-
+  const books = useBooks();
   const categories = useCategories();
+
+  const { data, isLoading, refetch } = books.list({
+    page,
+    search,
+    limit: 10,
+  });
 
   const categoryList = categories.list({
     page: 1,
     limit: 100,
     search: categorySearch,
-    debounceMs: 400,
   });
-
-  const tableData = list.data?.data ?? [];
-  const metaData = list.data?.meta;
-  const isLoading = list.isLoading;
-  const refetch = list.refetch;
 
   const categoryOptions = (categoryList.data?.data || []).map((cat) => ({
     value: String(cat.id),
     label: cat.name,
   }));
 
-  const col = ColumnFactory<BookResponse>();
-
-  const columns: ColumnDef<BookResponse>[] = [
-    col.selectColumn(),
-    col.textColumn('title', 'Title', { weight: 'medium' }),
-    col.textColumn('author', 'Author'),
-    col.textColumn('publisher', 'Publisher'),
-    col.numberColumn('year', 'Year'),
-    col.textColumn('isbn', 'ISBN', { color: 'gray' }),
-    col.textColumn('slug', 'Slug', { color: 'gray' }),
-    col.numberColumn('stock', 'Stock'),
-    col.textColumn('category.name', 'Category'),
-    col.actionsColumn(() => [
-      { key: 'view', label: 'View', icon: <Icon icon={'mdi:eye'}/>, onClick: () => console.log('View') },
-      { key: 'edit', label: 'Edit', color: 'blue', onClick: () => console.log('Edit') },
-      { key: 'delete', label: 'Delete', color: 'red', onClick: () => console.log('Delete') },
-    ]),
+  const columns: ColDataTable<BookResponse>[] = [
+    {
+      accessorKey: 'title',
+      header: 'Title',
+    },
+    {
+      accessorKey: 'author',
+      header: 'Author',
+    },
+    {
+      accessorKey: 'category.name',
+      header: 'Category',
+    },
+    {
+      accessorKey: 'stock',
+      header: 'Stock',
+    },
+    {
+      accessorKey: 'slug',
+      header: 'Slug',
+    },
   ];
 
-  const { table } = useDataTable({
-    data: tableData,
-    columns,
-    pageSize: metaData?.limit || 10,
-  });
-
-  const form = useForm({
-    defaultValues: {
-      title: '',
-      author: '',
-      publisher: '',
-      stock: 1,
-      year: new Date().getFullYear(),
-      isbn: '',
-      category_id: '',
+  const rowActions = (book: Book) => [
+    {
+      key: 'view',
+      label: 'View Details',
+      icon: <Icon icon='mdi:eye' />,
+      onClick: () => router.push(`/books/${book.id}`),
     },
-    onSubmit: async ({ value }) => {
-      await create.mutateAsync({
-        ...value,
-        categoryId: Number(value.category_id),
-        year: Number(value.year),
-        stock: Number(value.stock),
-      });
-
-      setDialogOpen(false);
-      form.reset();
-      setCategorySearch('');
-      refetch();
+    {
+      key: 'edit',
+      label: 'Edit Book',
+      color: 'blue' as const,
+      icon: <Icon icon='mdi:pencil' />,
+      onClick: () => router.push(`/books/${book.id}/edit`),
     },
-  });
+    {
+      key: 'delete',
+      label: 'Delete Book',
+      color: 'red' as const,
+      icon: <Icon icon='mdi:delete' />,
+      onClick: async () => {
+        if (confirm(`Delete "${book.title}"?`)) {
+          await books.remove.mutateAsync(book.id);
+          refetch();
+        }
+      },
+    },
+  ];
 
-  const handleConfirmDelete = async () => {
-    if (!selectedId) return;
-    await remove.mutateAsync(selectedId);
-    setDeleteOpen(false);
-    setSelectedId(null);
+  // Handler untuk navigasi ke halaman create
+  const handleCreate = () => {
+    router.push('/admin/books/create');
   };
 
-  const handleUpdate = async (data: any, id: number) => {
-    await update.mutateAsync({ id, ...data });
-    setEditOpen(false);
-    setSelectedBook(null);
-    refetch();
-  };
-
-  const tableActions = (
-    <>
-      <Button variant='soft' size='2' onClick={() => window.print()}>
-        Print
-      </Button>
-
-      <Button variant='soft' size='2' onClick={() => refetch()} disabled={isLoading}>
-        {isLoading ? <ReloadIcon className='animate-spin' /> : <ReloadIcon />}
-        Refresh
-      </Button>
-
-      <Button variant='soft' size='2'>
-        <DownloadIcon />
-        Export
-      </Button>
-
-      <Dialog.Root
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) form.reset();
-        }}
-      >
-        <Dialog.Trigger>
-          <Button variant='solid' size='2'>
-            <PlusIcon />
-            New Book
-          </Button>
-        </Dialog.Trigger>
-
-        <Dialog.Content maxWidth='500px'>
-          <Dialog.Title>Create New Book</Dialog.Title>
-          <Dialog.Description size='2' mb='4'>
-            Fill in book information below
-          </Dialog.Description>
-
-          <Form.Root
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              form.handleSubmit();
-            }}
-          >
-            <Box className='space-y-4'>
-              <form.Field name='title'>
-                {(field) => <InputField field={field} label='Title' placeholder='Enter book title...' icon={<Icon icon='mdi:book' />} />}
-              </form.Field>
-
-              <form.Field name='author'>
-                {(field) => <InputField field={field} label='Author' placeholder='Enter author name...' icon={<Icon icon='mdi:account-edit' />} />}
-              </form.Field>
-
-              <form.Field name='publisher'>
-                {(field) => (
-                  <InputField field={field} label='Publisher' placeholder='Enter publisher name...' icon={<Icon icon='mdi:office-building' />} />
-                )}
-              </form.Field>
-
-              <form.Field
-                name='isbn'
-                validators={{
-                  onChange: ({ value }) => {
-                    if (value.length < 10) return 'ISBN tidak valid';
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => <InputField field={field} label='ISBN' placeholder='Enter ISBN number...' icon={<Icon icon='mdi:barcode' />} />}
-              </form.Field>
-
-              <form.Field
-                name='year'
-                validators={{
-                  onChange: ({ value }) => {
-                    if (value < 1900) return 'Year tidak valid';
-                    if (value > new Date().getFullYear()) return 'Year tidak boleh melebihi tahun sekarang';
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <InputField field={field} label='Year' type='number' placeholder='Enter publication year...' icon={<Icon icon='mdi:calendar' />} />
-                )}
-              </form.Field>
-
-              <form.Field name='stock'>
-                {(field) => (
-                  <InputField
-                    field={field}
-                    label='Stock'
-                    type='number'
-                    placeholder='Enter stock quantity...'
-                    required
-                    icon={<Icon icon='mdi:counter' />}
-                  />
-                )}
-              </form.Field>
-
-              <form.Field name='category_id'>
-                {(field) => (
-                  <SelectField
-                    field={field}
-                    label='Category'
-                    options={categoryOptions}
-                    placeholder='Select a category...'
-                    required
-                    searchable
-                    search={categorySearch}
-                    onSearchChange={setCategorySearch}
-                    icon={<Icon icon='mdi:shape' />}
-                  />
-                )}
-              </form.Field>
-
-              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                {([canSubmit, isSubmitting]) => (
-                  <Flex gap='3' mt='4' justify='end'>
-                    <Dialog.Close>
-                      <Button variant='soft' color='gray'>
-                        Cancel
-                      </Button>
-                    </Dialog.Close>
-                    <Button type='submit' variant='solid' disabled={!canSubmit} loading={isSubmitting}>
-                      {isSubmitting ? 'Creating...' : 'Create Book'}
-                    </Button>
-                  </Flex>
-                )}
-              </form.Subscribe>
-            </Box>
-          </Form.Root>
-        </Dialog.Content>
-      </Dialog.Root>
-    </>
-  );
-
-  const dataTableState = { table, pagination, setPagination, search, setSearch, meta: metaData, isLoading, refetch };
+  // Breadcrumb items
+  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Books' }];
 
   return (
-    <DataTableProvider value={dataTableState}>
-      <Flex direction='column'>
-        <DataTableHeader title='Books Management' description='Manage library books' />
-        <DataTableToolbar actions={tableActions} />
-        <DataTableBody
-          rowActions={() => [
-            { key: 'view', label: 'View', onClick: () => console.log('View') },
-            { key: 'edit', label: 'Edit', color: 'blue', onClick: () => console.log('Edit') },
-            { key: 'delete', label: 'Delete', color: 'red', onClick: () => console.log('Delete') },
-          ]}
-        />
-        <DataTableFooter />
+    <Container size='4'>
+      {/* Breadcrumb - Taruh di sini */}
+      <Breadcrumb items={breadcrumbItems} />
+
+      {/* Header */}
+      <Flex justify='between' align='center' mb='6'>
+        <Flex direction='column' gap='1'>
+          <Heading size='8'>Books Management</Heading>
+          <Text size='2' color='gray'>
+            Total {data?.meta?.total || 0} books
+          </Text>
+        </Flex>
       </Flex>
-      <BookAlert open={deleteOpen} onOpenChange={setDeleteOpen} onConfirm={handleConfirmDelete} loading={remove.isPending} />
-      <BookModal
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        book={selectedBook}
-        onSubmit={handleUpdate}
-        loading={update.isPending}
-        categoryOptions={categoryOptions}
-        categorySearch={categorySearch}
-        setCategorySearch={setCategorySearch}
+
+      {/* Data Table */}
+      <DataTable
+        data={data?.data ?? []}
+        columns={columns}
+        meta={data?.meta}
+        isLoading={isLoading}
+        onRefresh={() => refetch()}
+        searchValue={search}
+        onSearchChange={setSearch}
+        page={page}
+        onPageChange={setPage}
+        onAdd={handleCreate}
+        showAdd={true}
+        showRefresh={true}
+        showPrint={true}
+        rowActions={rowActions}
+        enableSearch={true}
+        enablePagination={true}
+        enableSorting={true}
+        enablePageSize={true}
+        enableContextMenu={true}
+        emptyMessage='No books found'
       />
-    </DataTableProvider>
+    </Container>
   );
 }

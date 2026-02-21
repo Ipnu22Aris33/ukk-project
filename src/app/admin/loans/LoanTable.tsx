@@ -2,361 +2,174 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Flex, Dialog, Box } from '@radix-ui/themes';
-import { ReloadIcon, DownloadIcon, PlusIcon } from '@radix-ui/react-icons';
-import { useForm } from '@tanstack/react-form';
-import * as Form from '@radix-ui/react-form';
-import { InputField, SelectField } from '@/components/features/forms';
-import { ColumnFactory, DataTableProvider } from '@/components/features/datatable';
-import { DataTableHeader } from '@/components/features/datatable/DataTableHeader';
-import { DataTableToolbar } from '@/components/features/datatable/DataTableToolbar';
-import { DataTableBody } from '@/components/features/datatable/DataTableBody';
-import { DataTableFooter } from '@/components/features/datatable/DataTableFooter';
-import { useDataTable } from '@/hooks/useDataTable';
-import { useLoans } from '@/hooks/useLoans';
-import { useMembers } from '@/hooks/useMembers';
-import { useBooks } from '@/hooks/useBooks';
+import { Container, Heading, Flex, Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { Loan } from '@/lib/schema/loan';
-// ====================
-// TYPES
-// ====================
-
-type LoanStatus = 'borrowed' | 'returned' | 'late' | 'cancelled';
-
-interface LoanRow {
-  id_loan: number;
-  member_id: number;
-  book_id: number;
-  loan_date: string;
-  due_date: string;
-  quantity: number;
-  status: LoanStatus;
-  created_at: string;
-  updated_at: string;
-  member_name: string; // computed
-  book_title: string; // computed
-}
-
-// Form data dari user
-interface LoanFormData {
-  member_id: string; // select value comes as string
-  book_id: string;
-  count: number;
-  due_date: string;
-}
-
-// ====================
-// COMPONENT
-// ====================
+import { useRouter } from 'next/navigation';
+import { DataTable, ColDataTable } from '@/components/features/datatable/DataTable';
+import { useLoans } from '@/hooks/useLoans';
+import type { Loan, LoanResponse } from '@/lib/schema/loan';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 export function LoanTable() {
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const router = useRouter();
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [memberSearch, setMemberSearch] = useState('');
-  const [bookSearch, setBookSearch] = useState('');
+  const [page, setPage] = useState(1);
 
-  // Hooks CRUD
   const loans = useLoans();
-  const members = useMembers();
-  const books = useBooks();
 
-  // Fetch loans list
-  const loansList = loans.list({
-    page: pagination.pageIndex + 1,
-    limit: pagination.pageSize,
+  const { data, isLoading, refetch } = loans.list({
+    page,
     search,
-    debounceMs: 400,
+    limit: 10,
   });
 
-  // Fetch members for select dropdown
-  const memberList = members.list({
-    page: 1,
-    limit: 100,
-    search: memberSearch,
-    debounceMs: 400,
-  });
-
-  // Fetch books for select dropdown
-  const bookList = books.list({
-    page: 1,
-    limit: 100,
-    search: bookSearch,
-    debounceMs: 400,
-  });
-
-  const tableData: Loan[] =
-    (loansList.data?.data || []).map((l: any) => ({
-      ...l,
-      member_name: l.member?.full_name ?? '',
-      book_title: l.book?.title ?? '',
-    })) || [];
-
-  const metaData = loansList.data?.meta;
-  const isLoading = loansList.isLoading;
-  const refetch = loansList.refetch;
-
-  // Members & books options
-  const memberOptions =
-    (memberList.data?.data || []).map((m: any) => ({
-      value: String(m.id_member),
-      label: `${m.full_name} (${m.member_class})`,
-    })) || [];
-
-  const bookOptions =
-    (bookList.data?.data || []).map((b: any) => ({
-      value: String(b.id_book),
-      label: `${b.title} - ${b.author}`,
-    })) || [];
-
-  // ====================
-  // TABLE COLUMNS
-  // ====================
-  const col = ColumnFactory<Loan>();
-
-  const columns: ColumnDef<Loan>[] = [
-    col.selectColumn(),
-    col.textColumn('id', 'ID', { color: 'gray' }),
-    col.textColumn('memberId', 'Member', { weight: 'medium' }),
-    col.textColumn('bookId', 'Book'),
-    col.numberColumn('quantity', 'Qty'),
-    col.dateColumn('loan_date', 'Loan Date'),
-    col.dateColumn('due_date', 'Due Date'),
-    col.statusBadgeColumn('status', 'Status', {
-      borrowed: { label: 'Borrowed', color: 'blue' },
-      returned: { label: 'Returned', color: 'jade' },
-      late: { label: 'Late', color: 'crimson' },
-      cancelled: { label: 'Cancelled', color: 'gray' },
-    }),
+  const columns: ColDataTable<LoanResponse>[] = [
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      cell: ({ row }) => <Text color='gray'>#{row.original.id}</Text>,
+    },
+    {
+      accessorKey: 'member.fullName',
+      header: 'Member',
+      cell: ({ row }) => (
+        <Flex direction='column'>
+          <Text weight='medium'>{row.original.member?.fullName}</Text>
+          <Text size='1' color='gray'>{row.original.member?.memberClass}</Text>
+        </Flex>
+      ),
+    },
+    {
+      accessorKey: 'book.title',
+      header: 'Book',
+      cell: ({ row }) => (
+        <Flex direction='column'>
+          <Text>{row.original.book?.title}</Text>
+          <Text size='1' color='gray'>{row.original.book?.author}</Text>
+        </Flex>
+      ),
+    },
+    {
+      accessorKey: 'quantity',
+      header: 'Qty',
+      cell: ({ row }) => (
+        <Text>{row.original.quantity}x</Text>
+      ),
+    },
+    {
+      accessorKey: 'loanDate',
+      header: 'Loan Date',
+      cell: ({ row }) => new Date(row.original.loanDate).toLocaleDateString('id-ID'),
+    },
+    {
+      accessorKey: 'dueDate',
+      header: 'Due Date',
+      cell: ({ row }) => new Date(row.original.dueDate).toLocaleDateString('id-ID'),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const status = row.original.status;
+        const config = {
+          BORROWED: { label: 'Borrowed', color: 'blue' },
+          RETURNED: { label: 'Returned', color: 'green' },
+          OVERDUE: { label: 'Overdue', color: 'red' },
+          CANCELLED: { label: 'Cancelled', color: 'gray' },
+        };
+        const statusConfig = config[status as keyof typeof config] || { label: status, color: 'gray' };
+        
+        return (
+          <Text color={statusConfig.color as any}>
+            {statusConfig.label}
+          </Text>
+        );
+      },
+    },
   ];
 
-  const { table } = useDataTable({
-    data: tableData,
-    columns,
-    pageSize: metaData?.limit || 10,
-  });
-
-  // ====================
-  // FORM
-  // ====================
-  const form = useForm({
-    defaultValues: {
-      member_id: '',
-      book_id: '',
-      count: 1,
-      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  const rowActions = (loan: Loan) => [
+    {
+      key: 'view',
+      label: 'View Details',
+      icon: <Icon icon='mdi:eye' />,
+      onClick: () => router.push(`/loans/${loan.id}`),
     },
-    onSubmit: async ({ value }) => {
-      try {
-        await loans.create.mutateAsync({
-          memberId: Number(value.member_id),
-          bookId: Number(value.book_id),
-          quantity: value.count,
-          loanDate: new Date(),
-          dueDate: value.due_date,
-          status: 'borrowed',
-        });
-
-        setDialogOpen(false);
-        form.reset();
-        refetch();
-        setMemberSearch('');
-        setBookSearch('');
-      } catch (err: any) {
-        alert(err.message);
-      }
+    {
+      key: 'edit',
+      label: 'Edit Loan',
+      color: 'blue' as const,
+      icon: <Icon icon='mdi:pencil' />,
+      onClick: () => router.push(`/loans/${loan.id}/edit`),
     },
-  });
+    {
+      key: 'return',
+      label: 'Mark as Returned',
+      color: 'green' as const,
+      icon: <Icon icon='mdi:book-check' />,
+      onClick: async () => {
+        if (confirm(`Mark loan #${loan.id} as returned?`)) {
+          await loans.update.mutateAsync({
+            id: loan.id,
+            status: 'returned'
+          });
+          refetch();
+        }
+      },
+    },
+    {
+      key: 'delete',
+      label: 'Delete Loan',
+      color: 'red' as const,
+      icon: <Icon icon='mdi:delete' />,
+      onClick: async () => {
+        if (confirm(`Delete loan #${loan.id}?`)) {
+          await loans.remove.mutateAsync(loan.id);
+          refetch();
+        }
+      },
+    },
+  ];
 
-  // ====================
-  // TABLE ACTIONS
-  // ====================
-  const tableActions = (
-    <>
-      <Button variant='soft' size='2' onClick={() => window.print()}>
-        Print
-      </Button>
-      <Button variant='soft' size='2' onClick={() => refetch()} disabled={isLoading}>
-        {isLoading ? <ReloadIcon className='animate-spin' /> : <ReloadIcon />}
-        Refresh
-      </Button>
-      <Button variant='soft' size='2'>
-        <DownloadIcon />
-        Export
-      </Button>
-
-      {/* Dialog with form */}
-      <Dialog.Root
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) {
-            form.reset();
-            setMemberSearch('');
-            setBookSearch('');
-          }
-        }}
-      >
-        <Dialog.Trigger>
-          <Button variant='solid' size='2'>
-            <PlusIcon />
-            New Loan
-          </Button>
-        </Dialog.Trigger>
-
-        <Dialog.Content maxWidth='500px'>
-          <Dialog.Title>Create New Loan</Dialog.Title>
-          <Dialog.Description size='2' mb='4'>
-            Add a new book loan transaction
-          </Dialog.Description>
-
-          <Form.Root
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              form.handleSubmit();
-            }}
-          >
-            <Box className='space-y-4'>
-              {/* Member select */}
-              <form.Field
-                name='member_id'
-                validators={{
-                  onChange: ({ value }) => (!value ? 'Member wajib dipilih' : undefined),
-                }}
-              >
-                {(field) => (
-                  <SelectField
-                    icon={<Icon icon='mdi:account' width={16} height={16} />}
-                    field={field}
-                    label='Member'
-                    options={memberOptions}
-                    placeholder='Cari member...'
-                    required
-                    searchable
-                    search={memberSearch}
-                    onSearchChange={setMemberSearch}
-                  />
-                )}
-              </form.Field>
-
-              {/* Book select */}
-              <form.Field
-                name='book_id'
-                validators={{
-                  onChange: ({ value }) => (!value ? 'Buku wajib dipilih' : undefined),
-                }}
-              >
-                {(field) => (
-                  <SelectField
-                    icon={<Icon icon='mdi:book' width={16} height={16} />}
-                    field={field}
-                    label='Book'
-                    options={bookOptions}
-                    placeholder='Cari buku...'
-                    required
-                    searchable
-                    search={bookSearch}
-                    onSearchChange={setBookSearch}
-                  />
-                )}
-              </form.Field>
-
-              {/* Quantity */}
-              <form.Field
-                name='count'
-                validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return 'Jumlah wajib diisi';
-                    if (value < 1) return 'Minimal 1 buku';
-                    if (value > 5) return 'Maksimal 5 buku';
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <InputField
-                    field={field}
-                    label='Quantity'
-                    type='number'
-                    placeholder='Masukkan jumlah'
-                    required
-                    icon={<Icon icon='mdi:counter' />}
-                  />
-                )}
-              </form.Field>
-
-              {/* Due date */}
-              <form.Field
-                name='due_date'
-                validators={{
-                  onChange: ({ value }) => (!value ? 'Tanggal kembali wajib diisi' : undefined),
-                }}
-              >
-                {(field) => (
-                  <InputField
-                    field={field}
-                    label='Due Date'
-                    type='date'
-                    placeholder='Pilih tanggal kembali'
-                    required
-                    icon={<Icon icon='mdi:calendar' />}
-                  />
-                )}
-              </form.Field>
-
-              {/* Form actions */}
-              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                {([canSubmit, isSubmitting]) => (
-                  <Flex gap='3' mt='4' justify='end'>
-                    <Dialog.Close>
-                      <Button variant='soft' color='gray'>
-                        Cancel
-                      </Button>
-                    </Dialog.Close>
-                    <Button type='submit' variant='solid' disabled={!canSubmit} loading={isSubmitting}>
-                      {isSubmitting ? 'Creating...' : 'Create Loan'}
-                    </Button>
-                  </Flex>
-                )}
-              </form.Subscribe>
-            </Box>
-          </Form.Root>
-        </Dialog.Content>
-      </Dialog.Root>
-    </>
-  );
-
-  // ====================
-  // PROVIDER
-  // ====================
-  const dataTableState = {
-    table,
-    pagination,
-    setPagination,
-    search,
-    setSearch,
-    meta: metaData,
-    isLoading,
-    refetch,
-  };
+  const breadcrumbItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Loans' },
+  ];
 
   return (
-    <DataTableProvider value={dataTableState}>
-      <Flex direction='column'>
-        <DataTableHeader title='Loan Management' description='Manage and track all book loans' />
-        <DataTableToolbar actions={tableActions} />
-        <DataTableBody
-          rowActions={() => [
-            { key: 'view', label: 'View', onClick: () => console.log('View') },
-            { key: 'edit', label: 'Edit', color: 'blue', onClick: () => console.log('Edit') },
-            { key: 'delete', label: 'Delete', color: 'red', onClick: () => console.log('Delete') },
-          ]}
-        />
-        <DataTableFooter />
+    <Container size='4'>
+      <Breadcrumb items={breadcrumbItems} />
+
+      <Flex justify='between' align='center' mb='6'>
+        <Flex direction='column' gap='1'>
+          <Heading size='8'>Loan Management</Heading>
+          <Text size='2' color='gray'>
+            Total {data?.meta?.total || 0} loans
+          </Text>
+        </Flex>
       </Flex>
-    </DataTableProvider>
+
+      <DataTable
+        data={data?.data ?? []}
+        columns={columns}
+        meta={data?.meta}
+        isLoading={isLoading}
+        onRefresh={() => refetch()}
+        searchValue={search}
+        onSearchChange={setSearch}
+        page={page}
+        onPageChange={setPage}
+        showAdd={false}
+        showRefresh={true}
+        showPrint={true}
+        rowActions={rowActions}
+        enableSearch={true}
+        enablePagination={true}
+        enableSorting={true}
+        enablePageSize={true}
+        enableContextMenu={true}
+        emptyMessage='No loans found'
+      />
+    </Container>
   );
 }

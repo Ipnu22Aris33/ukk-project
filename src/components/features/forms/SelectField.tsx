@@ -7,51 +7,51 @@ import { Command } from 'cmdk';
 import type { AnyFieldApi } from '@tanstack/react-form';
 import { FieldWrapper } from './FieldWrapper';
 
-type Option = {
+type Option<T extends string | number> = {
   label: string;
-  value: string;
+  value: T;
 };
 
-interface SelectFieldProps {
+interface SelectFieldProps<T extends string | number> {
   field: AnyFieldApi;
   label: string;
-  options: Option[];
+  options: Option<T>[];
   placeholder?: string;
   required?: boolean;
   icon?: React.ReactNode;
-  searchable?: boolean; // Untuk mengaktifkan/nonaktifkan pencarian
-  search?: string; // State search dari luar
-  onSearchChange?: (value: string) => void; // Callback ketika search berubah
+  searchable?: boolean;
+  search?: string;
+  onSearchChange?: (value: string) => void;
+  error?: string;
 }
 
-export function SelectField({
+export function SelectField<T extends string | number>({
   field,
   label,
   options,
   placeholder = 'Pilih...',
   required = false,
   icon,
-  searchable = true, // Default true untuk backward compatibility
+  searchable = true,
   search: externalSearch,
   onSearchChange,
-}: SelectFieldProps) {
+  error,
+}: SelectFieldProps<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSearch, setInternalSearch] = React.useState('');
 
-  // Gunakan external search jika disediakan,否则 gunakan internal
   const search = externalSearch !== undefined ? externalSearch : internalSearch;
 
   const handleSearchChange = (value: string) => {
     if (onSearchChange) {
-      onSearchChange(value); // Panggil callback external
+      onSearchChange(value);
     } else {
-      setInternalSearch(value); // Update internal state
+      setInternalSearch(value);
     }
   };
 
   const selected = options.find((opt) => opt.value === field.state.value);
 
-  // Reset search ketika popover ditutup (opsional)
   React.useEffect(() => {
     if (!open) {
       handleSearchChange('');
@@ -59,7 +59,9 @@ export function SelectField({
   }, [open]);
 
   return (
-    <FieldWrapper field={field} label={label} required={required}>
+    <FieldWrapper field={field} label={label} required={required} error={error}>
+      {' '}
+      {/* ← KIRIM ERROR KE FIELDWRAPPER */}
       <Popover.Root open={open} onOpenChange={setOpen}>
         {/* TRIGGER */}
         <Popover.Trigger>
@@ -72,6 +74,7 @@ export function SelectField({
               placeholder={placeholder}
               onClick={() => setOpen(true)}
               onChange={() => {}}
+              color={error ? 'red' : undefined} // ← TAMBAHIN INI!
             >
               {icon && <TextField.Slot side='left'>{icon}</TextField.Slot>}
 
@@ -94,8 +97,6 @@ export function SelectField({
           '
         >
           <Command shouldFilter={!externalSearch}>
-            {' '}
-            {/* Nonaktifkan filter internal jika pakai external search */}
             {/* SEARCH - hanya tampil jika searchable true */}
             {searchable && (
               <Command.Input
@@ -121,7 +122,7 @@ export function SelectField({
                   key={opt.value}
                   value={opt.label}
                   onSelect={() => {
-                    field.handleChange(opt.value);
+                    field.handleChange(Number(opt.value));
                     setOpen(false);
                     handleSearchChange('');
                   }}
