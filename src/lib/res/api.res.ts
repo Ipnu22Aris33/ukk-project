@@ -3,8 +3,8 @@ export type ApiMeta = {
   page: number;
   limit: number;
   totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
+  hasNext: boolean;
+  hasPrev: boolean;
 };
 
 export type ApiListResponse<T> = {

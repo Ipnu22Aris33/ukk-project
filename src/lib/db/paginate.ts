@@ -18,7 +18,7 @@ type PaginateOptions<TTable> = {
   where?: SQL | SQL[];
   with?: any;
 
-  select?: any; // <--- tambahkan select di sini
+  select?: any;
 };
 
 export async function paginate<TTable>({
@@ -34,7 +34,7 @@ export async function paginate<TTable>({
   orderDir = 'desc',
   where,
   with: relations,
-  select, // <--- destructure select
+  select,
 }: PaginateOptions<TTable>) {
   /* ===============================
      SAFE PAGINATION
@@ -75,13 +75,19 @@ export async function paginate<TTable>({
   =============================== */
 
   const sortKeys = Object.keys(sortable);
+  
+  // Tentukan order column yang digunakan
   const orderColumn = orderBy && sortable[orderBy]
     ? sortable[orderBy]
     : sortKeys.length > 0
       ? sortable[sortKeys[0]]
       : undefined;
 
-  const order = orderColumn && (orderDir === 'asc' ? asc(orderColumn) : desc(orderColumn));
+  // Tentukan order direction
+  const orderDirection = orderDir?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+  
+  // Buat order by clause
+  const order = orderColumn && (orderDirection === 'asc' ? asc(orderColumn) : desc(orderColumn));
 
   /* ===============================
      DATA QUERY
@@ -93,7 +99,7 @@ export async function paginate<TTable>({
     limit: safeLimit,
     offset,
     orderBy: order ? [order] : undefined,
-    select, // <--- pass select ke query
+    select,
   });
 
   /* ===============================
@@ -105,16 +111,36 @@ export async function paginate<TTable>({
   const total = Number(countResult[0]?.count ?? 0);
 
   /* ===============================
-     RETURN
+     CALCULATE META
+  =============================== */
+
+  const totalPages = total === 0 ? 0 : Math.ceil(total / safeLimit);
+  const hasPrev = safePage > 1;
+  const hasNext = safePage < totalPages;
+
+  /* ===============================
+     RETURN WITH ENHANCED META
   =============================== */
 
   return {
     data,
     meta: {
+      // Pagination info
       page: safePage,
       limit: safeLimit,
       total,
-      totalPages: total === 0 ? 0 : Math.ceil(total / safeLimit),
+      totalPages,
+      hasPrev,
+      hasNext,
+      
+      // Search info (if applied)
+      ...(search && { search }),
+      
+      // Sorting info (if applied)
+      ...(orderBy && sortable[orderBy] && {
+        orderBy: orderBy as string,
+        orderDir: orderDirection,
+      }),
     },
   };
 }
