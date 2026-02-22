@@ -12,9 +12,9 @@ import { registerSchema } from '@/lib/schema/auth';
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
 
-  const { username, email, password, nis, full_name, member_class, address, phone, major } = validateSchema(registerSchema,data);
+  const { username, email, password, nis, fullName, memberClass, address, phone, major } = validateSchema(registerSchema,data);
 
-  if (!username || !email || !password || !nis || !full_name) {
+  if (!username || !email || !password || !nis || !fullName) {
     throw new BadRequest('Required fields are missing');
   }
 
@@ -70,9 +70,9 @@ export const POST = handleApi(async ({ req }) => {
 
     await tx.insert(members).values({
       userId: newUser.id,
-      fullName: full_name,
+      fullName,
       memberCode,
-      memberClass: member_class,
+      memberClass,
       address,
       phone,
       major,

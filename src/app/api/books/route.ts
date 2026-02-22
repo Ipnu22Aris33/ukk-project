@@ -35,13 +35,10 @@ export const GET = handleApi(async ({ req }) => {
     },
   });
 
-  const { data } = safeParseResponse(bookResponseSchema, result.data);
-
-  return ok(data, {
+  return ok(safeParseResponse(bookResponseSchema, result.data).data, {
     message: 'Books retrieved successfully',
     meta: result.meta,
     timestamp: true,
-    
   });
 });
 
@@ -66,5 +63,5 @@ export const POST = handleApi(async ({ req }) => {
     })
     .returning();
 
-  return ok(newBook, { message: 'Book created successfully' });
+  return ok(safeParseResponse(bookResponseSchema, newBook).data, { message: 'Book created successfully' });
 });

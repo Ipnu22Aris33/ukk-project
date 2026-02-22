@@ -8,9 +8,9 @@ import { db } from '@/lib/db';
 import { members, users } from '@/lib/db/schema';
 import { eq, isNull, ilike } from 'drizzle-orm';
 import { paginate } from '@/lib/db/paginate';
-import { createMemberSchema, validateCreateMember } from '@/lib/schema/member';
+import { createMemberSchema, memberResponseSchema } from '@/lib/schema/member';
 import { registerSchema } from '@/lib/schema/auth';
-import { validateSchema } from '@/lib/utils/validate';
+import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
@@ -33,7 +33,7 @@ export const GET = handleApi(async ({ req }) => {
     },
   });
 
-  return ok(result.data, { message: 'Members fetched successfully', meta: result.meta });
+  return ok(safeParseResponse(memberResponseSchema, result.data).data, { message: 'Members fetched successfully', meta: result.meta });
 });
 
 export const POST = handleApi(async ({ req }) => {
@@ -67,10 +67,10 @@ export const POST = handleApi(async ({ req }) => {
     const [newMember] = await tx
       .insert(members)
       .values({
-        fullName: parsedData.full_name,
+        fullName: parsedData.fullName,
         memberCode,
         phone: parsedData.phone,
-        memberClass: parsedData.member_class,
+        memberClass: parsedData.memberClass,
         major: parsedData.major,
         userId: newUser.id,
       })
@@ -84,5 +84,5 @@ export const POST = handleApi(async ({ req }) => {
     };
   });
 
-  return ok(result, { message: 'Member registered successfully' });
+  return ok(safeParseResponse(memberResponseSchema, result), { message: 'Member registered successfully' });
 });

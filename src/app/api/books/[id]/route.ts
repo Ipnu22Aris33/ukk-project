@@ -5,8 +5,8 @@ import { NotFound, BadRequest } from '@/lib/utils/httpErrors';
 import { db } from '@/lib/db';
 import { books } from '@/lib/db/schema';
 import { slugify } from '@/lib/utils/slugify';
-import { validateSchema } from '@/lib/utils/validate';
-import { updateBookSchema } from '@/lib/schema/book';
+import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
+import { bookResponseSchema, updateBookSchema } from '@/lib/schema/book';
 
 /* ======================================================
    GET /api/books/[id]
@@ -26,7 +26,7 @@ export const GET = handleApi(async ({ params }) => {
     throw new NotFound('Book not found');
   }
 
-  return ok(book, { message: 'Book retrieved successfully' });
+  return ok(safeParseResponse(bookResponseSchema, book).data, { message: 'Book retrieved successfully' });
 });
 
 /* ======================================================
@@ -66,7 +66,7 @@ export const PATCH = handleApi(async ({ req, params }) => {
     .where(eq(books.id, id))
     .returning();
 
-  return ok(updated, { message: 'Book updated successfully' });
+  return ok(safeParseResponse(bookResponseSchema, updated).data, { message: 'Book updated successfully' });
 });
 
 /* ======================================================

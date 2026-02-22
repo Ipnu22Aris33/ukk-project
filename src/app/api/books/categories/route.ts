@@ -2,14 +2,14 @@ import { ok } from '@/lib/utils/apiResponse';
 import { handleApi } from '@/lib/utils/handleApi';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { slugify } from '@/lib/utils/slugify';
-import { createCategorySchema } from '@/lib/schema/category';
+import { categoryResponseSchema, createCategorySchema } from '@/lib/schema/category';
 
 import { db } from '@/lib/db';
 import { categories } from '@/lib/db/schema';
 import { paginate } from '@/lib/db/paginate';
 
 import { isNull } from 'drizzle-orm';
-import { validateSchema } from '@/lib/utils/validate';
+import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 
 /* =====================================================
    GET (Paginated)
@@ -42,7 +42,7 @@ export const GET = handleApi(async ({ req }) => {
     where: isNull(categories.deletedAt),
   });
 
-  return ok(result.data, {
+  return ok(safeParseResponse(categoryResponseSchema, result.data).data, {
     meta: result.meta,
   });
 });
@@ -65,7 +65,7 @@ export const POST = handleApi(async ({ req }) => {
     })
     .returning();
 
-  return ok(newCategory, {
+  return ok(safeParseResponse(categoryResponseSchema, newCategory).data, {
     message: 'Category created successfully',
   });
 });

@@ -11,20 +11,20 @@ interface TextareaFieldProps {
   required?: boolean;
   rows?: number;
   resize?: boolean;
+  error?: string;
 }
 
-export function TextareaField({
-  field,
-  label,
-  placeholder,
-  required = false,
-  rows = 3,
-  resize = true,
-}: TextareaFieldProps) {
+export function TextareaField({ field, label, placeholder, required = false, rows = 3, resize = true, error }: TextareaFieldProps) {
+  // Menentukan apakah field memiliki error
+  const hasError = !!error || field.state.meta.errors.length > 0;
+
+  // Mendapatkan pesan error pertama jika ada
+  const errorMessage = error || field.state.meta.errors[0]?.message;
+
   return (
-    <FieldWrapper field={field} label={label} required={required}>
+    <FieldWrapper field={field} label={label} required={required} error={errorMessage}>
       <TextArea
-        size='3' // Sama dengan Input dan Select
+        size='3'
         value={field.state.value}
         variant='soft'
         onChange={(e) => field.handleChange(e.target.value)}
@@ -33,6 +33,8 @@ export function TextareaField({
         rows={rows}
         resize={resize ? undefined : 'none'}
         className='w-full'
+        color={hasError ? 'red' : undefined}
+        aria-invalid={hasError}
       />
     </FieldWrapper>
   );

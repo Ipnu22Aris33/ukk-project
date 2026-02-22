@@ -4,18 +4,24 @@ import { BadRequest, NotFound } from '@/lib/utils/httpErrors';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { paginate } from '@/lib/db/paginate';
 import { db } from '@/lib/db';
-import { loans, books, members } from '@/lib/db/schema';
+import { loans, books, members, reservations } from '@/lib/db/schema';
 import { eq, and, isNull, sql, asc, desc, or } from 'drizzle-orm';
-import { validateSchema } from '@/lib/utils/validate';
-import { createLoanSchema } from '@/lib/schema/loan';
+import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
+import { createLoanSchema, loanResponseSchema } from '@/lib/schema/loan';
+import { ca } from 'date-fns/locale';
 
 // =========================
 // POST - Create Loan
 // =========================
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
-  const { memberId, bookId, quantity, notes, loanDate, dueDate } = validateSchema(createLoanSchema, data);
+  const transformedBody = {
+    ...data,
+    loanDate: data.loanDate ? new Date(data.loanDate) : undefined,
+    dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+  };
 
+  const { memberId, bookId, quantity, notes, loanDate, dueDate } = validateSchema(createLoanSchema, transformedBody);
 
   const [book, member] = await Promise.all([
     db.query.books.findFirst({ where: eq(books.id, bookId) }),
@@ -39,6 +45,7 @@ export const POST = handleApi(async ({ req }) => {
         memberId,
         bookId,
         quantity,
+        reservationId: null,
         notes: notes ?? null,
         loanDate: finalLoanDate,
         dueDate: finalDueDate,
@@ -54,7 +61,7 @@ export const POST = handleApi(async ({ req }) => {
     return [loan];
   });
 
-  return ok(insertedLoan, { message: 'Loan created successfully' });
+  return ok(safeParseResponse(loanResponseSchema, insertedLoan).data, { message: 'Loan created successfully' });
 });
 
 export const GET = handleApi(async ({ req }) => {
@@ -79,12 +86,12 @@ export const GET = handleApi(async ({ req }) => {
     orderDir,
     where: isNull(loans.deletedAt),
     with: {
-      book: true,
-      member: true,
+      book: { with: { category: true } },
+      member: { with: { user: true } },
     },
   });
 
-  return ok(result.data, {
+  return ok(safeParseResponse(loanResponseSchema, result.data).data, {
     message: 'Loans retrieved successfully',
     meta: result.meta,
   });

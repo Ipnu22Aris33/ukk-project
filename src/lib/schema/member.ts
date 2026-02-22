@@ -16,45 +16,21 @@ export const memberSchema = z.object({
   deletedAt: z.date().nullable(),
 });
 
-export type Member = z.infer<typeof memberSchema>;
-
-/* ======================
-   RESPONSE
-====================== */
-export const memberResponseSchema = memberSchema
-  .omit({
-    deletedAt: true,
-  })
-  .extend({
-    id: z.number().int().positive(),
-    user: userResponseSchema,
-  });
-
-export type MemberResponse = z.infer<typeof memberResponseSchema>;
-
-/* ======================
-   CREATE
-====================== */
-export const createMemberSchema = memberSchema.omit({
+const memberInputSchema = memberSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
 });
 
+export const memberResponseSchema = memberSchema.omit({ deletedAt: true }).extend({
+  user: userResponseSchema,
+});
+
+export const createMemberSchema = memberInputSchema;
+export const updateMemberSchema = memberInputSchema.partial();
+
+export type Member = z.infer<typeof memberSchema>;
+export type MemberResponse = z.infer<typeof memberResponseSchema>;
 export type CreateMemberInput = z.infer<typeof createMemberSchema>;
-
-export const validateCreateMember = (data: unknown) => {
-  return createMemberSchema.parse(data);
-};
-
-/* ======================
-   UPDATE
-====================== */
-export const updateMemberSchema = createMemberSchema.partial();
-
 export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
-
-export const validateUpdateMember = (data: unknown) => {
-  return updateMemberSchema.parse(data);
-};

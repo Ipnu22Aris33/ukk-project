@@ -122,7 +122,7 @@ export function SelectField<T extends string | number>({
                   key={opt.value}
                   value={opt.label}
                   onSelect={() => {
-                    field.handleChange(Number(opt.value));
+                    field.handleChange(opt.value); // LANGSUNG PAKAI opt.value, JANGAN DI-PARSE
                     setOpen(false);
                     handleSearchChange('');
                   }}

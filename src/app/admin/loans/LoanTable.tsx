@@ -159,7 +159,8 @@ export function LoanTable() {
         onSearchChange={setSearch}
         page={page}
         onPageChange={setPage}
-        showAdd={false}
+        showAdd={true}
+        onAdd={() => router.push('/admin/loans/create')}
         showRefresh={true}
         showPrint={true}
         rowActions={rowActions}

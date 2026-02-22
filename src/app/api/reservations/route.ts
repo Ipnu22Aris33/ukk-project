@@ -2,13 +2,13 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, UnprocessableEntity, Unauthorized } from '@/lib/utils/httpErrors';
-import { createReservationSchema } from '@/lib/schema/reservation';
+import { createReservationSchema, reservationResponseSchema } from '@/lib/schema/reservation';
 import { paginate } from '@/lib/db/paginate';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { db } from '@/lib/db';
 import { reservations, books, members } from '@/lib/db/schema';
 import { eq, isNull, and, gte, lte } from 'drizzle-orm';
-import { validateSchema } from '@/lib/utils/validate';
+import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 import { reservationStatusEnum } from '@/lib/db/schema';
 type ReservationStatus = (typeof reservationStatusEnum.enumValues)[number];
 
@@ -57,7 +57,7 @@ export const GET = handleApi(async ({ req, user }) => {
     },
   });
 
-  return ok(result.data, {
+  return ok(safeParseResponse(reservationResponseSchema, result.data).data, {
     message: 'Reservasi berhasil diambil',
     meta: result.meta,
   });
@@ -122,5 +122,5 @@ export const POST = handleApi(async ({ req, user }) => {
     return insertedReservation;
   });
 
-  return ok(result, { message: 'Reservasi berhasil dibuat' });
+  return ok(safeParseResponse(reservationResponseSchema, result).data, { message: 'Reservasi berhasil dibuat' });
 });

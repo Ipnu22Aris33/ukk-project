@@ -19,7 +19,7 @@ interface InputFieldProps {
   error?: string;
 }
 
-// Komponen DatePicker
+// SimpleDatePicker component (tetap sama seperti punyamu)
 function SimpleDatePicker({ value, onChange, onClose }: { value: string; onChange: (date: string) => void; onClose: () => void }) {
   const [viewDate, setViewDate] = useState(() => {
     if (value) {
@@ -225,13 +225,22 @@ export function InputField({ field, label, type = 'text', placeholder, required 
 
   const inputType = type === 'password' && showPassword ? 'text' : type;
 
-  const formatDisplayDate = (dateString: string) => {
-    if (!dateString) return '';
-    try {
-      return format(new Date(dateString), 'dd MMMM yyyy', { locale: id });
-    } catch {
-      return dateString;
+  // Helper untuk format tanggal display
+  const formatDateForDisplay = (value: any) => {
+    if (!value) return '';
+    if (value instanceof Date) {
+      return format(value, 'dd MMMM yyyy', { locale: id });
     }
+    return value;
+  };
+
+  // Helper untuk format ke string YYYY-MM-DD buat date picker
+  const toDateString = (value: any) => {
+    if (!value) return '';
+    if (value instanceof Date) {
+      return format(value, 'yyyy-MM-dd');
+    }
+    return value;
   };
 
   return (
@@ -244,7 +253,7 @@ export function InputField({ field, label, type = 'text', placeholder, required 
                 size='3'
                 onChange={() => {}}
                 variant='soft'
-                value={formatDisplayDate(field.state.value)}
+                value={formatDateForDisplay(field.state.value)}
                 placeholder={placeholder || 'Pilih tanggal'}
                 style={{ cursor: 'pointer' }}
                 color={error ? 'red' : undefined}
@@ -267,9 +276,11 @@ export function InputField({ field, label, type = 'text', placeholder, required 
             }}
           >
             <SimpleDatePicker
-              value={field.state.value}
-              onChange={(date) => {
-                field.handleChange(date);
+              value={toDateString(field.state.value)}
+              onChange={(dateString) => {
+                console.log('📅 dateString dari picker:', dateString, typeof dateString);
+                // KONVERSI STRING KE DATE OBJECT
+                field.handleChange(new Date(dateString));
               }}
               onClose={() => setIsDatePickerOpen(false)}
             />

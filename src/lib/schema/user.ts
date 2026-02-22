@@ -6,45 +6,29 @@ export const userSchema = z.object({
   email: z.string().max(255),
   password: z.string().max(255),
   role: z.enum(['admin', 'staff', 'member']),
-  created_at: z.iso.datetime(),
-  updated_at: z.iso.datetime(),
-  deleted_at: z.iso.datetime().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  deletedAt: z.date().nullable(),
 });
 
-export type User = z.infer<typeof userSchema>;
+const userInputSchema = userSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  deletedAt: true,
+});
 
-/* ======================
-   RESPONSE
-====================== */
 export const userResponseSchema = userSchema.omit({
   password: true,
 });
 
+export const createUserInputSchema = userInputSchema.extend({
+  password: z.string().min(6, 'Password minimal 6 karakter'),
+});
+
+export const updateUserInputSchema = userInputSchema.partial();
+
+export type User = z.infer<typeof userSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
-
-/* ======================
-   CREATE
-====================== */
-export const createUserInputSchema = userSchema
-  .omit({
-    id: true,
-    created_at: true,
-    updated_at: true,
-    deleted_at: true,
-  })
-  .extend({
-    password: z.string().min(6, 'Password minimal 6 karakter'),
-  });
-
 export type CreateUserInput = z.infer<typeof createUserInputSchema>;
-
-export const validateCreateUser = (data: unknown): CreateUserInput => createUserInputSchema.parse(data);
-
-/* ======================
-   UPDATE
-====================== */
-export const updateUserInputSchema = createUserInputSchema.partial();
-
 export type UpdateUserInput = z.infer<typeof updateUserInputSchema>;
-
-export const validateUpdateUser = (data: unknown): UpdateUserInput => updateUserInputSchema.parse(data);

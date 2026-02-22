@@ -1,13 +1,13 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, BadRequest } from '@/lib/utils/httpErrors';
-import { updateCategorySchema } from '@/lib/schema/category';
+import { categoryResponseSchema, updateCategorySchema } from '@/lib/schema/category';
 import { slugify } from '@/lib/utils/slugify';
 
 import { db } from '@/lib/db';
 import { categories } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
-import { validateSchema } from '@/lib/utils/validate';
+import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 
 // =========================
 // GET - Detail Category
@@ -27,7 +27,7 @@ export const GET = handleApi(async ({ params }) => {
     throw new NotFound('Category not found');
   }
 
-  return ok(category, { message: 'Category retrieved successfully' });
+  return ok(safeParseResponse(categoryResponseSchema, category).data, { message: 'Category retrieved successfully' });
 });
 
 // =========================
@@ -63,7 +63,7 @@ export const PATCH = handleApi(async ({ req, params }) => {
     .where(eq(categories.id, Number(id)))
     .returning();
 
-  return ok(updated, { message: 'Category updated successfully' });
+  return ok(safeParseResponse(categoryResponseSchema, updated).data, { message: 'Category updated successfully' });
 });
 
 // =========================

@@ -3,9 +3,6 @@ import { categoryResponseSchema } from './category';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-/* ======================
-   BASE DB SCHEMA
-====================== */
 export const bookSchema = z.object({
   id: z.number().int().positive(),
   title: z.string().min(1).max(255),
@@ -25,11 +22,14 @@ export const bookSchema = z.object({
   deletedAt: z.date().nullable(),
 });
 
-export type Book = z.infer<typeof bookSchema>;
+const bookInputSchema = bookSchema.omit({
+  id: true,
+  slug: true,
+  createdAt: true,
+  updatedAt: true,
+  deletedAt: true,
+});
 
-/* ======================
-   BOOK RESPONSE
-====================== */
 export const bookResponseSchema = bookSchema
   .omit({
     deletedAt: true,
@@ -38,28 +38,9 @@ export const bookResponseSchema = bookSchema
     category: categoryResponseSchema,
   });
 
+export const createBookSchema = bookInputSchema;
+export const updateBookSchema = bookInputSchema.partial();
+export type Book = z.infer<typeof bookSchema>;
 export type BookResponse = z.infer<typeof bookResponseSchema>;
-
-/* ======================
-   CREATE
-====================== */
-export const createBookSchema = bookSchema.omit({
-  id: true,
-  slug: true,
-  createdAt: true,
-  updatedAt: true,
-  deletedAt: true,
-});
-
 export type CreateBookInput = z.infer<typeof createBookSchema>;
-
-export const validateCreateBook = (data: unknown): CreateBookInput => {
-  return createBookSchema.parse(data);
-};
-
-/* ======================
-   UPDATE
-====================== */
-export const updateBookSchema = createBookSchema.partial();
-
 export type UpdateBookInput = z.infer<typeof updateBookSchema>;

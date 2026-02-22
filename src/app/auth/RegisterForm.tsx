@@ -13,13 +13,13 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
 
   const form = useForm({
     defaultValues: {
-      full_name: '',
+      fullName: '',
       username: '',
       email: '',
       nis: '',
       address: '',
       password: '',
-      member_class: '',
+      memberClass: '',
       major: '',
       phone: '',
     },
@@ -51,7 +51,7 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
       >
         {/* FULL NAME */}
         <form.Field
-          name='full_name'
+          name='fullName'
           validators={{
             onChange: ({ value }) => {
               if (!value) return 'Nama lengkap wajib diisi';
@@ -152,7 +152,7 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
 
         {/* CLASS */}
         <form.Field
-          name='member_class'
+          name='memberClass'
           validators={{
             onChange: ({ value }) => {
               if (!value) return 'Kelas wajib diisi';
@@ -176,7 +176,7 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
           }}
         >
           {(field) => (
-            <SelectField
+            <SelectField<string>
               icon={<Icon icon='mdi:class' width={16} height={16} />}
               field={field}
               label='Jurusan'

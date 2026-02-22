@@ -36,25 +36,11 @@ export async function paginate<TTable>({
   with: relations,
   select,
 }: PaginateOptions<TTable>) {
-  /* ===============================
-     SAFE PAGINATION
-  =============================== */
-
   const safePage = Number.isFinite(page) && page > 0 ? page : 1;
   const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 100) : 10;
   const offset = (safePage - 1) * safeLimit;
 
-  /* ===============================
-     SEARCH CONDITION
-  =============================== */
-
-  const searchCondition = search && searchable.length
-    ? or(...searchable.map((col) => ilike(col as any, `%${search}%`)))
-    : undefined;
-
-  /* ===============================
-     WHERE MERGE (SAFER)
-  =============================== */
+  const searchCondition = search && searchable.length ? or(...searchable.map((col) => ilike(col as any, `%${search}%`))) : undefined;
 
   const conditions: SQL[] = [];
 
@@ -70,28 +56,13 @@ export async function paginate<TTable>({
 
   const finalWhere = conditions.length > 0 ? and(...conditions) : undefined;
 
-  /* ===============================
-     SAFE SORTING
-  =============================== */
-
   const sortKeys = Object.keys(sortable);
-  
-  // Tentukan order column yang digunakan
-  const orderColumn = orderBy && sortable[orderBy]
-    ? sortable[orderBy]
-    : sortKeys.length > 0
-      ? sortable[sortKeys[0]]
-      : undefined;
 
-  // Tentukan order direction
+  const orderColumn = orderBy && sortable[orderBy] ? sortable[orderBy] : sortKeys.length > 0 ? sortable[sortKeys[0]] : undefined;
+
   const orderDirection = orderDir?.toLowerCase() === 'asc' ? 'asc' : 'desc';
-  
-  // Buat order by clause
-  const order = orderColumn && (orderDirection === 'asc' ? asc(orderColumn) : desc(orderColumn));
 
-  /* ===============================
-     DATA QUERY
-  =============================== */
+  const order = orderColumn && (orderDirection === 'asc' ? asc(orderColumn) : desc(orderColumn));
 
   const data = await query.findMany({
     where: finalWhere,
@@ -102,45 +73,31 @@ export async function paginate<TTable>({
     select,
   });
 
-  /* ===============================
-     COUNT QUERY (CONSISTENT)
-  =============================== */
-
   const countQuery = db.select({ count: sql<number>`count(*)` }).from(table);
   const countResult = finalWhere ? await countQuery.where(finalWhere) : await countQuery;
   const total = Number(countResult[0]?.count ?? 0);
-
-  /* ===============================
-     CALCULATE META
-  =============================== */
 
   const totalPages = total === 0 ? 0 : Math.ceil(total / safeLimit);
   const hasPrev = safePage > 1;
   const hasNext = safePage < totalPages;
 
-  /* ===============================
-     RETURN WITH ENHANCED META
-  =============================== */
-
   return {
     data,
     meta: {
-      // Pagination info
       page: safePage,
       limit: safeLimit,
       total,
       totalPages,
       hasPrev,
       hasNext,
-      
-      // Search info (if applied)
+
       ...(search && { search }),
-      
-      // Sorting info (if applied)
-      ...(orderBy && sortable[orderBy] && {
-        orderBy: orderBy as string,
-        orderDir: orderDirection,
-      }),
+
+      ...(orderBy &&
+        sortable[orderBy] && {
+          orderBy: orderBy as string,
+          orderDir: orderDirection,
+        }),
     },
   };
 }

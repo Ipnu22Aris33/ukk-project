@@ -1,13 +1,13 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
-import { createReturnSchema, ReturnResponse, validateCreateReturn } from '@/lib/schema/return';
+import { createReturnSchema, returnResponseSchema } from '@/lib/schema/return';
 import { paginate } from '@/lib/db/paginate';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { db } from '@/lib/db';
 import { returns, loans, books } from '@/lib/db/schema';
 import { eq, isNull, and, sql } from 'drizzle-orm';
-import { validateSchema } from '@/lib/utils/validate';
+import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
@@ -91,7 +91,7 @@ export const POST = handleApi(async ({ req }) => {
     return insertedReturn;
   });
 
-  return ok(result, { message: 'Book returned successfully' });
+  return ok(safeParseResponse(returnResponseSchema, result).data, { message: 'Book returned successfully' });
 });
 
 export const GET = handleApi(async ({ req }) => {
@@ -124,7 +124,7 @@ export const GET = handleApi(async ({ req }) => {
     },
   });
 
-  return ok(result.data, {
+  return ok(safeParseResponse(returnResponseSchema, result.data).data, {
     message: 'Returns retrieved successfully',
     meta: result.meta,
   });
