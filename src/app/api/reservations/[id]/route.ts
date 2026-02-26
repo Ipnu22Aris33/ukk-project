@@ -23,7 +23,7 @@ export const PATCH = handleApi(async ({ req, params, user }) => {
 
   if (!reservation) throw new NotFound('Reservasi tidak ditemukan');
 
-  if (user.role === 'member' && reservation.memberId !== user.member.id) {
+  if (user.role === 'member') {
     throw new Unauthorized('Anda tidak memiliki akses ke reservasi ini');
   }
 
