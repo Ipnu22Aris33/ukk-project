@@ -12,6 +12,7 @@ export function ToastProvider() {
       theme={theme as 'light' | 'dark' | 'system'}
       richColors
       className='z-9999'
+      duration={5000}
       closeButton
       expand={false}
       visibleToasts={3}
