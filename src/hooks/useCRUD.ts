@@ -218,12 +218,18 @@ export function useCRUD<TPayload extends Record<string, any> = any, TListRespons
   // ---------------------------
   // UPDATE (PATCH)
   // ---------------------------
-  const update = useMutation<ApiResponse, HttpError, TPayload & { id: string | number }>({
-    mutationFn: ({ id, ...payload }) => fetchApi(`${baseApi}/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  const update = useMutation<ApiResponse, HttpError, { id: string | number; data: TPayload }>({
+    mutationFn: ({ id, data }) =>
+      fetchApi(`${baseApi}/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
     onSuccess: (data, variables) => {
       if (!disableToasts) toast.success(messages.update ?? data.message ?? 'Updated successfully');
+
       qc.invalidateQueries({ queryKey: keys.lists() });
       qc.invalidateQueries({ queryKey: keys.detail(String(variables.id)) });
+
       onUpdateSuccess?.(data, variables.id);
     },
     onError: (err) => {
@@ -234,12 +240,18 @@ export function useCRUD<TPayload extends Record<string, any> = any, TListRespons
   // ---------------------------
   // UPDATE (PUT — full replace)
   // ---------------------------
-  const replace = useMutation<ApiResponse, HttpError, TPayload & { id: string | number }>({
-    mutationFn: ({ id, ...payload }) => fetchApi(`${baseApi}/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  const replace = useMutation<ApiResponse, HttpError, { id: string | number; data: TPayload }>({
+    mutationFn: ({ id, data }) =>
+      fetchApi(`${baseApi}/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
     onSuccess: (data, variables) => {
       if (!disableToasts) toast.success(messages.update ?? data.message ?? 'Updated successfully');
+
       qc.invalidateQueries({ queryKey: keys.lists() });
       qc.invalidateQueries({ queryKey: keys.detail(String(variables.id)) });
+
       onUpdateSuccess?.(data, variables.id);
     },
     onError: (err) => {

@@ -1,25 +1,54 @@
-// app/books/page.tsx
 'use client';
 
 import { ColDataTable, DataTable } from '@/components/features/datatable/DataTable';
+import { Panel } from '@/components/ui/Panel';
 import { useBooks } from '@/hooks/useBooks';
-import { useCategories } from '@/hooks/useCategories';
-import { Container, Heading, Flex, Button, Box, Text } from '@radix-ui/themes';
-import { PlusIcon } from '@radix-ui/react-icons';
+import { Container, Heading, Flex, Box, Text, Button } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import type { Book, BookResponse } from '@/lib/schema/book';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { BookForm } from './BookForm';
+
+type PanelMode = 'add' | 'view' | 'edit' | null;
+
+/* =========================
+   VIEW CONTENT
+========================= */
+
+function ViewBookContent({ book, onClose }: { book: Book; onClose: () => void }) {
+  return (
+    <Flex direction="column" gap="3">
+      <Text size="2" weight="bold">Title</Text>
+      <Text size="2" color="gray">{book.title}</Text>
+
+      <Text size="2" weight="bold" mt="3">Author</Text>
+      <Text size="2" color="gray">{book.author}</Text>
+
+      <Text size="2" weight="bold" mt="3">Category</Text>
+      <Text size="2" color="gray">{book.categoryId}</Text>
+
+      <Text size="2" weight="bold" mt="3">Stock</Text>
+      <Text size="2" color="gray">{book.stock}</Text>
+
+      <Button variant="soft" mt="4" onClick={onClose}>
+        Close
+      </Button>
+    </Flex>
+  );
+}
+
+/* =========================
+   MAIN COMPONENT
+========================= */
 
 export function BookTable() {
-  const router = useRouter();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [categorySearch, setCategorySearch] = useState('');
+  const [mode, setMode] = useState<PanelMode>(null);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
   const books = useBooks();
-  const categories = useCategories();
 
   const { data, isLoading, refetch } = books.list({
     page,
@@ -27,114 +56,138 @@ export function BookTable() {
     limit: 10,
   });
 
-  const categoryList = categories.list({
-    page: 1,
-    limit: 100,
-    search: categorySearch,
-  });
+  const openPanel = (panelMode: PanelMode, book?: Book) => {
+    setMode(panelMode);
+    if (book) setSelectedBook(book);
+  };
 
-  const categoryOptions = (categoryList.data?.data || []).map((cat) => ({
-    value: String(cat.id),
-    label: cat.name,
-  }));
+  const closePanel = () => {
+    setMode(null);
+    setSelectedBook(null);
+  };
 
   const columns: ColDataTable<BookResponse>[] = [
-    {
-      accessorKey: 'title',
-      header: 'Title',
-    },
-    {
-      accessorKey: 'author',
-      header: 'Author',
-    },
-    {
-      accessorKey: 'category.name',
-      header: 'Category',
-    },
-    {
-      accessorKey: 'stock',
-      header: 'Stock',
-    },
-    {
-      accessorKey: 'slug',
-      header: 'Slug',
-    },
+    { accessorKey: 'title', header: 'Title' },
+    { accessorKey: 'author', header: 'Author' },
+    { accessorKey: 'category.name', header: 'Category' },
+    { accessorKey: 'stock', header: 'Stock' },
+    { accessorKey: 'slug', header: 'Slug' },
   ];
 
   const rowActions = (book: Book) => [
     {
       key: 'view',
       label: 'View Details',
-      icon: <Icon icon='mdi:eye' />,
-      onClick: () => router.push(`/books/${book.id}`),
+      icon: <Icon icon="mdi:eye" />,
+      onClick: () => openPanel('view', book),
     },
     {
       key: 'edit',
       label: 'Edit Book',
-      color: 'blue' as const,
-      icon: <Icon icon='mdi:pencil' />,
-      onClick: () => router.push(`/books/${book.id}/edit`),
-    },
-    {
-      key: 'delete',
-      label: 'Delete Book',
-      color: 'red' as const,
-      icon: <Icon icon='mdi:delete' />,
-      onClick: async () => {
-        if (confirm(`Delete "${book.title}"?`)) {
-          await books.remove.mutateAsync(book.id);
-          refetch();
-        }
-      },
+      icon: <Icon icon="mdi:pencil" />,
+      onClick: () => openPanel('edit', book),
     },
   ];
 
-  // Handler untuk navigasi ke halaman create
-  const handleCreate = () => {
-    router.push('/admin/books/create');
+  const breadcrumbItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Books' },
+  ];
+
+  /* =========================
+     PANEL CONTENT
+  ========================= */
+
+  const renderPanelContent = () => {
+    if (mode === 'add') {
+      return (
+        <BookForm
+          submitLabel="Save Book"
+          onSubmit={async (formData) => {
+            await books.create.mutateAsync(formData);
+            closePanel();
+            refetch();
+          }}
+        />
+      );
+    }
+
+    if (mode === 'edit' && selectedBook) {
+      return (
+        <BookForm
+          initialData={selectedBook}
+          isUpdate
+          submitLabel="Update Book"
+          onSubmit={async (formData) => {
+            await books.update.mutateAsync({
+              id: selectedBook.id,
+              data: formData,
+            });
+            closePanel();
+            refetch();
+          }}
+        />
+      );
+    }
+
+    if (mode === 'view' && selectedBook) {
+      return (
+        <ViewBookContent
+          book={selectedBook}
+          onClose={closePanel}
+        />
+      );
+    }
+
+    return null;
   };
 
-  // Breadcrumb items
-  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Books' }];
+  const panelTitle =
+    mode === 'add'
+      ? 'Add New Book'
+      : mode === 'edit'
+      ? 'Edit Book'
+      : mode === 'view'
+      ? 'Book Details'
+      : '';
 
   return (
-    <Container size='4'>
-      {/* Breadcrumb - Taruh di sini */}
-      <Breadcrumb items={breadcrumbItems} />
+    <Box position="relative" minHeight="100vh">
+      <Container size="4" py="6">
+        <Breadcrumb items={breadcrumbItems} />
 
-      {/* Header */}
-      <Flex justify='between' align='center' mb='6'>
-        <Flex direction='column' gap='1'>
-          <Heading size='8'>Books Management</Heading>
-          <Text size='2' color='gray'>
-            Total {data?.meta?.total || 0} books
-          </Text>
+        <Flex justify="between" align="center" mb="6">
+          <Heading size="8">Books Management</Heading>
         </Flex>
-      </Flex>
 
-      {/* Data Table */}
-      <DataTable
-        data={data?.data ?? []}
-        columns={columns}
-        meta={data?.meta}
-        isLoading={isLoading}
-        onRefresh={() => refetch()}
-        searchValue={search}
-        onSearchChange={setSearch}
-        page={page}
-        onPageChange={setPage}
-        onAdd={handleCreate}
-        showAdd={true}
-        showRefresh={true}
-        showPrint={true}
-        rowActions={rowActions}
-        enableSearch={true}
-        enablePagination={true}
-        enableSorting={true}
-        enablePageSize={true}
-        enableContextMenu={true}
-        emptyMessage='No books found'
-      />
-    </Container>
+        <DataTable
+          data={data?.data ?? []}
+          columns={columns}
+          meta={data?.meta}
+          isLoading={isLoading}
+          onRefresh={refetch}
+          searchValue={search}
+          onSearchChange={setSearch}
+          page={page}
+          onPageChange={setPage}
+          rowActions={rowActions}
+          enableSearch
+          enablePagination
+          showAdd
+          showPrint
+          showRefresh
+          onAdd={() => openPanel('add')}
+        />
+      </Container>
+
+      <Panel
+        open={mode !== null}
+        onClose={closePanel}
+        title={panelTitle}
+        width={mode === 'view' ? 500 : 480}
+      >
+        {renderPanelContent()}
+      </Panel>
+    </Box>
   );
 }
