@@ -42,6 +42,7 @@ const menuItems: MenuItems[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'IcOutlineDashboard', href: '/admin' },
   { id: 'loans', label: 'Peminjaman', icon: 'MdiBookArrowRight', href: '/admin/loans' },
   { id: 'returns', label: 'Pengembalian', icon: 'MdiBookArrowLeft', href: '/admin/returns' },
+  {id: 'reservations', label: 'Reservasi', icon: 'MdiBookArrowLeft', href: '/admin/reservations'},
   {
     id: 'books',
     label: 'Buku',

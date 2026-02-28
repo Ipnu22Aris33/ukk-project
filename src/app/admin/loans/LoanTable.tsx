@@ -111,7 +111,7 @@ export function LoanTable() {
         if (confirm(`Mark loan #${loan.id} as returned?`)) {
           await loans.update.mutateAsync({
             id: loan.id,
-            status: 'returned'
+            data: { status: 'returned' },
           });
           refetch();
         }

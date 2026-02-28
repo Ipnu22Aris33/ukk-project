@@ -55,32 +55,38 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
       <Box style={{ borderBottom: '1px solid var(--gray-a4)' }}>
         <Container size='4' px={{ initial: '4', md: '0' }}>
           <Flex align='center' py='3' gap='3'>
-            {/* ── Logo ── */}
+            {/* ── Logo / Hamburger ── */}
             <Flex align='center' gap='3' style={{ flexShrink: 0 }}>
-              <Box
-                style={{
-                  background: 'linear-gradient(135deg, var(--indigo-9), var(--violet-9))',
-                  padding: '8px',
-                  borderRadius: '12px',
-                  boxShadow: '0 2px 8px var(--indigo-a4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <ArchiveIcon width='18' height='18' color='white' />
-              </Box>
+              {isMobile ? (
+                <IconButton size='2' variant='soft' onClick={() => setMenuOpen(true)} style={{ cursor: 'pointer' }}>
+                  <HamburgerMenuIcon />
+                </IconButton>
+              ) : (
+                <>
+                  <Box
+                    style={{
+                      background: 'linear-gradient(135deg, var(--indigo-9), var(--violet-9))',
+                      padding: '8px',
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 8px var(--indigo-a4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ArchiveIcon width='18' height='18' color='white' />
+                  </Box>
 
-              {!isMobile && (
-                <Box>
-                  <Text weight='bold' size='3' style={{ display: 'block', lineHeight: 1.25, letterSpacing: '-0.01em' }}>
-                    Perpustakaan Digital
-                  </Text>
-                  <Text size='1' color='gray' style={{ display: 'block', lineHeight: 1.25 }}>
-                    {schoolName}
-                  </Text>
-                </Box>
+                  <Box>
+                    <Text weight='bold' size='3' style={{ display: 'block', lineHeight: 1.25, letterSpacing: '-0.01em' }}>
+                      Perpustakaan Digital
+                    </Text>
+                    <Text size='1' color='gray' style={{ display: 'block', lineHeight: 1.25 }}>
+                      {schoolName}
+                    </Text>
+                  </Box>
+                </>
               )}
             </Flex>
 
@@ -125,15 +131,6 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                   3
                 </Badge>
               </Box>
-
-              {/* Mobile: search toggle */}
-
-              {/* Mobile hamburger */}
-              {isMobile && (
-                <IconButton size='2' variant='soft' onClick={() => setMenuOpen(true)} style={{ cursor: 'pointer' }}>
-                  <HamburgerMenuIcon />
-                </IconButton>
-              )}
 
               {/* User dropdown — desktop & mobile */}
               <DropdownMenu.Root>

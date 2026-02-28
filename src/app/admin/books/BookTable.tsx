@@ -1,40 +1,69 @@
 'use client';
 
-import { ColDataTable, DataTable } from '@/components/features/datatable/DataTable';
+import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
 import { Panel } from '@/components/ui/Panel';
 import { useBooks } from '@/hooks/useBooks';
-import { Container, Heading, Flex, Box, Text, Button } from '@radix-ui/themes';
+import { usePanel } from '@/hooks/usePanel';
+import { Container, Heading, Flex, Box, Button, DataList, AlertDialog } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
-import type { Book, BookResponse } from '@/lib/schema/book';
+import type { BookResponse } from '@/lib/schema/book';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { BookForm } from './BookForm';
-
-type PanelMode = 'add' | 'view' | 'edit' | null;
 
 /* =========================
    VIEW CONTENT
 ========================= */
 
-function ViewBookContent({ book, onClose }: { book: Book; onClose: () => void }) {
+function ViewBookContent({ book, onClose }: { book: BookResponse; onClose: () => void }) {
   return (
-    <Flex direction="column" gap="3">
-      <Text size="2" weight="bold">Title</Text>
-      <Text size="2" color="gray">{book.title}</Text>
+    <>
+      <DataList.Root>
+        <DataList.Item>
+          <DataList.Label>Title</DataList.Label>
+          <DataList.Value>{book.title}</DataList.Value>
+        </DataList.Item>
 
-      <Text size="2" weight="bold" mt="3">Author</Text>
-      <Text size="2" color="gray">{book.author}</Text>
+        <DataList.Item>
+          <DataList.Label>Author</DataList.Label>
+          <DataList.Value>{book.author}</DataList.Value>
+        </DataList.Item>
 
-      <Text size="2" weight="bold" mt="3">Category</Text>
-      <Text size="2" color="gray">{book.categoryId}</Text>
+        <DataList.Item>
+          <DataList.Label>Category</DataList.Label>
+          <DataList.Value>{book.category.name}</DataList.Value>
+        </DataList.Item>
 
-      <Text size="2" weight="bold" mt="3">Stock</Text>
-      <Text size="2" color="gray">{book.stock}</Text>
+        <DataList.Item>
+          <DataList.Label>Publisher</DataList.Label>
+          <DataList.Value>{book.publisher}</DataList.Value>
+        </DataList.Item>
 
-      <Button variant="soft" mt="4" onClick={onClose}>
+        <DataList.Item>
+          <DataList.Label>ISBN</DataList.Label>
+          <DataList.Value>{book.isbn}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Year</DataList.Label>
+          <DataList.Value>{book.year}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Stock</DataList.Label>
+          <DataList.Value>{book.stock}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Slug</DataList.Label>
+          <DataList.Value>{book.slug}</DataList.Value>
+        </DataList.Item>
+      </DataList.Root>
+
+      <Button mt='4' variant='soft' onClick={onClose}>
         Close
       </Button>
-    </Flex>
+    </>
   );
 }
 
@@ -43,28 +72,19 @@ function ViewBookContent({ book, onClose }: { book: Book; onClose: () => void })
 ========================= */
 
 export function BookTable() {
+  const books = useBooks();
+  const { mode, selected, open, close } = usePanel<BookResponse>();
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [mode, setMode] = useState<PanelMode>(null);
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-
-  const books = useBooks();
+  const [limit, setLimit] = useState(10);
+  const [deleteTarget, setDeleteTarget] = useState<BookResponse | null>(null);
 
   const { data, isLoading, refetch } = books.list({
     page,
     search,
-    limit: 10,
+    limit,
   });
-
-  const openPanel = (panelMode: PanelMode, book?: Book) => {
-    setMode(panelMode);
-    if (book) setSelectedBook(book);
-  };
-
-  const closePanel = () => {
-    setMode(null);
-    setSelectedBook(null);
-  };
 
   const columns: ColDataTable<BookResponse>[] = [
     { accessorKey: 'title', header: 'Title' },
@@ -74,90 +94,89 @@ export function BookTable() {
     { accessorKey: 'slug', header: 'Slug' },
   ];
 
-  const rowActions = (book: Book) => [
+  const rowActions: () => RowAction<BookResponse>[] = () => [
     {
       key: 'view',
       label: 'View Details',
-      icon: <Icon icon="mdi:eye" />,
-      onClick: () => openPanel('view', book),
+      icon: <Icon icon='mdi:eye' />,
+      color: 'blue',
+      onClick: (row) => open('view', row),
     },
     {
       key: 'edit',
       label: 'Edit Book',
-      icon: <Icon icon="mdi:pencil" />,
-      onClick: () => openPanel('edit', book),
+      icon: <Icon icon='mdi:pencil' />,
+      color: 'green',
+      onClick: (row) => open('edit', row),
+    },
+    {
+      key: 'delete',
+      label: 'Delete Book',
+      icon: <Icon icon='mdi:delete' />,
+      color: 'red',
+      onClick: (row) => setDeleteTarget(row),
     },
   ];
 
-  const breadcrumbItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Books' },
-  ];
-
-  /* =========================
-     PANEL CONTENT
-  ========================= */
+  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Books' }];
 
   const renderPanelContent = () => {
     if (mode === 'add') {
       return (
         <BookForm
-          submitLabel="Save Book"
+          submitLabel='Save Book'
+          onClose={close}
           onSubmit={async (formData) => {
             await books.create.mutateAsync(formData);
-            closePanel();
+            close();
             refetch();
           }}
         />
       );
     }
 
-    if (mode === 'edit' && selectedBook) {
+    if (mode === 'edit' && selected) {
       return (
         <BookForm
-          initialData={selectedBook}
-          isUpdate
-          submitLabel="Update Book"
+        onClose={close}
+          initialData={{
+            title: selected.title,
+            author: selected.author,
+            publisher: selected.publisher,
+            stock: selected.stock,
+            year: selected.year,
+            isbn: selected.isbn,
+            categoryId: selected.categoryId,
+          }}
+          submitLabel='Update Book'
           onSubmit={async (formData) => {
             await books.update.mutateAsync({
-              id: selectedBook.id,
+              id: selected.id,
               data: formData,
             });
-            closePanel();
+            close();
             refetch();
           }}
         />
       );
     }
 
-    if (mode === 'view' && selectedBook) {
-      return (
-        <ViewBookContent
-          book={selectedBook}
-          onClose={closePanel}
-        />
-      );
+    if (mode === 'view' && selected) {
+      return <ViewBookContent book={selected} onClose={close} />;
     }
 
     return null;
   };
 
-  const panelTitle =
-    mode === 'add'
-      ? 'Add New Book'
-      : mode === 'edit'
-      ? 'Edit Book'
-      : mode === 'view'
-      ? 'Book Details'
-      : '';
+  const panelTitle = mode === 'add' ? 'Add New Book' : mode === 'edit' ? 'Edit Book' : mode === 'view' ? 'Book Details' : '';
 
   return (
-    <Box position="relative" minHeight="100vh">
-      <Container size="4" py="6">
+    <Box position='relative' minHeight='100vh'>
+      <Container size='4' py='6'>
         <Breadcrumb items={breadcrumbItems} />
 
-        <Flex justify="between" align="center" mb="6">
-          <Heading size="8">Books Management</Heading>
+        <Flex justify='between' align='center' mb='6'>
+          <Heading size='8'>Books Management</Heading>
         </Flex>
 
         <DataTable
@@ -169,6 +188,7 @@ export function BookTable() {
           searchValue={search}
           onSearchChange={setSearch}
           page={page}
+          onPageSizeChange={(newSize) => setLimit(newSize)}
           onPageChange={setPage}
           rowActions={rowActions}
           enableSearch
@@ -176,18 +196,49 @@ export function BookTable() {
           showAdd
           showPrint
           showRefresh
-          onAdd={() => openPanel('add')}
+          onAdd={() => open('add')}
         />
       </Container>
 
-      <Panel
-        open={mode !== null}
-        onClose={closePanel}
-        title={panelTitle}
-        width={mode === 'view' ? 500 : 480}
-      >
+      <Panel open={mode !== null} onClose={close} title={panelTitle} width={mode === 'view' ? 500 : 480}>
         {renderPanelContent()}
       </Panel>
+
+      <AlertDialog.Root
+        open={!!deleteTarget}
+        onOpenChange={(openState) => {
+          if (!openState) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialog.Content maxWidth='450px'>
+          <AlertDialog.Title>Delete Book</AlertDialog.Title>
+          <AlertDialog.Description size='2'>
+            Are you sure you want to delete <strong>{deleteTarget?.title}</strong>? This action cannot be undone.
+          </AlertDialog.Description>
+
+          <Flex gap='3' mt='4' justify='end'>
+            <AlertDialog.Cancel>
+              <Button variant='soft' color='gray'>
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+
+            <AlertDialog.Action>
+              <Button
+                color='red'
+                onClick={async () => {
+                  if (!deleteTarget) return;
+                  await books.remove.mutateAsync(deleteTarget.id);
+                  setDeleteTarget(null);
+                  refetch();
+                }}
+              >
+                Delete
+              </Button>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
     </Box>
   );
 }

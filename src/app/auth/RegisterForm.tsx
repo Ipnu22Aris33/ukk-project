@@ -6,7 +6,7 @@ import { FormCard, FormActions, InputField, SelectField } from '@/components/fea
 import { Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { useAuth } from '@/hooks/useAuth';
-import { registerSchema } from '@/lib/schema/auth';
+import { registerFormSchema, registerSchema } from '@/lib/schema/auth';
 
 export default function RegisterForm({ setActiveTab }: { setActiveTab: () => void }) {
   const { register } = useAuth();
@@ -25,7 +25,7 @@ export default function RegisterForm({ setActiveTab }: { setActiveTab: () => voi
     },
 
     validators: {
-      onSubmit: registerSchema,
+      onSubmit: registerFormSchema,
     },
 
     onSubmit: async ({ value }) => {

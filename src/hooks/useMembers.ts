@@ -1,12 +1,12 @@
 // hooks/useMembers.ts
 import { createCRUD } from '@/hooks/useCRUD';
-import { Member, CreateMemberInput } from '@/lib/schema/member';
+import { Member, CreateMemberInput, UpdateMemberInput, MemberResponse } from '@/lib/schema/member';
 
-export const useMembers = createCRUD<CreateMemberInput, Member[], Member>('/api/members', {
+export const useMembers = createCRUD<CreateMemberInput | UpdateMemberInput, MemberResponse[], Member>('/api/members', {
   resourceName: 'Members',
   messages: {
-    create: 'Buku berhasil ditambahkan!',
-    update: 'Buku berhasil diperbarui!',
-    delete: 'Buku berhasil dihapus!',
+    create: 'Member berhasil ditambahkan!',
+    update: 'Member berhasil diperbarui!',
+    delete: 'Member berhasil dihapus!',
   },
 });

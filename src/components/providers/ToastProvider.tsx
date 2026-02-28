@@ -17,7 +17,8 @@ export function ToastProvider() {
       expand={false}
       visibleToasts={3}
       toastOptions={{
-        classNames: {
+        duration: 5000,
+        classNames: {  
           toast: 'border border-gray-200 dark:border-gray-800',
           title: 'font-semibold',
           description: 'text-sm opacity-90',

@@ -1,112 +1,207 @@
+// app/admin/books/categories/CategoryTable.tsx
 'use client';
 
-import React, { useState } from 'react';
-import { Container, Heading, Flex, Text } from '@radix-ui/themes';
-import { Icon } from '@iconify/react';
-import { useRouter } from 'next/navigation';
-import { DataTable, ColDataTable } from '@/components/features/datatable/DataTable';
+import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
+import { Panel } from '@/components/ui/Panel';
 import { useCategories } from '@/hooks/useCategories';
-import type { Category } from '@/lib/schema/category';
+import { usePanel } from '@/hooks/usePanel';
+import { Container, Heading, Flex, Box, Button, DataList, AlertDialog } from '@radix-ui/themes';
+import { Icon } from '@iconify/react';
+import { useState } from 'react';
+import type { CategoryResponse } from '@/lib/schema/category';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { CategoryForm } from './CategoryForm';
+
+/* =========================
+   VIEW CONTENT
+========================= */
+
+function ViewCategoryContent({ category, onClose }: { category: CategoryResponse; onClose: () => void }) {
+  return (
+    <>
+      <DataList.Root>
+        <DataList.Item>
+          <DataList.Label>Name</DataList.Label>
+          <DataList.Value>{category.name}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Description</DataList.Label>
+          <DataList.Value>{category.description || '-'}</DataList.Value>
+        </DataList.Item>
+      </DataList.Root>
+
+      <Button mt='4' variant='soft' onClick={onClose}>
+        Close
+      </Button>
+    </>
+  );
+}
+
+/* =========================
+   MAIN COMPONENT
+========================= */
 
 export function CategoryTable() {
-  const router = useRouter();
+  const categories = useCategories();
+  const { mode, selected, open, close } = usePanel<CategoryResponse>();
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-
-  const categories = useCategories();
-  const { remove } = categories;
+  const [deleteTarget, setDeleteTarget] = useState<CategoryResponse | null>(null);
+  const [limit, setLimit] = useState(10);
 
   const { data, isLoading, refetch } = categories.list({
     page,
     search,
-    limit: 10,
+    limit,
   });
 
-  const columns: ColDataTable<Category>[] = [
-    {
-      accessorKey: 'name',
-      header: 'Name',
-    },
-    {
-      accessorKey: 'slug',
-      header: 'Slug',
-    },
-    {
-      accessorKey: 'description',
-      header: 'Description',
-    },
+  const columns: ColDataTable<CategoryResponse>[] = [
+    { accessorKey: 'name', header: 'Name' },
+    { accessorKey: 'description', header: 'Description' },
   ];
 
-  const rowActions = (category: Category) => [
+  const rowActions: () => RowAction<CategoryResponse>[] = () => [
     {
       key: 'view',
       label: 'View Details',
       icon: <Icon icon='mdi:eye' />,
-      onClick: () => router.push(`/categories/${category.id}`),
+      color: 'blue',
+      onClick: (row) => open('view', row),
     },
     {
       key: 'edit',
       label: 'Edit Category',
-      color: 'blue' as const,
       icon: <Icon icon='mdi:pencil' />,
-      onClick: () => router.push(`/categories/${category.id}/edit`),
+      color: 'green',
+      onClick: (row) => open('edit', row),
     },
     {
       key: 'delete',
       label: 'Delete Category',
-      color: 'red' as const,
       icon: <Icon icon='mdi:delete' />,
-      onClick: async () => {
-        if (confirm(`Delete category "${category.name}"?`)) {
-          await remove.mutateAsync(category.id);
-          refetch();
-        }
-      },
+      color: 'red',
+      onClick: (row) => setDeleteTarget(row),
     },
   ];
 
-  const handleCreate = () => {
-    router.push('/admin/categories/create');
+  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Books', href: '/admin/books' }, { label: 'Categories' }];
+
+  const renderPanelContent = () => {
+    if (mode === 'add') {
+      return (
+        <CategoryForm
+          onClose={close}
+          submitLabel='Save Category'
+          onSubmit={async (formData) => {
+            await categories.create.mutateAsync(formData);
+            close();
+            refetch();
+          }}
+        />
+      );
+    }
+
+    if (mode === 'edit' && selected) {
+      return (
+        <CategoryForm
+          onClose={close}
+          initialData={{
+            name: selected.name,
+            description: selected.description,
+          }}
+          submitLabel='Update Category'
+          onSubmit={async (formData) => {
+            await categories.update.mutateAsync({
+              id: selected.id,
+              data: formData,
+            });
+            close();
+            refetch();
+          }}
+        />
+      );
+    }
+
+    if (mode === 'view' && selected) {
+      return <ViewCategoryContent category={selected} onClose={close} />;
+    }
+
+    return null;
   };
 
-  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Categories' }];
+  const panelTitle = mode === 'add' ? 'Add New Category' : mode === 'edit' ? 'Edit Category' : mode === 'view' ? 'Category Details' : '';
 
   return (
-    <Container size='4'>
-      <Breadcrumb items={breadcrumbItems} />
+    <Box position='relative' minHeight='100vh'>
+      <Container size='4' py='6'>
+        <Breadcrumb items={breadcrumbItems} />
 
-      <Flex justify='between' align='center' mb='6'>
-        <Flex direction='column' gap='1'>
-          <Heading size='8'>Categories</Heading>
-          <Text size='2' color='gray'>
-            Total {data?.meta?.total || 0} categories
-          </Text>
+        <Flex justify='between' align='center' mb='6'>
+          <Heading size='8'>Categories Management</Heading>
         </Flex>
-      </Flex>
 
-      <DataTable
-        data={data?.data ?? []}
-        columns={columns}
-        meta={data?.meta}
-        isLoading={isLoading}
-        onRefresh={() => refetch()}
-        searchValue={search}
-        onSearchChange={setSearch}
-        page={page}
-        onPageChange={setPage}
-        onAdd={handleCreate}
-        showAdd={true}
-        showRefresh={true}
-        showPrint={true}
-        rowActions={rowActions}
-        enableSearch={true}
-        enablePagination={true}
-        enableSorting={true}
-        enablePageSize={true}
-        enableContextMenu={true}
-        emptyMessage='No categories found'
-      />
-    </Container>
+        <DataTable
+          data={data?.data ?? []}
+          columns={columns}
+          meta={data?.meta}
+          isLoading={isLoading}
+          onRefresh={refetch}
+          searchValue={search}
+          onSearchChange={setSearch}
+          page={page}
+          onPageChange={setPage}
+          rowActions={rowActions}
+          onPageSizeChange={(newSize) => setLimit(newSize)}
+          enableSearch
+          enablePagination
+          showAdd
+          showPrint
+          showRefresh
+          onAdd={() => open('add')}
+        />
+      </Container>
+
+      <Panel open={mode !== null} onClose={close} title={panelTitle} width={mode === 'view' ? 500 : 480}>
+        {renderPanelContent()}
+      </Panel>
+
+      <AlertDialog.Root
+        open={!!deleteTarget}
+        onOpenChange={(openState) => {
+          if (!openState) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialog.Content maxWidth='450px'>
+          <AlertDialog.Title>Delete Category</AlertDialog.Title>
+          <AlertDialog.Description size='2'>
+            Are you sure you want to delete <strong>{deleteTarget?.name}</strong>?
+          </AlertDialog.Description>
+
+          <Flex gap='3' mt='4' justify='end'>
+            <AlertDialog.Cancel>
+              <Button variant='soft' color='gray'>
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+
+            <AlertDialog.Action>
+              <Button
+                color='red'
+                onClick={async () => {
+                  if (!deleteTarget) return;
+                  await categories.remove.mutateAsync(deleteTarget.id);
+                  setDeleteTarget(null);
+                  refetch();
+                }}
+              >
+                Delete
+              </Button>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </Box>
   );
 }

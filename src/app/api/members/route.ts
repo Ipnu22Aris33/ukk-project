@@ -38,26 +38,30 @@ export const GET = handleApi(async ({ req }) => {
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
-  const parsedData = validateSchema(registerSchema,data)
-
+  const { email, fullName, memberClass, phone, major, nis } = validateSchema(createMemberSchema, data);
   const result = await db.transaction(async (tx) => {
     // cek email
-    const existingUser = await tx.query.users.findFirst({ where: eq(users.email, parsedData.email) });
+    const existingUser = await tx.query.users.findFirst({ where: eq(users.email, email) });
     if (existingUser) {
       throw new Conflict('Email already registered');
     }
 
-    // generate password & member code
-    const password = crypto.randomBytes(6).toString('base64').slice(0, 10);
-    const passwordHash = await hashPassword(password);
+    // cek nis untuk menghindari duplikat username
+    const existingNis = await tx.query.users.findFirst({ where: eq(users.username, nis) });
+    if (existingNis) {
+      throw new Conflict('NIS already registered');
+    }
+
+    // password = nis
+    const passwordHash = await hashPassword(nis);
     const memberCode = 'MBR-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
     // insert user
     const [newUser] = await tx
       .insert(users)
       .values({
-        username: parsedData.username,
-        email: parsedData.email,
+        username: nis,
+        email: email,
         password: passwordHash,
         role: 'member',
       })
@@ -67,11 +71,12 @@ export const POST = handleApi(async ({ req }) => {
     const [newMember] = await tx
       .insert(members)
       .values({
-        fullName: parsedData.fullName,
+        fullName,
         memberCode,
-        phone: parsedData.phone,
-        memberClass: parsedData.memberClass,
-        major: parsedData.major,
+        phone,
+        memberClass,
+        major,
+        nis,
         userId: newUser.id,
       })
       .returning({ id: members.id, fullName: members.fullName, memberCode: members.memberCode });
@@ -80,7 +85,7 @@ export const POST = handleApi(async ({ req }) => {
       full_name: newMember.fullName,
       member_code: newMember.memberCode,
       email: newUser.email,
-      password,
+      password: nis, // return nis sebagai password
     };
   });
 

@@ -19,6 +19,7 @@ const userInputSchema = userSchema.omit({
 });
 
 export const userResponseSchema = userSchema.omit({
+  deletedAt: true,
   password: true,
 });
 

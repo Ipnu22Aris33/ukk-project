@@ -1,43 +1,38 @@
 'use client';
 
 import { Box, Flex, Container, Text } from '@radix-ui/themes';
-import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface Props {
   menus: { label: string; href: string }[];
 }
 
 export const DesktopSubNav = ({ menus }: Props) => {
-  const router = useRouter();
   const pathname = usePathname();
 
   return (
-    <Box
-      style={{
-        borderTop: '1px solid var(--gray-6)',
-        backgroundColor: 'var(--color-surface)',
-      }}
-    >
-      <Container size='4' px={{ initial: '4', md: '0' }}>
-        <Flex align='center' gap='4' py='2'>
+    <Box className="border-t border-(--gray-6) bg-(--color-surface)">
+      <Container size="4" px={{ initial: '4', md: '0' }}>
+        <Flex align="center" gap="4" py="2">
           {menus.map((menu) => {
             const active = pathname === menu.href;
 
             return (
-              <Text
-                key={menu.href}
-                size='2'
-                weight={active ? 'bold' : 'regular'}
-                style={{
-                  cursor: 'pointer',
-                  color: active
-                    ? 'var(--indigo-9)'
-                    : 'var(--gray-11)',
-                }}
-                onClick={() => router.push(menu.href)}
+              <Link 
+                key={menu.href} 
+                href={menu.href}
+                className={[
+                  'cursor-pointer pb-1 border-b-2 transition-colors duration-150',
+                  active
+                    ? 'text-(--indigo-9) border-(--indigo-9)'
+                    : 'text-(--gray-11) border-transparent hover:text-(--gray-12)',
+                ].join(' ')}
               >
-                {menu.label}
-              </Text>
+                <Text size="2" weight={active ? 'bold' : 'regular'}>
+                  {menu.label}
+                </Text>
+              </Link>
             );
           })}
         </Flex>

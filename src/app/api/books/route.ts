@@ -44,8 +44,6 @@ export const GET = handleApi(async ({ req }) => {
 
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
-  console.log('RAW BODY:', body);
-  console.log('TYPE categoryId:', typeof body.categoryId);
 
   const { title, author, publisher, categoryId, stock, year, isbn } = validateSchema(createBookSchema, body);
 

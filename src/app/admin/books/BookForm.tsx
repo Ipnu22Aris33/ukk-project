@@ -1,7 +1,6 @@
 // components/features/books/BookForm.tsx
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { Flex, Button } from '@radix-ui/themes';
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
@@ -9,26 +8,29 @@ import { InputField, SelectField } from '@/components/features/forms';
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
 import { useCategories } from '@/hooks/useCategories';
-import { validateSchema } from '@/lib/utils/validate';
-import { CreateBookInput, UpdateBookInput, createBookSchema, updateBookSchema } from '@/lib/schema/book';
-import { z } from 'zod';
+import { CreateBookInput, UpdateBookInput, bookFormSchema } from '@/lib/schema/book';
 
 interface BookFormProps {
   initialData?: CreateBookInput | UpdateBookInput;
   onSubmit: (data: any) => Promise<void>;
   isSubmitting?: boolean;
   submitLabel?: string;
-  isUpdate?: boolean;
+  onClose?: () => void; // Tambahin ini
 }
 
-export function BookForm({ initialData = {}, onSubmit, isSubmitting = false, submitLabel = 'Save Book', isUpdate = false }: BookFormProps) {
-  const router = useRouter();
+export function BookForm({ 
+  initialData = {}, 
+  onSubmit, 
+  isSubmitting = false, 
+  submitLabel = 'Save Book',
+  onClose // Prop baru
+}: BookFormProps) {
   const categories = useCategories();
   const [categorySearch, setCategorySearch] = useState('');
 
   const categoryList = categories.list({
     page: 1,
-    limit: 100,
+    limit: 10,
     search: categorySearch,
   });
 
@@ -36,8 +38,6 @@ export function BookForm({ initialData = {}, onSubmit, isSubmitting = false, sub
     value: cat.id,
     label: cat.name,
   }));
-
-  // Pilih schema berdasarkan mode (create/update)
 
   const form = useForm({
     defaultValues: {
@@ -50,7 +50,7 @@ export function BookForm({ initialData = {}, onSubmit, isSubmitting = false, sub
       categoryId: initialData.categoryId ?? undefined,
     },
     validators: {
-      onChange: createBookSchema,
+      onChange: bookFormSchema,
     },
     onSubmit: async ({ value }) => {
       console.log('FORM VALUE:', value);
@@ -163,7 +163,6 @@ export function BookForm({ initialData = {}, onSubmit, isSubmitting = false, sub
         <form.Field name='categoryId'>
           {(field) => {
             const error = getFieldError(field);
-            // console.log('Rendering Category Field with error:', field);
             return (
               <SelectField
                 field={field}
@@ -185,7 +184,13 @@ export function BookForm({ initialData = {}, onSubmit, isSubmitting = false, sub
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
           {([canSubmit]) => (
             <Flex gap='3' mt='4' justify='end'>
-              <Button variant='soft' color='gray' onClick={() => router.back()} type='button' disabled={isSubmitting}>
+              <Button 
+                variant='soft' 
+                color='gray' 
+                onClick={onClose} // Panggil onClose, bukan router.back()
+                type='button' 
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
               <Button type='submit' variant='solid' disabled={!canSubmit || isSubmitting} loading={isSubmitting}>

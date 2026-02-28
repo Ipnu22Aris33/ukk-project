@@ -71,7 +71,7 @@ export function Panel({ open, onClose, title, children, width = 420, position = 
         className='flex-1 overflow-y-auto min-h-0'
         style={{
           height: '100%',
-          maxHeight: 'calc(100dvh - 120px)', // fallback
+          maxHeight: 'calc(100dvh - 120px)',
         }}
       >
         {children}

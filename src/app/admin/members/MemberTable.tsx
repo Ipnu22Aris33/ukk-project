@@ -1,38 +1,91 @@
-// components/datatable/MemberTable.tsx
+// app/admin/members/MemberTable.tsx
 'use client';
 
-import { useState } from 'react';
-import { Container, Heading, Flex, Text } from '@radix-ui/themes';
-import { Icon } from '@iconify/react';
-import { useRouter } from 'next/navigation';
-import { DataTable, ColDataTable } from '@/components/features/datatable/DataTable';
+import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
+import { Panel } from '@/components/ui/Panel';
 import { useMembers } from '@/hooks/useMembers';
-import type { Member } from '@/lib/schema/member';
+import { usePanel } from '@/hooks/usePanel';
+import { Container, Heading, Flex, Box, Button, DataList, AlertDialog } from '@radix-ui/themes';
+import { Icon } from '@iconify/react';
+import { useState } from 'react';
+import type { MemberResponse } from '@/lib/schema/member';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { MemberForm } from './MemberForm';
+
+/* =========================
+   VIEW CONTENT
+========================= */
+
+function ViewMemberContent({ member, onClose }: { member: MemberResponse; onClose: () => void }) {
+  return (
+    <>
+      <DataList.Root>
+        <DataList.Item>
+          <DataList.Label>Full Name</DataList.Label>
+          <DataList.Value>{member.fullName}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>NIS</DataList.Label>
+          <DataList.Value>{member.nis || '-'}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Phone</DataList.Label>
+          <DataList.Value>{member.phone || '-'}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Class</DataList.Label>
+          <DataList.Value>{member.memberClass || '-'}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Major</DataList.Label>
+          <DataList.Value>{member.major || '-'}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Address</DataList.Label>
+          <DataList.Value>{member.address}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Member Code</DataList.Label>
+          <DataList.Value>{member.memberCode}</DataList.Value>
+        </DataList.Item>
+      </DataList.Root>
+
+      <Button mt='4' variant='soft' onClick={onClose}>
+        Close
+      </Button>
+    </>
+  );
+}
+
+/* =========================
+   MAIN COMPONENT
+========================= */
 
 export function MemberTable() {
-  const router = useRouter();
+  const members = useMembers();
+  const { mode, selected, open, close } = usePanel<MemberResponse>();
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-
-  const members = useMembers();
+  const [limit, setLimit] = useState(10);
+  const [deleteTarget, setDeleteTarget] = useState<MemberResponse | null>(null);
 
   const { data, isLoading, refetch } = members.list({
     page,
     search,
-    limit: 10,
+    limit,
   });
 
-  const columns: ColDataTable<Member>[] = [
-    {
-      accessorKey: 'id',
-      header: 'ID',
-      cell: ({ row }) => <Text color='gray'>{row.original.id}</Text>,
-    },
+  const columns: ColDataTable<MemberResponse>[] = [
     {
       accessorKey: 'fullName',
       header: 'Name',
-      cell: ({ row }) => <Text weight='medium'>{row.original.fullName}</Text>,
     },
     {
       accessorKey: 'phone',
@@ -46,78 +99,162 @@ export function MemberTable() {
       accessorKey: 'major',
       header: 'Major',
     },
-    
     {
-      accessorKey: 'createdAt',
-      header: 'Registered',
-      cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString('id-ID'),
+      accessorKey: 'address',
+
+      header: 'Address',
+    },
+    {
+      accessorKey: 'user.email',
+      header: 'Email',
     },
   ];
 
-  const rowActions = (member: Member) => [
+  const rowActions: () => RowAction<MemberResponse>[] = () => [
     {
       key: 'view',
       label: 'View Details',
       icon: <Icon icon='mdi:eye' />,
-      onClick: () => router.push(`/members/${member.id}`),
+      color: 'blue',
+      onClick: (row) => open('view', row),
     },
     {
       key: 'edit',
       label: 'Edit Member',
-      color: 'blue' as const,
       icon: <Icon icon='mdi:pencil' />,
-      onClick: () => router.push(`/members/${member.id}/edit`),
+      color: 'green',
+      onClick: (row) => open('edit', row),
     },
     {
       key: 'delete',
       label: 'Delete Member',
-      color: 'red' as const,
       icon: <Icon icon='mdi:delete' />,
-      onClick: async () => {
-        if (confirm(`Delete member "${member.fullName}"?`)) {
-          await members.remove.mutateAsync(member.id);
-          refetch();
-        }
-      },
+      color: 'red',
+      onClick: (row) => setDeleteTarget(row),
     },
   ];
 
   const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }];
 
+  const renderPanelContent = () => {
+    if (mode === 'add') {
+      return (
+        <MemberForm
+          submitLabel='Save Member'
+          onSubmit={async (formData) => {
+            await members.create.mutateAsync(formData);
+            close();
+            refetch();
+          }}
+          onClose={close}
+        />
+      );
+    }
+
+    if (mode === 'edit' && selected) {
+      return (
+        <MemberForm
+          initialData={{
+            email: selected.user.email || '',
+            fullName: selected.fullName,
+            memberClass: selected.memberClass || '',
+            address: selected.address || null,
+            nis: selected.nis || '',
+            phone: selected.phone || '',
+            major: selected.major || '',
+          }}
+          submitLabel='Update Member'
+          onSubmit={async (formData) => {
+            await members.update.mutateAsync({
+              id: selected.id,
+              data: formData,
+            });
+            close();
+            refetch();
+          }}
+          onClose={close}
+        />
+      );
+    }
+
+    if (mode === 'view' && selected) {
+      return <ViewMemberContent member={selected} onClose={close} />;
+    }
+
+    return null;
+  };
+
+  const panelTitle = mode === 'add' ? 'Add New Member' : mode === 'edit' ? 'Edit Member' : mode === 'view' ? 'Member Details' : '';
+
   return (
-    <Container size='4'>
-      <Breadcrumb items={breadcrumbItems} />
+    <Box position='relative' minHeight='100vh'>
+      <Container size='4' py='6'>
+        <Breadcrumb items={breadcrumbItems} />
 
-      <Flex justify='between' align='center' mb='6'>
-        <Flex direction='column' gap='1'>
-          <Heading size='8'>Member Management</Heading>
-          <Text size='2' color='gray'>
-            Total {data?.meta?.total || 0} members
-          </Text>
+        <Flex justify='between' align='center' mb='6'>
+          <Heading size='8'>Members Management</Heading>
         </Flex>
-      </Flex>
 
-      <DataTable
-        data={data?.data ?? []}
-        columns={columns}
-        meta={data?.meta}
-        isLoading={isLoading}
-        onRefresh={() => refetch()}
-        searchValue={search}
-        onSearchChange={setSearch}
-        page={page}
-        onPageChange={setPage}
-        showAdd={false} // Create functionality will be added later
-        showRefresh={true}
-        showPrint={true}
-        rowActions={rowActions}
-        enableSearch={true}
-        enablePagination={true}
-        enableSorting={true}
-        enablePageSize={true}
-        enableContextMenu={true}
-        emptyMessage='No members found'
-      />
-    </Container>
+        <DataTable
+          data={data?.data ?? []}
+          columns={columns}
+          meta={data?.meta}
+          isLoading={isLoading}
+          onRefresh={refetch}
+          searchValue={search}
+          onSearchChange={setSearch}
+          page={page}
+          onPageChange={setPage}
+          onPageSizeChange={setLimit}
+          rowActions={rowActions}
+          enableSearch
+          enablePagination
+          showAdd
+          showPrint
+          showRefresh
+          onAdd={() => open('add')}
+        />
+      </Container>
+
+      <Panel open={mode !== null} onClose={close} title={panelTitle} width={mode === 'view' ? 500 : 480}>
+        {renderPanelContent()}
+      </Panel>
+
+      <AlertDialog.Root
+        open={!!deleteTarget}
+        onOpenChange={(openState) => {
+          if (!openState) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialog.Content maxWidth='450px'>
+          <AlertDialog.Title>Delete Member</AlertDialog.Title>
+          <AlertDialog.Description size='2'>
+            Are you sure you want to delete <strong>{deleteTarget?.fullName}</strong>?
+          </AlertDialog.Description>
+
+          <Flex gap='3' mt='4' justify='end'>
+            <AlertDialog.Cancel>
+              <Button variant='soft' color='gray'>
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+
+            <AlertDialog.Action>
+              <Button
+                color='red'
+                onClick={async () => {
+                  if (!deleteTarget) return;
+                  await members.remove.mutateAsync(deleteTarget.id);
+                  setDeleteTarget(null);
+                  refetch();
+                }}
+              >
+                Delete
+              </Button>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </Box>
   );
 }

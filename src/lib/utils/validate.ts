@@ -1,6 +1,8 @@
 import { z, ZodType } from 'zod';
 
 export function validateSchema<T extends ZodType>(schema: T, data: unknown): z.infer<T> {
+  console.log('Validating data:', data);
+  
   return schema.parse(data);
 }
 
