@@ -1,32 +1,40 @@
-// components/features/books/BookForm.tsx
 'use client';
 
 import { Flex, Button } from '@radix-ui/themes';
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
-import { InputField, SelectField } from '@/components/features/forms';
-import { Icon } from '@iconify/react';
 import { useState } from 'react';
+import { InputField, SelectField } from '@/components/features/forms';
 import { useCategories } from '@/hooks/useCategories';
-import { CreateBookInput, UpdateBookInput, bookFormSchema } from '@/lib/schema/book';
+import { uploadImage } from '@/lib/upload/uploadClient';
+import { bookFormSchema, BookFormInput } from '@/lib/schema/book';
+import { FileField } from '@/components/features/forms/FileField';
+import { Icon } from '@iconify/react';
 
 interface BookFormProps {
-  initialData?: CreateBookInput | UpdateBookInput;
+  mode: 'create' | 'edit';
+  initialData?: Partial<BookFormInput> & {
+    coverUrl?: string | null;
+    coverPublicId?: string | null;
+  };
   onSubmit: (data: any) => Promise<void>;
   isSubmitting?: boolean;
   submitLabel?: string;
-  onClose?: () => void; // Tambahin ini
+  onClose?: () => void;
 }
 
-export function BookForm({ 
-  initialData = {}, 
-  onSubmit, 
-  isSubmitting = false, 
+export function BookForm({
+  mode,
+  initialData = {}, // 🔥 FIX DI SINI
+  onSubmit,
+  isSubmitting = false,
   submitLabel = 'Save Book',
-  onClose // Prop baru
+  onClose,
 }: BookFormProps) {
   const categories = useCategories();
   const [categorySearch, setCategorySearch] = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverError, setCoverError] = useState<string | null>(null);
 
   const categoryList = categories.list({
     page: 1,
@@ -34,166 +42,166 @@ export function BookForm({
     search: categorySearch,
   });
 
-  const categoryOptions = (categoryList.data?.data || []).map((cat) => ({
-    value: cat.id,
-    label: cat.name,
-  }));
+  const categoryOptions =
+    categoryList.data?.data.map((cat) => ({
+      value: cat.id,
+      label: cat.name,
+    })) ?? [];
 
   const form = useForm({
     defaultValues: {
-      title: initialData.title || '',
-      author: initialData.author || '',
-      publisher: initialData.publisher || '',
-      stock: initialData.stock || 1,
-      year: initialData.year || new Date().getFullYear(),
-      isbn: initialData.isbn || '',
-      categoryId: initialData.categoryId ?? undefined,
+      title: initialData.title ?? '',
+      author: initialData.author ?? '',
+      publisher: initialData.publisher ?? '',
+      stock: initialData.stock ?? 1,
+      year: initialData.year ?? new Date().getFullYear(),
+      isbn: initialData.isbn ?? '',
+      categoryId: initialData.categoryId ?? 0,
     },
     validators: {
       onChange: bookFormSchema,
     },
     onSubmit: async ({ value }) => {
-      console.log('FORM VALUE:', value);
-      await onSubmit(value);
+      if (mode === 'create' && !coverFile) {
+        setCoverError('Cover wajib diupload');
+        return;
+      }
+
+      setCoverError(null);
+
+      const uploadResult = coverFile ? await uploadImage(coverFile, 'cover') : null;
+
+      await onSubmit({
+        ...value,
+        coverUrl: uploadResult?.data.url ?? initialData.coverUrl ?? null,
+        coverPublicId: uploadResult?.data.publicId ?? initialData.coverPublicId ?? null,
+      });
     },
   });
 
-  const getFieldError = (field: any) => {
-    return field.state.meta.errors?.[0]?.message;
-  };
+  const getFieldError = (field: any) => field.state.meta.errors?.[0]?.message;
 
   return (
     <Form.Root
       onSubmit={(e) => {
         e.preventDefault();
-        e.stopPropagation();
         form.handleSubmit();
       }}
     >
       <Flex direction='column' gap='4'>
-        {/* Title Field */}
+        <FileField
+          label='Cover Image'
+          required={mode === 'create'}
+          value={coverFile}
+          onChange={setCoverFile}
+          error={coverError ?? undefined}
+          initialPreviewUrl={initialData.coverUrl ?? null}
+        />
+        
         <form.Field name='title'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField field={field} label='Title' placeholder='Enter book title...' icon={<Icon icon='mdi:book' />} required error={error} />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Title'
+              icon={<Icon icon='mdi:book' />}
+              required
+              error={getFieldError(field)}
+              placeholder='Enter book title...'
+            />
+          )}
         </form.Field>
 
-        {/* Author Field */}
         <form.Field name='author'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='Author'
-                placeholder='Enter author name...'
-                icon={<Icon icon='mdi:account-edit' />}
-                required
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Author'
+              icon={<Icon icon='mdi:account-edit' />}
+              required
+              error={getFieldError(field)}
+              placeholder='Enter author name...'
+            />
+          )}
         </form.Field>
 
-        {/* Publisher Field */}
         <form.Field name='publisher'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='Publisher'
-                placeholder='Enter publisher name...'
-                icon={<Icon icon='mdi:office-building' />}
-                required
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Publisher'
+              icon={<Icon icon='mdi:office-building' />}
+              required
+              error={getFieldError(field)}
+              placeholder='Enter publisher name...'
+            />
+          )}
         </form.Field>
 
-        {/* ISBN Field */}
         <form.Field name='isbn'>
-          {(field) => {
-            const error = getFieldError(field);
-            return <InputField field={field} label='ISBN' placeholder='Enter ISBN number...' icon={<Icon icon='mdi:barcode' />} error={error} />;
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='ISBN'
+              icon={<Icon icon='mdi:barcode' />}
+              error={getFieldError(field)}
+              placeholder='Enter ISBN number...'
+            />
+          )}
         </form.Field>
 
-        {/* Year Field */}
         <form.Field name='year'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='Year'
-                type='number'
-                placeholder='Enter publication year...'
-                icon={<Icon icon='mdi:calendar' />}
-                required
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              type='number'
+              label='Year'
+              icon={<Icon icon='mdi:calendar' />}
+              required
+              error={getFieldError(field)}
+              placeholder='Enter publication year...'
+            />
+          )}
         </form.Field>
 
-        {/* Stock Field */}
         <form.Field name='stock'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='Stock'
-                type='number'
-                placeholder='Enter stock quantity...'
-                required
-                icon={<Icon icon='mdi:counter' />}
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              type='number'
+              label='Stock'
+              icon={<Icon icon='mdi:counter' />}
+              required
+              error={getFieldError(field)}
+              placeholder='Enter stock quantity...'
+            />
+          )}
         </form.Field>
 
-        {/* Category Field */}
         <form.Field name='categoryId'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <SelectField
-                field={field}
-                label='Category'
-                options={categoryOptions}
-                placeholder='Select a category...'
-                required
-                searchable
-                search={categorySearch}
-                onSearchChange={setCategorySearch}
-                icon={<Icon icon='mdi:shape' />}
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <SelectField
+              field={field}
+              label='Category'
+              options={categoryOptions}
+              placeholder='Select a category...'
+              searchable
+              search={categorySearch}
+              onSearchChange={setCategorySearch}
+              icon={<Icon icon='mdi:shape' />}
+              required
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Form Actions */}
-        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+        <form.Subscribe selector={(state) => [state.canSubmit]}>
           {([canSubmit]) => (
-            <Flex gap='3' mt='4' justify='end'>
-              <Button 
-                variant='soft' 
-                color='gray' 
-                onClick={onClose} // Panggil onClose, bukan router.back()
-                type='button' 
-                disabled={isSubmitting}
-              >
+            <Flex gap='3' justify='end' mt='4'>
+              <Button type='button' variant='soft' onClick={onClose} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type='submit' variant='solid' disabled={!canSubmit || isSubmitting} loading={isSubmitting}>
+
+              <Button type='submit' disabled={!canSubmit || isSubmitting}>
                 {isSubmitting ? 'Saving...' : submitLabel}
               </Button>
             </Flex>

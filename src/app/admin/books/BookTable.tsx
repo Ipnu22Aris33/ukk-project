@@ -10,6 +10,7 @@ import { useState } from 'react';
 import type { BookResponse } from '@/lib/schema/book';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { BookForm } from './BookForm';
+import Image from 'next/image';
 
 /* =========================
    VIEW CONTENT
@@ -19,6 +20,26 @@ function ViewBookContent({ book, onClose }: { book: BookResponse; onClose: () =>
   return (
     <>
       <DataList.Root>
+        <DataList.Item>
+          <DataList.Label>Cover</DataList.Label>
+          <DataList.Value>
+            {book.coverUrl ? (
+              <Image
+                src={book.coverUrl}
+                alt={book.title}
+                width={120}
+                height={160}
+                style={{
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                }}
+              />
+            ) : (
+              'No cover'
+            )}
+          </DataList.Value>
+        </DataList.Item>
+
         <DataList.Item>
           <DataList.Label>Title</DataList.Label>
           <DataList.Value>{book.title}</DataList.Value>
@@ -124,6 +145,7 @@ export function BookTable() {
     if (mode === 'add') {
       return (
         <BookForm
+          mode='create'
           submitLabel='Save Book'
           onClose={close}
           onSubmit={async (formData) => {
@@ -138,7 +160,8 @@ export function BookTable() {
     if (mode === 'edit' && selected) {
       return (
         <BookForm
-        onClose={close}
+          mode='edit'
+          onClose={close}
           initialData={{
             title: selected.title,
             author: selected.author,
@@ -147,6 +170,8 @@ export function BookTable() {
             year: selected.year,
             isbn: selected.isbn,
             categoryId: selected.categoryId,
+            coverUrl: selected.coverUrl,
+            coverPublicId: selected.coverPublicId,
           }}
           submitLabel='Update Book'
           onSubmit={async (formData) => {
@@ -154,6 +179,7 @@ export function BookTable() {
               id: selected.id,
               data: formData,
             });
+
             close();
             refetch();
           }}

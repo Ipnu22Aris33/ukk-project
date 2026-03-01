@@ -12,6 +12,8 @@ export const bookSchema = z.object({
   stock: z.number().int().min(0),
   slug: z.string().min(1).max(255),
   isbn: z.string().min(10).max(13),
+  coverUrl: z.url().nullable(),
+  coverPublicId: z.string().nullable(),
   year: z
     .number()
     .int()
@@ -47,7 +49,6 @@ export const bookFormSchema = z.object({
   publisher: z.string().min(1, 'Penerbit wajib diisi').max(255),
 
   stock: z.number().min(0, 'Stok harus ≥ 0'),
-
   isbn: z.string().min(10, 'ISBN minimal 10 digit').max(13, 'ISBN maksimal 13 digit'),
 
   year: z

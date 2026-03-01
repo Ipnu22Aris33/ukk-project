@@ -56,9 +56,7 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
             },
           }}
         >
-          {(field) => (
-            <InputField field={field} label='Email' type='email' placeholder='contoh@email.com' required icon={<Icon icon='mdi:email' />} />
-          )}
+          {(field) => <InputField field={field} label='Email' type='text' placeholder='contoh@email.com' required icon={<Icon icon='mdi:email' />} />}
         </form.Field>
 
         {/* PASSWORD */}

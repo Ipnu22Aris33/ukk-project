@@ -45,7 +45,7 @@ export const GET = handleApi(async ({ req }) => {
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
 
-  const { title, author, publisher, categoryId, stock, year, isbn } = validateSchema(createBookSchema, body);
+  const { title, author, publisher, categoryId, stock, year, isbn, coverUrl, coverPublicId } = validateSchema(createBookSchema, body);
 
   const [newBook] = await db
     .insert(books)
@@ -58,6 +58,8 @@ export const POST = handleApi(async ({ req }) => {
       publisher,
       stock,
       year,
+      coverUrl,
+      coverPublicId,
     })
     .returning();
 

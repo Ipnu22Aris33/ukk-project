@@ -12,7 +12,7 @@ export const DesktopSubNav = ({ menus }: Props) => {
   const pathname = usePathname();
 
   return (
-    <Box className="border-t border-(--gray-6) bg-(--color-surface)">
+    <Box className="border-t border-(--gray-6) bg-(--color-panel-solid)">
       <Container size="4" px={{ initial: '4', md: '0' }}>
         <Flex align="center" gap="4" py="2">
           {menus.map((menu) => {

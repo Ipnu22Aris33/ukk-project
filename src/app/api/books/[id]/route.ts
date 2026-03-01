@@ -40,7 +40,7 @@ export const PATCH = handleApi(async ({ req, params }) => {
   }
 
   const body = await req.json();
-  const { title, author, categoryId, publisher, stock, isbn, year } = validateSchema(updateBookSchema,body);
+  const { title, author, categoryId, publisher, stock, isbn, year, coverUrl, coverPublicId } = validateSchema(updateBookSchema,body);
 
   const existing = await db.query.books.findFirst({
     where: eq(books.id, id),
@@ -62,6 +62,8 @@ export const PATCH = handleApi(async ({ req, params }) => {
       isbn,
       year,
       updatedAt: new Date(),
+      coverUrl,
+      coverPublicId
     })
     .where(eq(books.id, id))
     .returning();

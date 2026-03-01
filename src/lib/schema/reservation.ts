@@ -23,6 +23,13 @@ export const reservationSchema = z.object({
 
 const reservationInputSchema = reservationSchema.omit({
   id: true,
+  reservationCode: true,
+  memberId: true,
+  status: true,
+  reservedAt: true,
+  approvedAt: true,
+  approvedBy: true,
+  expiresAt: true,
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
@@ -34,16 +41,7 @@ export const reservationResponseSchema = reservationSchema.omit({ deletedAt: tru
   approver: userResponseSchema.nullable(),
 });
 
-export const createReservationSchema = reservationInputSchema.extend({
-  memberId: z.number().int().positive().optional(),
-  reservationCode: z.string().min(3).max(100).optional(),
-  status: z.enum(reservationStatusEnum.enumValues).optional(),
-  reservedAt: z.date().optional(),
-  approvedAt: z.date().nullable().optional(),
-  approvedBy: z.number().int().positive().nullable().optional(),
-  expiresAt: z.date().nullable().optional(),
-});
-
+export const createReservationSchema = reservationInputSchema;
 export const updateReservationSchema = reservationInputSchema.partial();
 
 export type Reservation = z.infer<typeof reservationSchema>;

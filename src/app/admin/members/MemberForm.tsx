@@ -140,6 +140,7 @@ export function MemberForm({ initialData = {}, onSubmit, isSubmitting = false, s
             return (
               <TextareaField
                 field={field}
+                icon={<Icon icon='mdi:map-marker-outline'/>}
                 label='Address'
                 placeholder='Enter address...'
                 required

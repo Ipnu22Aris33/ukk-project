@@ -24,6 +24,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
   const router = useRouter();
   const { isMobile } = useResponsive();
   const { logout, session } = useAuth();
+  console.log('Session:', session);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -35,7 +36,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
 
   const menus = [
     { label: 'Home', href: '/home' },
-    { label: 'Koleksi Buku', href: '/books' },
+    { label: 'Koleksi Buku', href: '/catalog' },
     { label: 'Peminjaman', href: '/loans' },
     { label: 'Riwayat', href: '/history' },
   ];
@@ -147,7 +148,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                   >
                     <Avatar
                       size='2'
-                      fallback={getInitials(session?.name)}
+                      fallback={getInitials(session?.member.fullName)}
                       style={{
                         border: '2px solid var(--color-panel-solid)',
                         borderRadius: 999,
@@ -161,7 +162,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                   {/* User info */}
                   <Box px='3' py='3' style={{ borderBottom: '1px solid var(--gray-a4)' }}>
                     <Flex align='center' gap='3'>
-                      <Avatar size='3' fallback={getInitials(session?.name)} style={{ borderRadius: 999, flexShrink: 0 }} />
+                      <Avatar size='3' fallback={getInitials(session?.member.fullName)} style={{ borderRadius: 999, flexShrink: 0 }} />
                       <Box>
                         <Text size='2' weight='bold' style={{ display: 'block', lineHeight: 1.4 }}>
                           {userName}

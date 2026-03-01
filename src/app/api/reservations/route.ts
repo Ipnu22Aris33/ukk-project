@@ -53,7 +53,8 @@ export const GET = handleApi(async ({ req, user }) => {
     where: and(...conditions),
     with: {
       member: { with: { user: true } },
-      book: true,
+      book: {with: { category: true } },
+      approver: true,
     },
   });
 

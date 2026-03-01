@@ -5,6 +5,8 @@ export const userSchema = z.object({
   username: z.string().max(100),
   email: z.string().max(255),
   password: z.string().max(255),
+  avatarUrl: z.url().nullable(),
+  avatarPublicId: z.string().nullable(),
   role: z.enum(['admin', 'staff', 'member']),
   createdAt: z.date(),
   updatedAt: z.date(),

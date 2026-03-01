@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Popover, TextField, Box, Text, Flex, IconButton } from '@radix-ui/themes';
 import { MagnifyingGlassIcon, ChevronLeftIcon } from '@radix-ui/react-icons';
+import { useBooks } from '@/hooks/useBooks';
 
 interface Props {
   isMobile?: boolean;
@@ -13,12 +14,28 @@ export const SearchOverlay = ({ isMobile = false, onCloseMobile }: Props) => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
 
-  const books = ['Atomic Habits', 'Clean Code', 'Deep Work', 'Design Patterns', 'Refactoring'];
+  const books = useBooks();
+  const { data, isLoading } = books.list({
+    search: query,
+    limit: 10,
+    debounceMs: 300,
+  });
 
-  const results = useMemo(() => {
-    if (!query) return [];
-    return books.filter((b) => b.toLowerCase().includes(query.toLowerCase()));
-  }, [query]);
+  // Auto close on mobile when selecting
+  const handleSelectBook = (bookTitle: string) => {
+    setQuery(bookTitle);
+    setOpen(false);
+    if (isMobile && onCloseMobile) onCloseMobile();
+  };
+
+  // Close popover on ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
 
   return (
     <Box style={{ width: '100%' }}>
@@ -50,22 +67,29 @@ export const SearchOverlay = ({ isMobile = false, onCloseMobile }: Props) => {
             }}
           >
             {query ? (
-              results.length > 0 ? (
-                results.map((item) => (
+              isLoading ? (
+                <Text size='2' color='gray'>
+                  Memuat...
+                </Text>
+              ) : data?.data && data.data.length > 0 ? (
+                data.data.map((book) => (
                   <Box
-                    key={item}
+                    key={book.id}
                     style={{
                       padding: '8px',
                       borderRadius: '6px',
                       cursor: 'pointer',
                     }}
-                    onClick={() => {
-                      setQuery(item);
-                      setOpen(false);
-                      if (isMobile && onCloseMobile) onCloseMobile();
-                    }}
+                    onClick={() => handleSelectBook(book.title)}
                   >
-                    <Text size='2'>{item}</Text>
+                    <Flex direction='column' gap='1'>
+                      <Text size='2' weight='bold'>
+                        {book.title}
+                      </Text>
+                      <Text size='1' color='gray'>
+                        {book.author}
+                      </Text>
+                    </Flex>
                   </Box>
                 ))
               ) : (
