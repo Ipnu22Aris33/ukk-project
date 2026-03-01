@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Command } from 'cmdk';
 import { TextField, Box, Text, IconButton, Flex } from '@radix-ui/themes';
 import { MagnifyingGlassIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -18,9 +19,11 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [selectedValue, setSelectedValue] = useState('');
   const [dropdownTop, setDropdownTop] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const commandRef = useRef<HTMLDivElement>(null);
   const { isMobile } = useResponsive();
 
   const books = useBooks();
@@ -30,7 +33,15 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
     debounceMs: 300,
   });
 
-  // Hitung posisi top dropdown saat mobile (fixed positioning)
+  // Auto-select item pertama setiap kali data berubah
+  useEffect(() => {
+    if (data?.data && data.data.length > 0) {
+      setSelectedValue(`${data.data[0].title} ${data.data[0].author}`);
+    } else {
+      setSelectedValue('');
+    }
+  }, [data]);
+
   const updateDropdownTop = () => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -55,7 +66,6 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Update top saat scroll / resize (penting karena header sticky)
   useEffect(() => {
     if (!open || !isMobile) return;
     updateDropdownTop();
@@ -76,16 +86,34 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
     setQuery(book.title);
     setOpen(false);
     onSelect?.(book);
-
-    router.push(`/catalog/${book.id}`);
-
+    router.push(`/catalog/${book.slug}`);
     inputRef.current?.focus();
   };
 
   const handleClear = () => {
     setQuery('');
+    setSelectedValue('');
     setOpen(false);
     onClose?.();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open) return;
+
+    if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+      e.preventDefault();
+      const commandEl = commandRef.current;
+      if (commandEl) {
+        commandEl.dispatchEvent(
+          new KeyboardEvent('keydown', { key: e.key, bubbles: true, cancelable: true })
+        );
+      }
+    }
+
+    if (e.key === 'Escape') {
+      setOpen(false);
+      inputRef.current?.blur();
+    }
   };
 
   const dropdownStyle = isMobile
@@ -117,12 +145,7 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
           setQuery(e.target.value);
           if (!open) handleOpen();
         }}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            setOpen(false);
-            inputRef.current?.blur();
-          }
-        }}
+        onKeyDown={handleKeyDown}
       >
         <TextField.Slot>
           <MagnifyingGlassIcon />
@@ -152,54 +175,88 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
               borderRadius: 'var(--radius-3)',
               boxShadow: 'var(--shadow-3)',
               overflow: 'hidden',
-              maxHeight: '300px',
-              overflowY: 'auto',
             }}
           >
-            {!query ? (
-              <Box px='3' py='2'>
-                <Text size='2' color='gray'>
-                  Silakan ketik untuk mencari…
-                </Text>
-              </Box>
-            ) : isLoading ? (
-              <Box px='3' py='2'>
-                <Text size='2' color='gray'>
-                  Memuat...
-                </Text>
-              </Box>
-            ) : !data?.data || data.data.length === 0 ? (
-              <Box px='3' py='2'>
-                <Text size='2' color='gray'>
-                  Tidak ditemukan.
-                </Text>
-              </Box>
-            ) : (
-              data.data.map((book) => (
-                <Box
-                  key={book.id}
-                  px='3'
-                  py='2'
-                  onClick={() => handleSelect(book)}
-                  style={{ cursor: 'pointer', transition: 'background 0.15s' }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--gray-3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <Flex direction='column' gap='1'>
-                    <Text size='2' weight='bold'>
-                      {book.title}
+            <Command
+              ref={commandRef}
+              aria-label='Cari Buku'
+              value={selectedValue}
+              onValueChange={setSelectedValue}
+              style={{
+                background: 'transparent',
+                padding: 0,
+                width: '100%',
+                maxHeight: '300px',
+              }}
+              shouldFilter={false}
+            >
+              <Command.List
+                style={{
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  padding: 0,
+                }}
+              >
+                {!query ? (
+                  <Command.Item
+                    disabled
+                    style={{ padding: '8px 12px', outline: 'none' }}
+                  >
+                    <Text size='2' color='gray'>
+                      Silakan ketik untuk mencari…
                     </Text>
-                    <Text size='1' color='gray'>
-                      {book.author}
+                  </Command.Item>
+                ) : isLoading ? (
+                  <Command.Item
+                    disabled
+                    style={{ padding: '8px 12px', outline: 'none' }}
+                  >
+                    <Text size='2' color='gray'>
+                      Memuat...
                     </Text>
-                  </Flex>
-                </Box>
-              ))
-            )}
+                  </Command.Item>
+                ) : !data?.data || data.data.length === 0 ? (
+                  <Command.Item
+                    disabled
+                    style={{ padding: '8px 12px', outline: 'none' }}
+                  >
+                    <Text size='2' color='gray'>
+                      Tidak ditemukan.
+                    </Text>
+                  </Command.Item>
+                ) : (
+                  data.data.map((book) => {
+                    const itemValue = `${book.title} ${book.author}`;
+                    const isSelected = selectedValue === itemValue;
+                    return (
+                      <Command.Item
+                        key={book.id}
+                        value={itemValue}
+                        onSelect={() => handleSelect(book)}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          outline: 'none',
+                          transition: 'background 0.15s',
+                          backgroundColor: isSelected ? 'var(--accent-3)' : 'transparent',
+                        }}
+                        onMouseEnter={() => setSelectedValue(itemValue)}
+                        onMouseLeave={() => {/* biarkan cmdk yang handle */}}
+                      >
+                        <Flex direction='column' gap='1'>
+                          <Text size='2' weight='bold'>
+                            {book.title}
+                          </Text>
+                          <Text size='1' color='gray'>
+                            {book.author}
+                          </Text>
+                        </Flex>
+                      </Command.Item>
+                    );
+                  })
+                )}
+              </Command.List>
+            </Command>
           </motion.div>
         )}
       </AnimatePresence>
