@@ -25,11 +25,7 @@ const reservationInputSchema = reservationSchema.omit({
   id: true,
   reservationCode: true,
   memberId: true,
-  status: true,
   reservedAt: true,
-  approvedAt: true,
-  approvedBy: true,
-  expiresAt: true,
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
@@ -41,7 +37,13 @@ export const reservationResponseSchema = reservationSchema.omit({ deletedAt: tru
   approver: userResponseSchema.nullable(),
 });
 
-export const createReservationSchema = reservationInputSchema;
+export const createReservationSchema = reservationInputSchema.omit({
+  status: true,
+  approvedAt: true,
+  approvedBy: true,
+  expiresAt: true,
+});
+
 export const updateReservationSchema = reservationInputSchema.partial();
 
 export type Reservation = z.infer<typeof reservationSchema>;

@@ -10,6 +10,7 @@ import { ChevronRightIcon, ChevronDownIcon } from '@radix-ui/react-icons';
 import { motion } from 'framer-motion';
 import { AppIcon, type IconName } from '../ui/AppIcon';
 import { useRouter } from 'next/navigation';
+import React from 'react';
 
 interface SidebarProps {
   isMobile: boolean;
@@ -28,7 +29,7 @@ type MenuItems =
   | {
       id: string;
       label: string;
-      icon: IconName;
+      icon: IconName 
       children: {
         id: string;
         label: string;
@@ -40,9 +41,9 @@ type MenuItems =
 
 const menuItems: MenuItems[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'IcOutlineDashboard', href: '/admin' },
+  { id: 'reservations', label: 'Reservasi', icon: 'MdiBookArrowLeft', href: '/admin/reservations' },
   { id: 'loans', label: 'Peminjaman', icon: 'MdiBookArrowRight', href: '/admin/loans' },
   { id: 'returns', label: 'Pengembalian', icon: 'MdiBookArrowLeft', href: '/admin/returns' },
-  {id: 'reservations', label: 'Reservasi', icon: 'MdiBookArrowLeft', href: '/admin/reservations'},
   {
     id: 'books',
     label: 'Buku',
