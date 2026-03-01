@@ -1,17 +1,21 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { TextField, Box, Text, IconButton } from '@radix-ui/themes';
+import { useRouter } from 'next/navigation';
+import { TextField, Box, Text, IconButton, Flex } from '@radix-ui/themes';
 import { MagnifyingGlassIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useBooks } from '@/hooks/useBooks';
 
 interface SearchBoxProps {
   onClose?: () => void;
   autoFocus?: boolean;
+  onSelect?: (book: any) => void;
 }
 
-export function SearchBox({ onClose, autoFocus }: SearchBoxProps) {
+export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [dropdownTop, setDropdownTop] = useState(0);
@@ -19,17 +23,12 @@ export function SearchBox({ onClose, autoFocus }: SearchBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { isMobile } = useResponsive();
 
-  const books = [
-    'Atomic Habits',
-    'Clean Code',
-    'Deep Work',
-    'Design Patterns',
-    'Refactoring',
-  ];
-
-  const filtered = query
-    ? books.filter((b) => b.toLowerCase().includes(query.toLowerCase()))
-    : [];
+  const books = useBooks();
+  const { data, isLoading } = books.list({
+    search: query,
+    limit: 10,
+    debounceMs: 300,
+  });
 
   // Hitung posisi top dropdown saat mobile (fixed positioning)
   const updateDropdownTop = () => {
@@ -73,9 +72,13 @@ export function SearchBox({ onClose, autoFocus }: SearchBoxProps) {
     setOpen(true);
   };
 
-  const handleSelect = (book: string) => {
-    setQuery(book);
+  const handleSelect = (book: any) => {
+    setQuery(book.title);
     setOpen(false);
+    onSelect?.(book);
+
+    router.push(`/catalog/${book.id}`);
+
     inputRef.current?.focus();
   };
 
@@ -85,7 +88,6 @@ export function SearchBox({ onClose, autoFocus }: SearchBoxProps) {
     onClose?.();
   };
 
-  // Style dropdown: fixed full-width saat mobile, absolute normal saat desktop
   const dropdownStyle = isMobile
     ? {
         position: 'fixed' as const,
@@ -93,7 +95,7 @@ export function SearchBox({ onClose, autoFocus }: SearchBoxProps) {
         left: 0,
         right: 0,
         zIndex: 999,
-        margin: '0 12px',  // sedikit padding kiri-kanan supaya tidak nempel tepi
+        margin: '0 12px',
       }
     : {
         position: 'absolute' as const,
@@ -150,6 +152,8 @@ export function SearchBox({ onClose, autoFocus }: SearchBoxProps) {
               borderRadius: 'var(--radius-3)',
               boxShadow: 'var(--shadow-3)',
               overflow: 'hidden',
+              maxHeight: '300px',
+              overflowY: 'auto',
             }}
           >
             {!query ? (
@@ -158,16 +162,22 @@ export function SearchBox({ onClose, autoFocus }: SearchBoxProps) {
                   Silakan ketik untuk mencari…
                 </Text>
               </Box>
-            ) : filtered.length === 0 ? (
+            ) : isLoading ? (
+              <Box px='3' py='2'>
+                <Text size='2' color='gray'>
+                  Memuat...
+                </Text>
+              </Box>
+            ) : !data?.data || data.data.length === 0 ? (
               <Box px='3' py='2'>
                 <Text size='2' color='gray'>
                   Tidak ditemukan.
                 </Text>
               </Box>
             ) : (
-              filtered.map((book) => (
+              data.data.map((book) => (
                 <Box
-                  key={book}
+                  key={book.id}
                   px='3'
                   py='2'
                   onClick={() => handleSelect(book)}
@@ -179,7 +189,14 @@ export function SearchBox({ onClose, autoFocus }: SearchBoxProps) {
                     (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
                   }}
                 >
-                  <Text size='2'>{book}</Text>
+                  <Flex direction='column' gap='1'>
+                    <Text size='2' weight='bold'>
+                      {book.title}
+                    </Text>
+                    <Text size='1' color='gray'>
+                      {book.author}
+                    </Text>
+                  </Flex>
                 </Box>
               ))
             )}
