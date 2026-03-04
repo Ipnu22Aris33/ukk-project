@@ -149,7 +149,6 @@ export function ReturnTable() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [deleteTarget, setDeleteTarget] = useState<ReturnResponse | null>(null);
 
   const { data, isLoading, refetch } = returns.list({
     page,
@@ -202,9 +201,9 @@ export function ReturnTable() {
       cell: ({ row }) => <FineStatusBadge status={row.original.fineStatus as FineStatus} />,
     },
     {
-      accessorKey: 'loan.status',
-      header: 'Loan Status',
-      cell: ({ row }) => <LoanStatusBadge status={row.original.loan?.status as LoanStatus} />,
+      accessorKey: 'condition',
+      header: 'Condition',
+      cell: ({ row }) => <Text>{row.original.condition}</Text>,
     },
     {
       accessorKey: 'returnedAt',
@@ -220,13 +219,6 @@ export function ReturnTable() {
       icon: <Icon icon='mdi:eye' />,
       color: 'blue',
       onClick: (row) => open('view', row),
-    },
-    {
-      key: 'delete',
-      label: 'Delete Return',
-      icon: <Icon icon='mdi:delete' />,
-      color: 'red',
-      onClick: (row) => setDeleteTarget(row),
     },
   ];
 
@@ -283,47 +275,7 @@ export function ReturnTable() {
         {renderPanelContent()}
       </Panel>
 
-      <AlertDialog.Root
-        open={!!deleteTarget}
-        onOpenChange={(openState) => {
-          if (!openState) setDeleteTarget(null);
-        }}
-      >
-        <AlertDialog.Content maxWidth='450px'>
-          <AlertDialog.Title>Delete Return</AlertDialog.Title>
-          <AlertDialog.Description size='2'>
-            Are you sure you want to delete return <strong>#{deleteTarget?.id}</strong>?
-            <Box mt='2'>
-              This return was for <strong>{deleteTarget?.loan?.book?.title}</strong> by <strong>{deleteTarget?.loan?.member?.fullName}</strong>.
-            </Box>
-            <Box mt='2'>
-              This action cannot be undone.
-            </Box>
-          </AlertDialog.Description>
-
-          <Flex gap='3' mt='4' justify='end'>
-            <AlertDialog.Cancel>
-              <Button variant='soft' color='gray'>
-                Cancel
-              </Button>
-            </AlertDialog.Cancel>
-
-            <AlertDialog.Action>
-              <Button
-                color='red'
-                onClick={async () => {
-                  if (!deleteTarget) return;
-                  await returns.remove.mutateAsync(deleteTarget.id);
-                  setDeleteTarget(null);
-                  refetch();
-                }}
-              >
-                Delete
-              </Button>
-            </AlertDialog.Action>
-          </Flex>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
+      
     </Box>
   );
 }

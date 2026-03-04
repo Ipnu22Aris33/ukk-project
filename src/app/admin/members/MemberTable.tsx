@@ -74,7 +74,6 @@ export function MemberTable() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [deleteTarget, setDeleteTarget] = useState<MemberResponse | null>(null);
 
   const { data, isLoading, refetch } = members.list({
     page,
@@ -125,13 +124,7 @@ export function MemberTable() {
       color: 'green',
       onClick: (row) => open('edit', row),
     },
-    {
-      key: 'delete',
-      label: 'Delete Member',
-      icon: <Icon icon='mdi:delete' />,
-      color: 'red',
-      onClick: (row) => setDeleteTarget(row),
-    },
+   
   ];
 
   const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }];
@@ -220,41 +213,7 @@ export function MemberTable() {
         {renderPanelContent()}
       </Panel>
 
-      <AlertDialog.Root
-        open={!!deleteTarget}
-        onOpenChange={(openState) => {
-          if (!openState) setDeleteTarget(null);
-        }}
-      >
-        <AlertDialog.Content maxWidth='450px'>
-          <AlertDialog.Title>Delete Member</AlertDialog.Title>
-          <AlertDialog.Description size='2'>
-            Are you sure you want to delete <strong>{deleteTarget?.fullName}</strong>?
-          </AlertDialog.Description>
-
-          <Flex gap='3' mt='4' justify='end'>
-            <AlertDialog.Cancel>
-              <Button variant='soft' color='gray'>
-                Cancel
-              </Button>
-            </AlertDialog.Cancel>
-
-            <AlertDialog.Action>
-              <Button
-                color='red'
-                onClick={async () => {
-                  if (!deleteTarget) return;
-                  await members.remove.mutateAsync(deleteTarget.id);
-                  setDeleteTarget(null);
-                  refetch();
-                }}
-              >
-                Delete
-              </Button>
-            </AlertDialog.Action>
-          </Flex>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
+      
     </Box>
   );
 }

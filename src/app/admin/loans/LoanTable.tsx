@@ -138,7 +138,6 @@ export function LoanTable() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [deleteTarget, setDeleteTarget] = useState<LoanResponse | null>(null);
 
   const { data, isLoading, refetch } = loans.list({
     page,
@@ -222,13 +221,7 @@ export function LoanTable() {
         }
       },
     },
-    {
-      key: 'delete',
-      label: 'Delete Loan',
-      icon: <Icon icon='mdi:delete' />,
-      color: 'red',
-      onClick: (row) => setDeleteTarget(row),
-    },
+   
   ];
 
   const breadcrumbItems = [
@@ -329,44 +322,7 @@ export function LoanTable() {
         {renderPanelContent()}
       </Panel>
 
-      <AlertDialog.Root
-        open={!!deleteTarget}
-        onOpenChange={(openState) => {
-          if (!openState) setDeleteTarget(null);
-        }}
-      >
-        <AlertDialog.Content maxWidth='450px'>
-          <AlertDialog.Title>Delete Loan</AlertDialog.Title>
-          <AlertDialog.Description size='2'>
-            Are you sure you want to delete loan <strong>#{deleteTarget?.id}</strong>?
-            <Box mt='2'>
-              This loan was for <strong>{deleteTarget?.book?.title}</strong> by <strong>{deleteTarget?.member?.fullName}</strong>.
-            </Box>
-          </AlertDialog.Description>
-
-          <Flex gap='3' mt='4' justify='end'>
-            <AlertDialog.Cancel>
-              <Button variant='soft' color='gray'>
-                Cancel
-              </Button>
-            </AlertDialog.Cancel>
-
-            <AlertDialog.Action>
-              <Button
-                color='red'
-                onClick={async () => {
-                  if (!deleteTarget) return;
-                  await loans.remove.mutateAsync(deleteTarget.id);
-                  setDeleteTarget(null);
-                  refetch();
-                }}
-              >
-                Delete
-              </Button>
-            </AlertDialog.Action>
-          </Flex>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
+     
     </Box>
   );
 }
