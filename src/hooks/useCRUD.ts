@@ -94,11 +94,10 @@ function buildFetcher(extraHeaders: Record<string, string> = {}) {
  * // Get by multiple segments: /api/books/category/fiksi/featured
  * const { data } = books.getByPath(['category', 'fiksi', 'featured']);
  */
-export function useCRUD<
-  TPayload extends Record<string, any> = any,
-  TListResponse = any,
-  TSingleResponse = any,
->(baseApi: string, options: CRUDOptions<TListResponse, TSingleResponse> = {}) {
+export function useCRUD<TPayload extends Record<string, any> = any, TListResponse = any, TSingleResponse = any>(
+  baseApi: string,
+  options: CRUDOptions<TListResponse, TSingleResponse> = {}
+) {
   const {
     resourceName = baseApi,
     searchParam = 'search',
@@ -134,15 +133,7 @@ export function useCRUD<
   // LIST (dengan debounce search)
   // ---------------------------
   function useList(params: ListParams = {}) {
-    const {
-      page = 1,
-      limit = 10,
-      search = '',
-      orderBy,
-      orderDir = 'asc',
-      debounceMs = 400,
-      ...extraFilters
-    } = params;
+    const { page = 1, limit = 10, search = '', orderBy, orderDir = 'asc', debounceMs = 400, ...extraFilters } = params;
 
     const [debouncedSearch, setDebouncedSearch] = useState(search);
 
@@ -208,11 +199,7 @@ export function useCRUD<
   // Kalau API-mu pakai path /api/books/:slug langsung (tanpa prefix 'slug'),
   // gunakan getBy('', 'bahasa-jepang') atau getOne() saja.
   // ---------------------------
-  function useGetBy(
-    field: string,
-    value: string | null | undefined,
-    enabled = true,
-  ) {
+  function useGetBy(field: string, value: string | null | undefined, enabled = true) {
     const path = field ? `${baseApi}/${field}/${value}` : `${baseApi}/${value}`;
 
     return useQuery<ApiResponse<TSingleResponse>, HttpError>({
@@ -232,10 +219,7 @@ export function useCRUD<
   //   getByPath(['category', 'fiksi'])         → GET /api/books/category/fiksi
   //   getByPath(['author', '42', 'popular'])   → GET /api/books/author/42/popular
   // ---------------------------
-  function useGetByPath(
-    segments: (string | null | undefined)[],
-    enabled = true,
-  ) {
+  function useGetByPath(segments: (string | null | undefined)[], enabled = true) {
     const resolvedSegments = segments.filter(Boolean) as string[];
     const path = `${baseApi}/${resolvedSegments.join('/')}`;
     const allFilled = segments.every(Boolean);
@@ -253,8 +237,7 @@ export function useCRUD<
   // CREATE
   // ---------------------------
   const create = useMutation<ApiResponse, HttpError, TPayload>({
-    mutationFn: (payload) =>
-      fetchApi(baseApi, { method: 'POST', body: JSON.stringify(payload) }),
+    mutationFn: (payload) => fetchApi(baseApi, { method: 'POST', body: JSON.stringify(payload) }),
     onSuccess: (data) => {
       if (!disableToasts) toast.success(messages.create ?? data.message ?? 'Created successfully');
       qc.invalidateQueries({ queryKey: keys.lists() });
@@ -269,8 +252,7 @@ export function useCRUD<
   // UPDATE (PATCH)
   // ---------------------------
   const update = useMutation<ApiResponse, HttpError, { id: string | number; data: TPayload }>({
-    mutationFn: ({ id, data }) =>
-      fetchApi(`${baseApi}/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    mutationFn: ({ id, data }) => fetchApi(`${baseApi}/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: (data, variables) => {
       if (!disableToasts) toast.success(messages.update ?? data.message ?? 'Updated successfully');
       qc.invalidateQueries({ queryKey: keys.lists() });
@@ -286,8 +268,7 @@ export function useCRUD<
   // REPLACE (PUT)
   // ---------------------------
   const replace = useMutation<ApiResponse, HttpError, { id: string | number; data: TPayload }>({
-    mutationFn: ({ id, data }) =>
-      fetchApi(`${baseApi}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    mutationFn: ({ id, data }) => fetchApi(`${baseApi}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     onSuccess: (data, variables) => {
       if (!disableToasts) toast.success(messages.update ?? data.message ?? 'Updated successfully');
       qc.invalidateQueries({ queryKey: keys.lists() });
@@ -322,11 +303,32 @@ export function useCRUD<
     all: () => qc.invalidateQueries({ queryKey: keys.all }),
     list: () => qc.invalidateQueries({ queryKey: keys.lists() }),
     one: (id: string) => qc.invalidateQueries({ queryKey: keys.detail(id) }),
-    by: (field: string, value: string) =>
-      qc.invalidateQueries({ queryKey: keys.by(field, value) }),
-    byPath: (segments: string[]) =>
-      qc.invalidateQueries({ queryKey: keys.byPath(segments) }),
+    by: (field: string, value: string) => qc.invalidateQueries({ queryKey: keys.by(field, value) }),
+    byPath: (segments: string[]) => qc.invalidateQueries({ queryKey: keys.byPath(segments) }),
   };
+
+  // ---------------------------
+  // CUSTOM ACTION (POST/PATCH ke sub-path)
+  // Contoh:
+  //   custom.mutate({ id: 1, action: 'approve', method: 'PATCH' })
+  // → PATCH /baseApi/1/approve
+  // ---------------------------
+  const custom = useMutation<ApiResponse, HttpError, { id: string | number; action: string; method?: 'POST' | 'PATCH' | 'PUT'; body?: any }>({
+    mutationFn: ({ id, action, method = 'POST', body }) =>
+      fetchApi(`${baseApi}/${id}/${action}`, {
+        method,
+        body: body ? JSON.stringify(body) : undefined,
+      }),
+    onSuccess: (data, variables) => {
+      if (!disableToasts) toast.success(data.message ?? 'Action success');
+
+      qc.invalidateQueries({ queryKey: keys.lists() });
+      qc.invalidateQueries({ queryKey: keys.detail(String(variables.id)) });
+    },
+    onError: (err) => {
+      if (!disableToasts) toast.error(err.message);
+    },
+  });
 
   return {
     /** useList(params) — query list dengan pagination, search, sort */
@@ -363,16 +365,18 @@ export function useCRUD<
     /** Helpers untuk invalidate cache */
     invalidate,
 
+    /** Custom action untuk kebutuhan spesifik yang tidak masuk kategori CRUD standar */
+    custom,
+
     /** Query keys (untuk kebutuhan custom useQuery) */
     keys,
   };
 }
 
-export function createCRUD<
-  TPayload extends Record<string, any> = any,
-  TListResponse = any,
-  TSingleResponse = any,
->(baseApi: string, options: CRUDOptions<TListResponse, TSingleResponse> = {}) {
+export function createCRUD<TPayload extends Record<string, any> = any, TListResponse = any, TSingleResponse = any>(
+  baseApi: string,
+  options: CRUDOptions<TListResponse, TSingleResponse> = {}
+) {
   return function useBoundCRUD() {
     return useCRUD<TPayload, TListResponse, TSingleResponse>(baseApi, options);
   };

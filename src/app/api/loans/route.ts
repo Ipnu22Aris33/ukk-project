@@ -20,6 +20,7 @@ export const POST = handleApi(async ({ req }) => {
     loanDate: data.loanDate ? new Date(data.loanDate) : undefined,
     dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
   };
+  
 
   const { memberId, bookId, quantity, notes, loanDate, dueDate } = validateSchema(createLoanSchema, transformedBody);
 
