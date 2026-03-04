@@ -117,14 +117,22 @@ export const GET = handleApi(async ({ req }) => {
     with: {
       loan: {
         with: {
-          member: true,
-          book: true,
+          member: {
+            with: {
+              user: true,
+            },
+          },
+          book: {
+            with: {
+              category: true,
+            },
+          },
         },
       },
     },
   });
-
-  return ok(safeParseResponse(returnResponseSchema, result.data).data, {
+  const safe = safeParseResponse(returnResponseSchema, result.data);
+  return ok(safe.data, {
     message: 'Returns retrieved successfully',
     meta: result.meta,
   });

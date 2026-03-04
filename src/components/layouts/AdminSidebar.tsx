@@ -1,6 +1,5 @@
 'use client';
 
-import { Icon } from '@iconify/react';
 import { Flex, Text, Heading, Avatar, Button, Separator, Box, DropdownMenu, Badge, Popover } from '@radix-ui/themes';
 import Link from 'next/link';
 import * as Collapsible from '@radix-ui/react-collapsible';
@@ -8,9 +7,21 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { ChevronRightIcon, ChevronDownIcon } from '@radix-ui/react-icons';
 import { motion } from 'framer-motion';
-import { AppIcon, type IconName } from '../ui/AppIcon';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import {
+  LayoutDashboard,
+  BookOpen,
+  BookMarked,
+  BookX,
+  Library,
+  Users,
+  FolderTree,
+  LogOut,
+  User,
+  ChevronDown as ChevronDownIconLucide,
+} from 'lucide-react';
+import { MaterialSymbolsLocalLibraryOutline } from '@/components/icons';
 
 interface SidebarProps {
   isMobile: boolean;
@@ -18,47 +29,51 @@ interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
-type MenuItems =
-  | {
-      id: string;
-      label: string;
-      icon: IconName;
-      href: string;
-      children?: never;
-    }
-  | {
-      id: string;
-      label: string;
-      icon: IconName 
-      children: {
-        id: string;
-        label: string;
-        icon?: IconName;
-        href: string;
-      }[];
-      href?: never;
-    };
+interface MenuItemWithChildren {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  children: {
+    id: string;
+    label: string;
+    icon?: React.ReactNode;
+    href: string;
+  }[];
+  href?: never;
+}
+
+interface MenuItemWithoutChildren {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  href: string;
+  children?: never;
+}
+
+type MenuItems = MenuItemWithChildren | MenuItemWithoutChildren;
 
 const menuItems: MenuItems[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'IcOutlineDashboard', href: '/admin' },
-  { id: 'reservations', label: 'Reservasi', icon: 'MdiBookArrowLeft', href: '/admin/reservations' },
-  { id: 'loans', label: 'Peminjaman', icon: 'MdiBookArrowRight', href: '/admin/loans' },
-  { id: 'returns', label: 'Pengembalian', icon: 'MdiBookArrowLeft', href: '/admin/returns' },
+  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/admin' },
+  { id: 'reservations', label: 'Reservasi', icon: <BookMarked size={20} />, href: '/admin/reservations' },
+  { id: 'loans', label: 'Peminjaman', icon: <BookOpen size={20} />, href: '/admin/loans' },
+  { id: 'returns', label: 'Pengembalian', icon: <BookX size={20} />, href: '/admin/returns' },
   {
     id: 'books',
     label: 'Buku',
-    icon: 'MdiBooks',
+    icon: <Library size={20} />,
     children: [
-      { id: 'book-list', label: 'Daftar Buku', icon: 'WpfBooks', href: '/admin/books' },
-      { id: 'book-categories', label: 'Kategori', icon: 'MaterialSymbolsCategorySearchOutline', href: '/admin/books/categories' },
+      { id: 'book-list', label: 'Daftar Buku', icon: <BookOpen size={18} />, href: '/admin/books' },
+      { id: 'book-categories', label: 'Kategori', icon: <FolderTree size={18} />, href: '/admin/books/categories' },
     ],
   },
-  { id: 'members', label: 'Anggota', icon: 'Fa6SolidUsersGear', href: '/admin/members' },
+  { id: 'members', label: 'Anggota', icon: <Users size={20} />, href: '/admin/members' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, onCloseMobile }) => {
   const router = useRouter();
   const { logout, session } = useAuth();
+  const pathname = usePathname();
+
   const handleLogout = async () => {
     await logout();
     router.replace('/');
@@ -86,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
           marginBottom: '16px',
         }}
       >
-        <AppIcon name='MaterialSymbolsLocalLibraryOutline' />
+        <MaterialSymbolsLocalLibraryOutline  width={24} height={24} />
 
         <Box
           style={{
@@ -126,10 +141,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
         }}
       >
         {menuItems.map((item) => {
-          const pathname = usePathname();
-          const isActive = pathname === item.href || item.children?.some((c) => pathname.startsWith(c.href));
+          const isActive =
+            'href' in item
+              ? pathname === item.href
+              : pathname.startsWith(item.children[0]?.href) || item.children.some((c) => pathname.startsWith(c.href));
 
-          if (!item.children) {
+          if (!('children' in item)) {
             return (
               <Button
                 asChild
@@ -137,16 +154,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                 variant={isActive ? 'solid' : 'soft'}
                 onClick={onCloseMobile}
                 style={{
-                  justifyContent: 'flex-start',
-                  padding: '10px',
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                  padding: sidebarCollapsed ? '10px 0' : '10px',
                   width: '100%',
                   height: '50px',
                   overflow: 'hidden',
                 }}
                 title={sidebarCollapsed ? item.label : undefined}
               >
-                <Link href={item.href} style={{ display: 'flex', alignItems: 'center', gap: sidebarCollapsed ? 0 : '10px', width: '100%' }}>
-                  <AppIcon name={item.icon} size={24} />
+                <Link
+                  href={item.href}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                    gap: sidebarCollapsed ? 0 : '10px',
+                    width: '100%',
+                  }}
+                >
+                  <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</Box>
                   {!sidebarCollapsed && <Text>{item.label}</Text>}
                 </Link>
               </Button>
@@ -162,13 +188,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                       variant={isActive ? 'solid' : 'soft'}
                       style={{
                         justifyContent: 'center',
-                        padding: '10px',
+                        padding: '10px 0',
                         width: '100%',
                         height: '50px',
                       }}
                       title={item.label}
                     >
-                      <AppIcon name={item.icon} />
+                      <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</Box>
                     </Button>
                   </Popover.Trigger>
 
@@ -183,7 +209,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                   >
                     <Flex direction='column' gap='1'>
                       <Flex align='center' gap='2' px='2' py='1'>
-                        <Icon icon={item.icon} width='14' height='14' style={{ flexShrink: 0 }} />
+                        <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</Box>
                         <Text size='1' weight='bold' style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.label}
                         </Text>
@@ -201,7 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                             onClick={onCloseMobile}
                             style={{
                               justifyContent: 'flex-start',
-                              padding: sidebarCollapsed ? '10px' : '10px 12px',
+                              padding: '10px 12px',
                               width: '100%',
                               overflow: 'hidden',
                             }}
@@ -212,10 +238,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '6px',
-                                width: '100%', // full width
+                                width: '100%',
                               }}
                             >
-                              {child.icon && <AppIcon name={child.icon} size={18} />}
+                              <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{child.icon}</Box>
                               <Text
                                 size='2'
                                 style={{
@@ -246,7 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                       }}
                     >
                       <Flex align='center' gap='2' style={{ flex: 1, minWidth: 0 }}>
-                        <AppIcon name={item.icon} size={18} />
+                        <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</Box>
                         <Text style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</Text>
                         <ChevronDownIcon style={{ marginLeft: 'auto' }} />
                       </Flex>
@@ -287,10 +313,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
                                       display: 'flex',
                                       alignItems: 'center',
                                       gap: '6px',
-                                      width: '100%', // full width
+                                      width: '100%',
                                     }}
                                   >
-                                    {child.icon && <AppIcon name={child.icon} size={18} />}
+                                    <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{child.icon}</Box>
                                     <Text
                                       size='2'
                                       style={{
@@ -397,10 +423,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               )}
 
               {!sidebarCollapsed && (
-                <Icon
-                  icon='radix-icons:chevron-down'
-                  width='14'
-                  height='14'
+                <ChevronDownIconLucide
+                  size={14}
                   style={{
                     marginLeft: 'auto',
                     color: 'var(--gray-10)',
@@ -419,14 +443,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
           >
             <DropdownMenu.Item>
               <Flex align='center' gap='2'>
-                <Icon icon='radix-icons:person' width='14' height='14' />
+                <User size={14} />
                 <Text size='2'>My Profile</Text>
               </Flex>
             </DropdownMenu.Item>
             <DropdownMenu.Separator />
             <DropdownMenu.Item color='red' onClick={() => handleLogout()}>
               <Flex align='center' gap='2'>
-                <AppIcon name='IconoirLogOut' size={14} />
+                <LogOut size={14} />
                 <Text size='2'>Logout</Text>
               </Flex>
             </DropdownMenu.Item>

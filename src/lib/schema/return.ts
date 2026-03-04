@@ -17,18 +17,22 @@ export const returnSchema = z.object({
   deletedAt: z.date().nullable(),
 });
 
-const returnInputSchema = returnSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  deletedAt: true,
-});
+const returnInputSchema = returnSchema
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    deletedAt: true,
+  })
+  
 
 export const returnResponseSchema = returnSchema.omit({ deletedAt: true }).extend({
-  loan: loanResponseSchema,
-  member: memberResponseSchema,
-  book: bookResponseSchema,
-});
+    fineAmount: z
+      .union([z.string(), z.number()])
+      .nullable()
+      .transform((v) => (v === null ? null : Number(v))),
+    loan: loanResponseSchema,
+  });
 
 export const createReturnSchema = returnInputSchema.pick({
   loanId: true,

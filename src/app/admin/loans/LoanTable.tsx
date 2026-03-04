@@ -2,25 +2,148 @@
 'use client';
 
 import { useState } from 'react';
-import { Container, Heading, Flex, Text } from '@radix-ui/themes';
+import { Container, Heading, Flex, Box, Button, DataList, AlertDialog, Badge, Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
-import { useRouter } from 'next/navigation';
-import { DataTable, ColDataTable } from '@/components/features/datatable/DataTable';
 import { useLoans } from '@/hooks/useLoans';
-import type { Loan, LoanResponse } from '@/lib/schema/loan';
+import { usePanel } from '@/hooks/usePanel';
+import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
+import { Panel } from '@/components/ui/Panel';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { LoanForm } from './LoanForm';
+import type { LoanResponse } from '@/lib/schema/loan';
+import { useReturns } from '@/hooks/useReturns';
+
+/* =========================
+   STATUS BADGE CONFIG
+========================= */
+
+const STATUS_CONFIG = {
+  borrowed: { label: 'Borrowed', color: 'blue' as const },
+  returned: { label: 'Returned', color: 'green' as const },
+  overdue: { label: 'Overdue', color: 'red' as const },
+  lost: { label: 'Lost', color: 'orange' as const },
+} as const;
+
+type LoanStatus = keyof typeof STATUS_CONFIG;
+
+function StatusBadge({ status }: { status: LoanStatus }) {
+  const config = STATUS_CONFIG[status] || { label: status, color: 'gray' as const };
+  return <Badge color={config.color}>{config.label}</Badge>;
+}
+
+/* =========================
+   VIEW CONTENT
+========================= */
+
+function ViewLoanContent({ loan, onClose }: { loan: LoanResponse; onClose: () => void }) {
+  return (
+    <>
+      <DataList.Root>
+        <DataList.Item>
+          <DataList.Label>Loan ID</DataList.Label>
+          <DataList.Value>#{loan.id}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Status</DataList.Label>
+          <DataList.Value>
+            <StatusBadge status={loan.status as LoanStatus} />
+          </DataList.Value>
+        </DataList.Item>
+
+        {/* <DataList.Separator /> */}
+
+        <DataList.Item>
+          <DataList.Label>Member</DataList.Label>
+          <DataList.Value>
+            <Flex direction='column'>
+              <Text weight='medium'>{loan.member?.fullName}</Text>
+              <Text size='1' color='gray'>{loan.member?.memberClass} - {loan.member?.memberCode}</Text>
+            </Flex>
+          </DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Book</DataList.Label>
+          <DataList.Value>
+            <Flex direction='column'>
+              <Text weight='medium'>{loan.book?.title}</Text>
+              <Text size='1' color='gray'>by {loan.book?.author}</Text>
+            </Flex>
+          </DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Quantity</DataList.Label>
+          <DataList.Value>{loan.quantity}x</DataList.Value>
+        </DataList.Item>
+
+        {loan.reservation && (
+          <DataList.Item>
+            <DataList.Label>Reservation</DataList.Label>
+            <DataList.Value>#{loan.reservation.id}</DataList.Value>
+          </DataList.Item>
+        )}
+
+        {/* <DataList.Separator /> */}
+
+        <DataList.Item>
+          <DataList.Label>Loan Date</DataList.Label>
+          <DataList.Value>{new Date(loan.loanDate).toLocaleDateString('id-ID', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })}</DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Due Date</DataList.Label>
+          <DataList.Value>{new Date(loan.dueDate).toLocaleDateString('id-ID', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })}</DataList.Value>
+        </DataList.Item>
+
+        {loan.notes && (
+          <>
+            {/* <DataList.Separator /> */}
+            <DataList.Item>
+              <DataList.Label>Notes</DataList.Label>
+              <DataList.Value>{loan.notes}</DataList.Value>
+            </DataList.Item>
+          </>
+        )}
+      </DataList.Root>
+
+      <Flex gap='3' mt='4' justify='end'>
+        <Button variant='soft' onClick={onClose}>
+          Close
+        </Button>
+      </Flex>
+    </>
+  );
+}
+
+/* =========================
+   MAIN COMPONENT
+========================= */
 
 export function LoanTable() {
-  const router = useRouter();
+  const loans = useLoans();
+  const returns = useReturns()
+
+  const { mode, selected, open, close } = usePanel<LoanResponse>();
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-
-  const loans = useLoans();
+  const [limit, setLimit] = useState(10);
+  const [deleteTarget, setDeleteTarget] = useState<LoanResponse | null>(null);
 
   const { data, isLoading, refetch } = loans.list({
     page,
     search,
-    limit: 10,
+    limit,
   });
 
   const columns: ColDataTable<LoanResponse>[] = [
@@ -52,9 +175,7 @@ export function LoanTable() {
     {
       accessorKey: 'quantity',
       header: 'Qty',
-      cell: ({ row }) => (
-        <Text>{row.original.quantity}x</Text>
-      ),
+      cell: ({ row }) => <Text>{row.original.quantity}x</Text>,
     },
     {
       accessorKey: 'loanDate',
@@ -69,50 +190,34 @@ export function LoanTable() {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => {
-        const status = row.original.status;
-        const config = {
-          BORROWED: { label: 'Borrowed', color: 'blue' },
-          RETURNED: { label: 'Returned', color: 'green' },
-          OVERDUE: { label: 'Overdue', color: 'red' },
-          CANCELLED: { label: 'Cancelled', color: 'gray' },
-        };
-        const statusConfig = config[status as keyof typeof config] || { label: status, color: 'gray' };
-        
-        return (
-          <Text color={statusConfig.color as any}>
-            {statusConfig.label}
-          </Text>
-        );
-      },
+      cell: ({ row }) => <StatusBadge status={row.original.status as LoanStatus} />,
     },
   ];
 
-  const rowActions = (loan: Loan) => [
+  const rowActions: () => RowAction<LoanResponse>[] = () => [
     {
       key: 'view',
       label: 'View Details',
       icon: <Icon icon='mdi:eye' />,
-      onClick: () => router.push(`/loans/${loan.id}`),
+      color: 'blue',
+      onClick: (row) => open('view', row),
     },
     {
       key: 'edit',
       label: 'Edit Loan',
-      color: 'blue' as const,
       icon: <Icon icon='mdi:pencil' />,
-      onClick: () => router.push(`/loans/${loan.id}/edit`),
+      color: 'green',
+      onClick: (row) => open('edit', row),
     },
     {
       key: 'return',
       label: 'Mark as Returned',
-      color: 'green' as const,
       icon: <Icon icon='mdi:book-check' />,
-      onClick: async () => {
-        if (confirm(`Mark loan #${loan.id} as returned?`)) {
-          await loans.update.mutateAsync({
-            id: loan.id,
-            data: { status: 'returned' },
-          });
+      color: 'green',
+      disabled: (row) => row.status === 'returned' || row.status === 'lost',
+      onClick: async (row) => {
+        if (confirm(`Mark loan #${row.id} as returned?`)) {
+          await returns.create.mutateAsync({ loanId: row.id, condition: 'good' });
           refetch();
         }
       },
@@ -120,14 +225,9 @@ export function LoanTable() {
     {
       key: 'delete',
       label: 'Delete Loan',
-      color: 'red' as const,
       icon: <Icon icon='mdi:delete' />,
-      onClick: async () => {
-        if (confirm(`Delete loan #${loan.id}?`)) {
-          await loans.remove.mutateAsync(loan.id);
-          refetch();
-        }
-      },
+      color: 'red',
+      onClick: (row) => setDeleteTarget(row),
     },
   ];
 
@@ -136,41 +236,137 @@ export function LoanTable() {
     { label: 'Loans' },
   ];
 
+  const renderPanelContent = () => {
+    if (mode === 'add') {
+      return (
+        <LoanForm
+          submitLabel='Create Loan'
+          onSubmit={async (formData) => {
+            await loans.create.mutateAsync(formData);
+            close();
+            refetch();
+          }}
+          onClose={close}
+        />
+      );
+    }
+
+    if (mode === 'edit' && selected) {
+      return (
+        <LoanForm
+          initialData={{
+            memberId: selected.memberId,
+            bookId: selected.bookId,
+            quantity: selected.quantity,
+            loanDate: new Date(selected.loanDate),
+            dueDate: new Date(selected.dueDate),
+            notes: selected.notes || '',
+            status: selected.status,
+          }}
+          submitLabel='Update Loan'
+          isUpdate={true}
+          onSubmit={async (formData) => {
+            await loans.update.mutateAsync({
+              id: selected.id,
+              data: formData,
+            });
+            close();
+            refetch();
+          }}
+          onClose={close}
+        />
+      );
+    }
+
+    if (mode === 'view' && selected) {
+      return <ViewLoanContent loan={selected} onClose={close} />;
+    }
+
+    return null;
+  };
+
+  const panelTitle = 
+    mode === 'add' ? 'Create New Loan' : 
+    mode === 'edit' ? 'Edit Loan' : 
+    mode === 'view' ? 'Loan Details' : '';
+
   return (
-    <Container size='4'>
-      <Breadcrumb items={breadcrumbItems} />
+    <Box position='relative' minHeight='100vh'>
+      <Container size='4' py='6'>
+        <Breadcrumb items={breadcrumbItems} />
 
-      <Flex justify='between' align='center' mb='6'>
-        <Flex direction='column' gap='1'>
+        <Flex justify='between' align='center' mb='6'>
           <Heading size='8'>Loan Management</Heading>
-          <Text size='2' color='gray'>
-            Total {data?.meta?.total || 0} loans
-          </Text>
         </Flex>
-      </Flex>
 
-      <DataTable
-        data={data?.data ?? []}
-        columns={columns}
-        meta={data?.meta}
-        isLoading={isLoading}
-        onRefresh={() => refetch()}
-        searchValue={search}
-        onSearchChange={setSearch}
-        page={page}
-        onPageChange={setPage}
-        showAdd={true}
-        onAdd={() => router.push('/admin/loans/create')}
-        showRefresh={true}
-        showPrint={true}
-        rowActions={rowActions}
-        enableSearch={true}
-        enablePagination={true}
-        enableSorting={true}
-        enablePageSize={true}
-        enableContextMenu={true}
-        emptyMessage='No loans found'
-      />
-    </Container>
+        <DataTable
+          data={data?.data ?? []}
+          columns={columns}
+          meta={data?.meta}
+          isLoading={isLoading}
+          onRefresh={refetch}
+          searchValue={search}
+          onSearchChange={setSearch}
+          page={page}
+          onPageChange={setPage}
+          onPageSizeChange={setLimit}
+          rowActions={rowActions}
+          enableSearch
+          enablePagination
+          showAdd
+          showPrint
+          showRefresh
+          onAdd={() => open('add')}
+        />
+      </Container>
+
+      <Panel 
+        open={mode !== null} 
+        onClose={close} 
+        title={panelTitle} 
+        width={mode === 'view' ? 500 : 480}
+      >
+        {renderPanelContent()}
+      </Panel>
+
+      <AlertDialog.Root
+        open={!!deleteTarget}
+        onOpenChange={(openState) => {
+          if (!openState) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialog.Content maxWidth='450px'>
+          <AlertDialog.Title>Delete Loan</AlertDialog.Title>
+          <AlertDialog.Description size='2'>
+            Are you sure you want to delete loan <strong>#{deleteTarget?.id}</strong>?
+            <Box mt='2'>
+              This loan was for <strong>{deleteTarget?.book?.title}</strong> by <strong>{deleteTarget?.member?.fullName}</strong>.
+            </Box>
+          </AlertDialog.Description>
+
+          <Flex gap='3' mt='4' justify='end'>
+            <AlertDialog.Cancel>
+              <Button variant='soft' color='gray'>
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+
+            <AlertDialog.Action>
+              <Button
+                color='red'
+                onClick={async () => {
+                  if (!deleteTarget) return;
+                  await loans.remove.mutateAsync(deleteTarget.id);
+                  setDeleteTarget(null);
+                  refetch();
+                }}
+              >
+                Delete
+              </Button>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </Box>
   );
 }

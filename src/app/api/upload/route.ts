@@ -25,6 +25,7 @@ export const POST = handleApi(async ({ req }) => {
     publicId: result.public_id,
   });
 });
+
 export const DELETE = handleApi(async ({ req }) => {
   const body = await req.json();
   const { publicId } = body;

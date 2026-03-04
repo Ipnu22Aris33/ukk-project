@@ -1,50 +1,187 @@
 // components/datatable/ReturnTable.tsx
 'use client';
 
-import React, { useState } from 'react';
-import { Container, Heading, Flex, Text } from '@radix-ui/themes';
+import { useState } from 'react';
+import { Container, Heading, Flex, Box, Button, DataList, AlertDialog, Badge, Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
-import { useRouter } from 'next/navigation';
-import { DataTable, ColDataTable } from '@/components/features/datatable/DataTable';
 import { useReturns } from '@/hooks/useReturns';
-import { useLoans } from '@/hooks/useLoans';
-import type { ReturnResponse } from '@/lib/schema/return';
+import { usePanel } from '@/hooks/usePanel';
+import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
+import { Panel } from '@/components/ui/Panel';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import type { ReturnResponse } from '@/lib/schema/return';
+
+/* =========================
+   STATUS BADGE CONFIG
+========================= */
+
+const FINE_STATUS_CONFIG = {
+  PAID: { label: 'Paid', color: 'green' as const },
+  UNPAID: { label: 'Unpaid', color: 'red' as const },
+  WAIVED: { label: 'Waived', color: 'gray' as const },
+} as const;
+
+const LOAN_STATUS_CONFIG = {
+  ACTIVE: { label: 'Active', color: 'blue' as const },
+  RETURNED: { label: 'Returned', color: 'green' as const },
+  OVERDUE: { label: 'Overdue', color: 'red' as const },
+} as const;
+
+type FineStatus = keyof typeof FINE_STATUS_CONFIG;
+type LoanStatus = keyof typeof LOAN_STATUS_CONFIG;
+
+function FineStatusBadge({ status }: { status: FineStatus }) {
+  const config = FINE_STATUS_CONFIG[status] || { label: status, color: 'gray' as const };
+  return <Badge color={config.color}>{config.label}</Badge>;
+}
+
+function LoanStatusBadge({ status }: { status: LoanStatus }) {
+  const config = LOAN_STATUS_CONFIG[status] || { label: status, color: 'gray' as const };
+  return <Badge color={config.color}>{config.label}</Badge>;
+}
+
+/* =========================
+   VIEW CONTENT
+========================= */
+
+function ViewReturnContent({ return: returnData, onClose }: { return: ReturnResponse; onClose: () => void }) {
+  return (
+    <>
+      <DataList.Root>
+        <DataList.Item>
+          <DataList.Label>Return ID</DataList.Label>
+          <DataList.Value>#{returnData.id}</DataList.Value>
+        </DataList.Item>
+
+        {/* <DataList.Separator /> */}
+
+        <DataList.Item>
+          <DataList.Label>Loan Information</DataList.Label>
+          <DataList.Value>
+            <Flex direction='column' gap='1'>
+              <Text>Loan ID: #{returnData.loan?.id}</Text>
+              <LoanStatusBadge status={returnData.loan?.status as LoanStatus} />
+            </Flex>
+          </DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Member</DataList.Label>
+          <DataList.Value>
+            <Flex direction='column'>
+              <Text weight='medium'>{returnData.loan?.member?.fullName}</Text>
+              <Text size='1' color='gray'>{returnData.loan?.member?.memberClass} - {returnData.loan?.member?.memberCode}</Text>
+            </Flex>
+          </DataList.Value>
+        </DataList.Item>
+
+        <DataList.Item>
+          <DataList.Label>Book</DataList.Label>
+          <DataList.Value>
+            <Flex direction='column'>
+              <Text weight='medium'>{returnData.loan?.book?.title}</Text>
+              <Text size='1' color='gray'>by {returnData.loan?.book?.author}</Text>
+            </Flex>
+          </DataList.Value>
+        </DataList.Item>
+
+        {/* <DataList.Separator /> */}
+
+        <DataList.Item>
+          <DataList.Label>Fine Amount</DataList.Label>
+          <DataList.Value>
+            <Flex direction='column' gap='1'>
+              <Text weight='bold'>
+                {new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  minimumFractionDigits: 0,
+                }).format(returnData.fineAmount || 0)}
+              </Text>
+              <FineStatusBadge status={returnData.fineStatus as FineStatus} />
+            </Flex>
+          </DataList.Value>
+        </DataList.Item>
+
+        {/* <DataList.Separator /> */}
+
+        <DataList.Item>
+          <DataList.Label>Return Date</DataList.Label>
+          <DataList.Value>
+            {new Date(returnData.returnedAt).toLocaleDateString('id-ID', { 
+              day: 'numeric', 
+              month: 'long', 
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </DataList.Value>
+        </DataList.Item>
+
+        {returnData.notes && (
+          <>
+            {/* <DataList.Separator /> */}
+            <DataList.Item>
+              <DataList.Label>Notes</DataList.Label>
+              <DataList.Value>{returnData.notes}</DataList.Value>
+            </DataList.Item>
+          </>
+        )}
+      </DataList.Root>
+
+      <Flex gap='3' mt='4' justify='end'>
+        <Button variant='soft' onClick={onClose}>
+          Close
+        </Button>
+      </Flex>
+    </>
+  );
+}
+
+/* =========================
+   MAIN COMPONENT
+========================= */
 
 export function ReturnTable() {
-  const router = useRouter();
+  const returns = useReturns();
+  const { mode, selected, open, close } = usePanel<ReturnResponse>();
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [loanSearch, setLoanSearch] = useState('');
-
-  const returns = useReturns();
-  const loans = useLoans();
+  const [limit, setLimit] = useState(10);
+  const [deleteTarget, setDeleteTarget] = useState<ReturnResponse | null>(null);
 
   const { data, isLoading, refetch } = returns.list({
     page,
     search,
-    limit: 10,
+    limit,
   });
-
-  const loanList = loans.list({
-    page: 1,
-    limit: 100,
-    search: loanSearch,
-  });
-
-  const loanOptions = (loanList.data?.data || []).map((loan) => ({
-    value: String(loan.id),
-    label: `Loan #${loan.id} - ${loan.memberId}`,
-  }));
 
   const columns: ColDataTable<ReturnResponse>[] = [
     {
       accessorKey: 'id',
       header: 'Return ID',
+      cell: ({ row }) => <Text color='gray'>#{row.original.id}</Text>,
     },
     {
-      accessorKey: 'member.fullName',
+      accessorKey: 'loan.member.fullName',
       header: 'Member',
+      cell: ({ row }) => (
+        <Flex direction='column'>
+          <Text weight='medium'>{row.original.loan?.member?.fullName}</Text>
+          <Text size='1' color='gray'>{row.original.loan?.member?.memberClass}</Text>
+        </Flex>
+      ),
+    },
+    {
+      accessorKey: 'loan.book.title',
+      header: 'Book',
+      cell: ({ row }) => (
+        <Flex direction='column'>
+          <Text>{row.original.loan?.book?.title}</Text>
+          <Text size='1' color='gray'>{row.original.loan?.book?.author}</Text>
+        </Flex>
+      ),
     },
     {
       accessorKey: 'fineAmount',
@@ -62,46 +199,12 @@ export function ReturnTable() {
     {
       accessorKey: 'fineStatus',
       header: 'Fine Status',
-      cell: ({ row }) => {
-        const status = row.original.fineStatus;
-        const colors: Record<string, "green" | "red" | "gray"> = {
-          PAID: 'green',
-          UNPAID: 'red',
-          WAIVED: 'gray',
-        };
-        const color: "green" | "red" | "gray" = colors[status as keyof typeof colors] ?? 'gray';
-        return (
-          <Text color={color}>
-            {status}
-          </Text>
-        );
-      },
-    },
-    {
-      accessorKey: 'book.title',
-      header: 'Book Title',
-    },
-    {
-      accessorKey: 'book.author',
-      header: 'Author',
+      cell: ({ row }) => <FineStatusBadge status={row.original.fineStatus as FineStatus} />,
     },
     {
       accessorKey: 'loan.status',
       header: 'Loan Status',
-      cell: ({ row }) => {
-        const status = row.original.loan?.status;
-        const colors: Record<string, "green" | "red" | "gray" | "blue"> = {
-          ACTIVE: 'blue',
-          RETURNED: 'green',
-          OVERDUE: 'red',
-        };
-        const color: "green" | "red" | "gray" | "blue" = colors[status as keyof typeof colors] ?? 'gray';
-        return (
-          <Text color={color}>
-            {status}
-          </Text>
-        );
-      },
+      cell: ({ row }) => <LoanStatusBadge status={row.original.loan?.status as LoanStatus} />,
     },
     {
       accessorKey: 'returnedAt',
@@ -110,78 +213,117 @@ export function ReturnTable() {
     },
   ];
 
-  const rowActions = (returnData: ReturnResponse) => [
+  const rowActions: () => RowAction<ReturnResponse>[] = () => [
     {
       key: 'view',
       label: 'View Details',
       icon: <Icon icon='mdi:eye' />,
-      onClick: () => router.push(`/returns/${returnData.id}`),
-    },
-    {
-      key: 'edit',
-      label: 'Edit Return',
-      color: 'blue' as const,
-      icon: <Icon icon='mdi:pencil' />,
-      onClick: () => router.push(`/returns/${returnData.id}/edit`),
+      color: 'blue',
+      onClick: (row) => open('view', row),
     },
     {
       key: 'delete',
       label: 'Delete Return',
-      color: 'red' as const,
       icon: <Icon icon='mdi:delete' />,
-      onClick: async () => {
-        if (confirm(`Delete return #${returnData.id}?`)) {
-          await returns.remove.mutateAsync(returnData.id);
-          refetch();
-        }
-      },
+      color: 'red',
+      onClick: (row) => setDeleteTarget(row),
     },
   ];
-
-  const handleCreate = () => {
-    router.push('/admin/returns/create');
-  };
 
   const breadcrumbItems = [
     { label: 'Dashboard', href: '/dashboard' },
     { label: 'Returns' },
   ];
 
+  const renderPanelContent = () => {
+    if (mode === 'view' && selected) {
+      return <ViewReturnContent return={selected} onClose={close} />;
+    }
+
+    return null;
+  };
+
+  const panelTitle = mode === 'view' ? 'Return Details' : '';
+
   return (
-    <Container size='4'>
-      <Breadcrumb items={breadcrumbItems} />
+    <Box position='relative' minHeight='100vh'>
+      <Container size='4' py='6'>
+        <Breadcrumb items={breadcrumbItems} />
 
-      <Flex justify='between' align='center' mb='6'>
-        <Flex direction='column' gap='1'>
+        <Flex justify='between' align='center' mb='6'>
           <Heading size='8'>Returns Management</Heading>
-          <Text size='2' color='gray'>
-            Total {data?.meta?.total || 0} returns
-          </Text>
         </Flex>
-      </Flex>
 
-      <DataTable
-        data={data?.data ?? []}
-        columns={columns}
-        meta={data?.meta}
-        isLoading={isLoading}
-        onRefresh={() => refetch()}
-        searchValue={search}
-        onSearchChange={setSearch}
-        page={page}
-        onPageChange={setPage}
-        onAdd={handleCreate}
-        showAdd={true}
-        showRefresh={true}
-        showPrint={true}
-        rowActions={rowActions}
-        enableSearch={true}
-        enablePagination={true}
-        enableSorting={true}
-        enablePageSize={true}
-        enableContextMenu={true}
-        emptyMessage='No returns found'
-      />
-    </Container>
+        <DataTable
+          data={data?.data ?? []}
+          columns={columns}
+          meta={data?.meta}
+          isLoading={isLoading}
+          onRefresh={refetch}
+          searchValue={search}
+          onSearchChange={setSearch}
+          page={page}
+          onPageChange={setPage}
+          onPageSizeChange={setLimit}
+          rowActions={rowActions}
+          enableSearch
+          enablePagination
+          showAdd={false} // Explicitly set to false to hide add button
+          showPrint
+          showRefresh
+        />
+      </Container>
+
+      <Panel 
+        open={mode === 'view'} 
+        onClose={close} 
+        title={panelTitle} 
+        width={500}
+      >
+        {renderPanelContent()}
+      </Panel>
+
+      <AlertDialog.Root
+        open={!!deleteTarget}
+        onOpenChange={(openState) => {
+          if (!openState) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialog.Content maxWidth='450px'>
+          <AlertDialog.Title>Delete Return</AlertDialog.Title>
+          <AlertDialog.Description size='2'>
+            Are you sure you want to delete return <strong>#{deleteTarget?.id}</strong>?
+            <Box mt='2'>
+              This return was for <strong>{deleteTarget?.loan?.book?.title}</strong> by <strong>{deleteTarget?.loan?.member?.fullName}</strong>.
+            </Box>
+            <Box mt='2'>
+              This action cannot be undone.
+            </Box>
+          </AlertDialog.Description>
+
+          <Flex gap='3' mt='4' justify='end'>
+            <AlertDialog.Cancel>
+              <Button variant='soft' color='gray'>
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+
+            <AlertDialog.Action>
+              <Button
+                color='red'
+                onClick={async () => {
+                  if (!deleteTarget) return;
+                  await returns.remove.mutateAsync(deleteTarget.id);
+                  setDeleteTarget(null);
+                  refetch();
+                }}
+              >
+                Delete
+              </Button>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </Box>
   );
 }

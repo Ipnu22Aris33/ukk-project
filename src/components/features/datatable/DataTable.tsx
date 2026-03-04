@@ -27,6 +27,7 @@ import {
 } from '@radix-ui/react-icons';
 import { useResponsive } from '@/hooks/useResponsive';
 import { UitPrint } from '@/components/icons';
+import { Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 
 export type MetaData = {
@@ -549,7 +550,7 @@ export function DataTable<T>({
             {showPrint && (
               <DropdownMenu.Item onClick={handlePrint}>
                 <Flex gap='2' align='center'>
-                  <UitPrint />
+                  <Printer size={16}/>
                   {printButtonLabel}
                 </Flex>
               </DropdownMenu.Item>
@@ -583,7 +584,7 @@ export function DataTable<T>({
         {showPrint && (
           <Button size='2' variant='soft' onClick={handlePrint}>
             <Flex gap='2' align='center'>
-              <UitPrint />
+              <Printer size={16} />
               {printButtonLabel}
             </Flex>
           </Button>

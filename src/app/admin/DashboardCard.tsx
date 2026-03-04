@@ -1,28 +1,19 @@
 'use client';
 import { Card, Flex, Box, Heading, Text, Badge } from '@radix-ui/themes';
-import { Icon } from '@iconify/react';
 
 export type StatItem = {
   title: string;
   value: number;
-  icon: string;
+  icon: React.ReactNode;
   color: string;
   trend: string;
   trendUp: boolean;
 };
 
-export function DashboardCard({
-  item,
-  index,
-  loading = false,
-}: {
-  item: StatItem;
-  index: number;
-  loading?: boolean;
-}) {
+export function DashboardCard({ item, index, loading = false }: { item: StatItem; index: number; loading?: boolean }) {
   return (
     <Card
-      variant="surface"
+      variant='surface'
       style={{
         flex: '1 1 calc(25% - 1rem)',
         minWidth: '220px',
@@ -45,10 +36,8 @@ export function DashboardCard({
           }}
         />
       ) : (
-        // ... render normal card content
-        <Flex direction="column" gap="4">
-          {/* Header */}
-          <Flex justify="between" align="start">
+        <Flex direction='column' gap='4'>
+          <Flex justify='between' align='start'>
             <Box
               style={{
                 background: `var(--${item.color}-3)`,
@@ -59,24 +48,24 @@ export function DashboardCard({
                 justifyContent: 'center',
               }}
             >
-              <Icon icon={item.icon} width={28} height={28} style={{ color: `var(--${item.color}-11)` }} />
+              {item.icon}
             </Box>
 
-            <Badge color={item.trendUp ? 'green' : 'red'} variant="soft" size="1">
-              <Flex align="center" gap="1">
-                <Icon icon={item.trendUp ? 'mdi:trending-up' : 'mdi:trending-down'} width={12} height={12} />
-                <Text size="1">{item.trend}</Text>
+            <Badge color={item.trendUp ? 'green' : 'red'} variant='soft' size='1'>
+              <Flex align='center' gap='1'>
+                <Badge>
+                  <Text size='1'>{item.trend}</Text>
+                </Badge>
               </Flex>
             </Badge>
           </Flex>
 
-          {/* Content */}
-          <Flex direction="column" gap="1">
-            <Text size="2" color="gray" style={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 }}>
+          <Flex direction='column' gap='1'>
+            <Text size='2' color='gray' style={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 }}>
               {item.title}
             </Text>
             <Heading
-              size="7"
+              size='7'
               style={{
                 background: `linear-gradient(135deg, var(--${item.color}-11) 0%, var(--${item.color}-9) 100%)`,
                 WebkitBackgroundClip: 'text',
@@ -88,7 +77,6 @@ export function DashboardCard({
             </Heading>
           </Flex>
 
-          {/* Bar */}
           <Box style={{ width: '100%', height: '4px', background: 'var(--gray-4)', borderRadius: '999px', overflow: 'hidden' }}>
             <Box
               style={{
@@ -105,4 +93,3 @@ export function DashboardCard({
     </Card>
   );
 }
-

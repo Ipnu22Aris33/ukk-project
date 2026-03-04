@@ -280,3 +280,10 @@ export const reservationsRelations = relations(reservations, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const returnsRelations = relations(returns, ({ one }) => ({
+  loan: one(loans, {
+    fields: [returns.loanId],
+    references: [loans.id],
+  }),
+}));
