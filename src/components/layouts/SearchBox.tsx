@@ -3,11 +3,12 @@
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
-import { TextField, Box, Text, IconButton, Flex } from '@radix-ui/themes';
+import { TextField, Box, Text, IconButton, Flex, Badge, Avatar } from '@radix-ui/themes';
 import { MagnifyingGlassIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useBooks } from '@/hooks/useBooks';
+import Image from 'next/image';
 
 interface SearchBoxProps {
   onClose?: () => void;
@@ -104,9 +105,7 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
       e.preventDefault();
       const commandEl = commandRef.current;
       if (commandEl) {
-        commandEl.dispatchEvent(
-          new KeyboardEvent('keydown', { key: e.key, bubbles: true, cancelable: true })
-        );
+        commandEl.dispatchEvent(new KeyboardEvent('keydown', { key: e.key, bubbles: true, cancelable: true }));
       }
     }
 
@@ -198,28 +197,19 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
                 }}
               >
                 {!query ? (
-                  <Command.Item
-                    disabled
-                    style={{ padding: '8px 12px', outline: 'none' }}
-                  >
+                  <Command.Item disabled style={{ padding: '12px 16px', outline: 'none' }}>
                     <Text size='2' color='gray'>
                       Silakan ketik untuk mencari…
                     </Text>
                   </Command.Item>
                 ) : isLoading ? (
-                  <Command.Item
-                    disabled
-                    style={{ padding: '8px 12px', outline: 'none' }}
-                  >
+                  <Command.Item disabled style={{ padding: '12px 16px', outline: 'none' }}>
                     <Text size='2' color='gray'>
                       Memuat...
                     </Text>
                   </Command.Item>
                 ) : !data?.data || data.data.length === 0 ? (
-                  <Command.Item
-                    disabled
-                    style={{ padding: '8px 12px', outline: 'none' }}
-                  >
+                  <Command.Item disabled style={{ padding: '12px 16px', outline: 'none' }}>
                     <Text size='2' color='gray'>
                       Tidak ditemukan.
                     </Text>
@@ -241,15 +231,65 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
                           backgroundColor: isSelected ? 'var(--accent-3)' : 'transparent',
                         }}
                         onMouseEnter={() => setSelectedValue(itemValue)}
-                        onMouseLeave={() => {/* biarkan cmdk yang handle */}}
+                        onMouseLeave={() => {
+                          /* biarkan cmdk yang handle */
+                        }}
                       >
-                        <Flex direction='column' gap='1'>
-                          <Text size='2' weight='bold'>
-                            {book.title}
-                          </Text>
-                          <Text size='1' color='gray'>
-                            {book.author}
-                          </Text>
+                        <Flex gap='3' align='center'>
+                          {/* Cover Image dengan aspect ratio 2:3 */}
+                          <Box
+                            style={{
+                              width: 40,
+                              height: 60,
+                              borderRadius: 'var(--radius-2)',
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                              backgroundColor: 'var(--gray-3)',
+                              position: 'relative',
+                            }}
+                          >
+                            {book.coverUrl ? (
+                              <Image
+                                src={book.coverUrl}
+                                alt={book.title}
+                                fill
+                                style={{
+                                  objectFit: 'cover',
+                                }}
+                              />
+                            ) : (
+                              <Avatar
+                                size='4'
+                                fallback={book.title.slice(0, 2).toUpperCase()}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  borderRadius: 0,
+                                }}
+                              />
+                            )}
+                          </Box>
+
+                          {/* Info Buku */}
+                          <Flex direction='column' gap='1' style={{ flex: 1 }}>
+                            <Text size='2' weight='bold'>
+                              {book.title}
+                            </Text>
+                            <Flex gap='2' align='center'>
+                              <Text size='1' color='gray'>
+                                {book.author}
+                              </Text>
+                              {book.stock > 0 ? (
+                                <Badge color='green' size='1' variant='soft'>
+                                  {book.stock} tersedia
+                                </Badge>
+                              ) : (
+                                <Badge color='red' size='1' variant='soft'>
+                                  habis
+                                </Badge>
+                              )}
+                            </Flex>
+                          </Flex>
                         </Flex>
                       </Command.Item>
                     );

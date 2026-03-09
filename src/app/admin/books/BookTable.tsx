@@ -93,14 +93,14 @@ function ViewBookContent({ book, onClose }: { book: BookResponse; onClose: () =>
 ========================= */
 
 export function BookTable() {
-  const books = useBooks();
   const { mode, selected, open, close } = usePanel<BookResponse>();
-
+  
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [deleteTarget, setDeleteTarget] = useState<BookResponse | null>(null);
-
+  
+  const books = useBooks();
   const { data, isLoading, refetch } = books.list({
     page,
     search,
