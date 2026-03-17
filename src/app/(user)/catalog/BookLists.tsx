@@ -177,8 +177,8 @@ export function BookList() {
   
   // Hitung statistik dari data yang ada
   const totalBooks = meta?.total || booksData.length;
-  const availableBooks = booksData.filter(b => b.stock > 0).length;
-  const totalCopies = booksData.reduce((acc, b) => acc + b.stock, 0);
+  const availableBooks = booksData.filter(b => b.availableStock > 0).length;
+  const totalCopies = booksData.reduce((acc, b) => acc + b.availableStock, 0);
 
   // Extract unique categories untuk filter
   const categories = Array.from(
@@ -398,12 +398,12 @@ export function BookList() {
                       </Text>
 
                       <Flex align="center" gap="3">
-                        {book.stock > 0 ? (
+                        {book.availableStock > 0 ? (
                           <>
                             <Badge color="green" variant="soft" highContrast>
                               <Flex align="center" gap="1">
                                 <CheckCircledIcon />
-                                {book.stock} Tersedia
+                                {book.availableStock} Tersedia
                               </Flex>
                             </Badge>
                             <Button size="2" variant="solid">

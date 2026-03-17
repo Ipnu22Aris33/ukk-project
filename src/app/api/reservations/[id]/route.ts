@@ -2,9 +2,8 @@ import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
 import { NotFound, Unauthorized, UnprocessableEntity } from '@/lib/utils/httpErrors';
 import { db } from '@/lib/db';
-import { reservations, books } from '@/lib/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
-import { z } from 'zod';
+import { reservations, books, loans } from '@/lib/db/schema';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { updateReservationSchema } from '@/lib/schema/reservation';
 import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 
@@ -17,59 +16,79 @@ export const PATCH = handleApi(async ({ req, params, user }) => {
   const data = await req.json();
   const payload = validateSchema(updateReservationSchema, data);
 
-  const reservation = await db.query.reservations.findFirst({
-    where: and(eq(reservations.id, reservationId), isNull(reservations.deletedAt)),
-  });
+  const result = await db.transaction(async (tx) => {
+    // 1. Ambil data reservasi lama
+    const reservation = await tx.query.reservations.findFirst({
+      where: and(eq(reservations.id, reservationId), isNull(reservations.deletedAt)),
+    });
 
-  if (!reservation) throw new NotFound('Reservasi tidak ditemukan');
+    if (!reservation) throw new NotFound('Reservasi tidak ditemukan');
+    if (user.role === 'member') throw new Unauthorized('Akses ditolak');
 
-  if (user.role === 'member') {
-    throw new Unauthorized('Anda tidak memiliki akses ke reservasi ini');
-  }
-
-  const updated = await db.transaction(async (tx) => {
-    if (payload.status === 'approved' && reservation.status === 'pending') {
-      const book = await tx.query.books.findFirst({
-        where: eq(books.id, reservation.bookId),
-      });
-
-      if (!book || book.stock < reservation.quantity) {
-        throw new UnprocessableEntity('Stok buku tidak mencukupi');
-      }
-
-      await tx
-        .update(books)
-        .set({
-          stock: book.stock - reservation.quantity,
-        })
-        .where(eq(books.id, book.id));
+    // Jika status tidak berubah, langsung update data lainnya saja
+    if (payload.status === reservation.status) {
+      const [updated] = await tx.update(reservations).set(payload).where(eq(reservations.id, reservationId)).returning();
+      return updated;
     }
 
-    if (payload.status === 'canceled' && reservation.status === 'approved') {
-      const book = await tx.query.books.findFirst({
-        where: eq(books.id, reservation.bookId),
+    const now = new Date();
+
+    // --- LOGIKA 4 PILAR STOK BERDASARKAN PERUBAHAN STATUS ---
+
+    // CASE A: PENDING -> APPROVED (Buku diambil oleh member)
+    if (payload.status === 'approved' && reservation.status === 'pending') {
+      // Buat data Loan otomatis
+      await tx.insert(loans).values({
+        memberId: reservation.memberId,
+        bookId: reservation.bookId,
+        quantity: reservation.quantity,
+        reservationId: reservation.id,
+        loanDate: now,
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        status: 'borrowed',
       });
 
-      if (book) {
-        await tx
-          .update(books)
-          .set({
-            stock: book.stock + reservation.quantity,
-          })
-          .where(eq(books.id, book.id));
-      }
+      // Update Stok: Pindah dari reserved ke loaned
+      await tx.update(books)
+        .set({
+          reservedStock: sql`${books.reservedStock} - ${reservation.quantity}`,
+          loanedStock: sql`${books.loanedStock} + ${reservation.quantity}`,
+        })
+        .where(eq(books.id, reservation.bookId));
+      
+      payload.approvedAt = now;
+      payload.approvedBy = user.id;
+    }
+
+    // CASE B: PENDING -> CANCELED / REJECTED (Reservasi batal, stok balik ke rak)
+    if ((payload.status === 'canceled' || payload.status === 'rejected') && reservation.status === 'pending') {
+      await tx.update(books)
+        .set({
+          reservedStock: sql`${books.reservedStock} - ${reservation.quantity}`,
+          availableStock: sql`${books.availableStock} + ${reservation.quantity}`,
+        })
+        .where(eq(books.id, reservation.bookId));
+    }
+
+    // CASE C: APPROVED -> CANCELED (Skenario khusus jika peminjaman dibatalkan sepihak sebelum buku dibawa)
+    if (payload.status === 'canceled' && reservation.status === 'approved') {
+       // Opsional: Hapus loan yang terlanjur dibuat atau update status loan-nya
+       await tx.update(books)
+        .set({
+          loanedStock: sql`${books.loanedStock} - ${reservation.quantity}`,
+          availableStock: sql`${books.availableStock} + ${reservation.quantity}`,
+        })
+        .where(eq(books.id, reservation.bookId));
     }
 
     const [updatedReservation] = await tx
       .update(reservations)
-      .set({
-        ...payload,
-      })
+      .set({ ...payload, updatedAt: now })
       .where(eq(reservations.id, reservationId))
       .returning();
 
     return updatedReservation;
   });
 
-  return ok(safeParseResponse(updateReservationSchema, updated).data, { message: 'Reservasi berhasil diperbarui' });
+  return ok(result, { message: 'Reservasi berhasil diperbarui' });
 });

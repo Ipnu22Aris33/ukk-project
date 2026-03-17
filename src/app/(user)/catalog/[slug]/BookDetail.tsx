@@ -20,16 +20,17 @@ import Image from 'next/image';
 import { BookResponse as Book } from '@/lib/schema/book';
 import { useReservations } from '@/hooks/useReservation';
 
-const getStockColor = (stock: number): 'green' | 'orange' | 'red' => {
-  if (stock === 0) return 'red';
-  if (stock <= 2) return 'orange';
+// 🔥 Update: Menggunakan stock yang tersedia untuk indikator warna
+const getStockColor = (available: number): 'green' | 'orange' | 'red' => {
+  if (available === 0) return 'red';
+  if (available <= 2) return 'orange';
   return 'green';
 };
 
-const getStockLabel = (stock: number) => {
-  if (stock === 0) return 'Tidak tersedia';
-  if (stock === 1) return '1 tersisa';
-  return `${stock} tersedia`;
+const getStockLabel = (available: number) => {
+  if (available === 0) return 'Tidak tersedia di rak';
+  if (available === 1) return '1 tersisa';
+  return `${available} tersedia`;
 };
 
 type MetaField = {
@@ -48,13 +49,16 @@ interface Props {
 export const BookDetail = ({ book, isLoading }: Props) => {
   const router = useRouter();
 
-  const stockColor = book ? getStockColor(book.stock) : 'gray';
-  const isAvailable = (book?.stock ?? 0) > 0;
+  // 🔥 Update: Logika ketersediaan berdasarkan availableStock
+  const availableCount = book?.availableStock ?? 0;
+  const stockColor = book ? getStockColor(availableCount) : 'gray';
+  const isAvailable = availableCount > 0;
 
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState('');
 
-  const maxQty = book?.stock ?? 1;
+  // 🔥 Update: Maksimal reservasi adalah stok yang tersedia
+  const maxQty = availableCount > 0 ? availableCount : 1;
 
   const metaFields: MetaField[] = [
     {
@@ -74,8 +78,8 @@ export const BookDetail = ({ book, isLoading }: Props) => {
       mono: true,
     },
     {
-      label: 'Stok',
-      value: book ? getStockLabel(book.stock) : null,
+      label: 'Status Rak',
+      value: book ? getStockLabel(availableCount) : null,
       icon: <BarChartIcon width={13} height={13} color={`var(--${stockColor}-9)`} />,
       color: stockColor,
     },
@@ -94,7 +98,7 @@ export const BookDetail = ({ book, isLoading }: Props) => {
   const reservasiTrigger = (
     <Button size='3' color='indigo' variant={isAvailable ? 'solid' : 'soft'} disabled={!isAvailable || isLoading} style={{ width: '100%' }}>
       <BookmarkIcon />
-      {isAvailable ? 'Reservasi' : 'Stok Habis'}
+      {isAvailable ? 'Reservasi' : 'Stok di Rak Habis'}
     </Button>
   );
 
@@ -119,18 +123,16 @@ export const BookDetail = ({ book, isLoading }: Props) => {
             </Text>
           </Dialog.Description>
 
-          {/* Stock info callout */}
           <Callout.Root color={stockColor} variant='soft' mb='4'>
             <Callout.Icon>
               <InfoCircledIcon />
             </Callout.Icon>
             <Callout.Text size='2'>
-              Stok tersedia: <Text weight='bold'>{book?.stock} eksemplar</Text>
+              Buku yang dapat dipesan sekarang: <Text weight='bold'>{availableCount} eksemplar</Text>
             </Callout.Text>
           </Callout.Root>
 
           <Flex direction='column' gap='4'>
-            {/* Qty */}
             <Flex direction='column' gap='1'>
               <Text as='label' size='2' weight='medium'>
                 Jumlah
@@ -149,7 +151,6 @@ export const BookDetail = ({ book, isLoading }: Props) => {
               </Flex>
             </Flex>
 
-            {/* Note */}
             <Flex direction='column' gap='1'>
               <Flex justify='between' align='center'>
                 <Text as='label' size='2' weight='medium'>
@@ -160,7 +161,7 @@ export const BookDetail = ({ book, isLoading }: Props) => {
                 </Text>
               </Flex>
               <TextArea
-                placeholder='Contoh: butuh sebelum tanggal 20...'
+                placeholder='Contoh: saya ambil sore nanti...'
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
@@ -175,12 +176,11 @@ export const BookDetail = ({ book, isLoading }: Props) => {
                 Batal
               </Button>
             </Dialog.Close>
-            <Dialog.Close>
-              <Button color='indigo' onClick={handleSubmit} >
-                <BookmarkIcon />
-                Konfirmasi Reservasi
-              </Button>
-            </Dialog.Close>
+            {/* 🔥 Logic Submit Tetap Sama */}
+            <Button color='indigo' onClick={handleSubmit} loading={reserveBook.create.isPending}>
+              <BookmarkIcon />
+              Konfirmasi Reservasi
+            </Button>
           </Flex>
         </Dialog.Content>
       </Dialog.Root>
@@ -189,7 +189,7 @@ export const BookDetail = ({ book, isLoading }: Props) => {
         <Flex align='center' justify='center' gap='1'>
           {isAvailable ? <CheckCircledIcon color={`var(--${stockColor}-9)`} /> : <CrossCircledIcon color='var(--red-9)' />}
           <Text size='1' color={stockColor} weight='medium'>
-            {book ? getStockLabel(book.stock) : ''}
+            {book ? getStockLabel(availableCount) : ''}
           </Text>
         </Flex>
       </Skeleton>
@@ -198,7 +198,6 @@ export const BookDetail = ({ book, isLoading }: Props) => {
 
   return (
     <Box p={{ initial: '4', sm: '6', md: '8' }} style={{ maxWidth: 960, margin: '0 auto' }}>
-      {/* Back */}
       <Box mb='6'>
         <Button variant='ghost' color='gray' size='2' onClick={() => router.back()}>
           <ArrowLeftIcon />
@@ -206,9 +205,7 @@ export const BookDetail = ({ book, isLoading }: Props) => {
         </Button>
       </Box>
 
-      {/* Main Layout */}
       <Grid columns={{ initial: '1', sm: '200px 1fr' }} gap={{ initial: '6', sm: '8' }} align='start'>
-        {/* ── LEFT: Cover + CTA (mobile) ── */}
         <Flex direction='column' gap='3'>
           <Skeleton loading={isLoading}>
             <Box
@@ -235,7 +232,6 @@ export const BookDetail = ({ book, isLoading }: Props) => {
           <Box display={{ initial: 'block', sm: 'none' }}>{ctaSection}</Box>
         </Flex>
 
-        {/* ── RIGHT: All Info + CTA (desktop) ── */}
         <Flex direction='column' gap='5'>
           <Skeleton loading={isLoading}>
             <Flex gap='2' wrap='wrap'>

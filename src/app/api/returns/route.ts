@@ -1,6 +1,6 @@
 import { handleApi } from '@/lib/utils/handleApi';
 import { ok } from '@/lib/utils/apiResponse';
-import { NotFound, UnprocessableEntity } from '@/lib/utils/httpErrors';
+import { NotFound, BadRequest } from '@/lib/utils/httpErrors';
 import { createReturnSchema, returnResponseSchema } from '@/lib/schema/return';
 import { paginate } from '@/lib/db/paginate';
 import { parseQuery } from '@/lib/utils/parseQuery';
@@ -13,85 +13,66 @@ export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
   const { loanId, notes, condition } = validateSchema(createReturnSchema, data);
 
-  // Ensure condition is one of the allowed enum values
-  const validConditions = ['lost', 'good', 'damaged'] as const;
-  if (!validConditions.includes(condition as any)) {
-    throw new UnprocessableEntity('Invalid condition value');
-  }
-  const typedCondition = condition as (typeof validConditions)[number];
-
   const result = await db.transaction(async (tx) => {
-    /* ===============================
-       FIND LOAN (ONLY ACTIVE)
-    =============================== */
-
+    // 1. Ambil data Loan & Lock baris buku
     const loan = await tx.query.loans.findFirst({
       where: and(eq(loans.id, loanId), isNull(loans.deletedAt)),
     });
 
-    if (!loan) {
-      throw new NotFound('Data peminjaman tidak ditemukan');
-    }
+    if (!loan) throw new NotFound('Data peminjaman tidak ditemukan');
+    if (loan.status === 'returned') throw new BadRequest('Buku sudah pernah dikembalikan');
 
-    if (loan.status === 'returned') {
-      throw new UnprocessableEntity('Buku sudah dikembalikan');
-    }
+    const [book] = await tx.select().from(books).where(eq(books.id, loan.bookId)).for('update');
+    if (!book) throw new NotFound('Data buku tidak ditemukan');
 
-    /* ===============================
-       FINE CALCULATION
-    =============================== */
-
+    // 2. Kalkulasi Denda (Functional)
     const now = new Date();
     const dueDate = new Date(loan.dueDate);
-
     const lateDays = now > dueDate ? Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-
     const fineAmount = lateDays * 1000;
-    const fineStatus = fineAmount > 0 ? 'unpaid' : 'paid';
 
-    /* ===============================
-       INSERT RETURN
-    =============================== */
+    // 3. Tentukan Delta Stok berdasarkan Kondisi Buku
+    // Jika LOST: totalStock berkurang, loanedStock berkurang (available tetap).
+    // Jika GOOD/DAMAGED: availableStock bertambah, loanedStock berkurang.
+    const isLost = condition === 'lost';
+    const stockUpdate = isLost
+      ? { totalStock: sql`${books.totalStock} - ${loan.quantity}` }
+      : { availableStock: sql`${books.availableStock} + ${loan.quantity}` };
 
-    const [insertedReturn] = await tx
-      .insert(returns)
-      .values({
+    // 4. Eksekusi Updates secara Paralel
+    const [insertedReturn] = await Promise.all([
+      // A. Catat data pengembalian
+      tx.insert(returns).values({
         loanId: loan.id,
         returnedAt: now,
-        fineAmount: fineAmount.toString(), // karena numeric
-        fineStatus,
-        condition: typedCondition,
+        fineAmount: fineAmount.toString(),
+        fineStatus: fineAmount > 0 ? 'unpaid' : 'paid',
+        condition,
         notes: notes ?? null,
-      })
-      .returning();
+      }).returning(),
 
-    /* ===============================
-       UPDATE LOAN STATUS
-    =============================== */
+      // B. Update status peminjaman
+      tx.update(loans).set({ 
+        status: 'returned', 
+        updatedAt: now 
+      }).where(eq(loans.id, loan.id)),
 
-    await tx
-      .update(loans)
-      .set({
-        status: 'returned',
-        updatedAt: new Date(),
-      })
-      .where(eq(loans.id, loan.id));
+      // C. Update 4 Pilar Stok Buku
+      tx.update(books).set({
+        ...stockUpdate,
+        loanedStock: sql`${books.loanedStock} - ${loan.quantity}`,
+        updatedAt: now,
+      }).where(eq(books.id, loan.bookId)),
+    ]);
 
-    /* ===============================
-       INCREMENT BOOK STOCK
-    =============================== */
-
-    await tx
-      .update(books)
-      .set({
-        stock: sql`${books.stock} + ${loan.quantity}`,
-      })
-      .where(eq(books.id, loan.bookId));
-
-    return insertedReturn;
+    return insertedReturn[0];
   });
 
-  return ok(safeParseResponse(returnResponseSchema, result).data, { message: 'Book returned successfully' });
+  return ok(safeParseResponse(returnResponseSchema, result).data, { 
+    message: condition === 'lost' 
+      ? 'Buku dilaporkan hilang, stok total telah disesuaikan.' 
+      : 'Buku berhasil dikembalikan.' 
+  });
 });
 
 export const GET = handleApi(async ({ req }) => {

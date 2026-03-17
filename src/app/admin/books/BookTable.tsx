@@ -72,7 +72,7 @@ function ViewBookContent({ book, onClose }: { book: BookResponse; onClose: () =>
 
         <DataList.Item>
           <DataList.Label>Stock</DataList.Label>
-          <DataList.Value>{book.stock}</DataList.Value>
+          <DataList.Value>{book.totalStock}</DataList.Value>
         </DataList.Item>
 
         <DataList.Item>
@@ -111,7 +111,10 @@ export function BookTable() {
     { accessorKey: 'title', header: 'Title' },
     { accessorKey: 'author', header: 'Author' },
     { accessorKey: 'category.name', header: 'Category' },
-    { accessorKey: 'stock', header: 'Stock' },
+    { accessorKey: 'totalStock', header: 'Total Stock' },
+    { accessorKey: 'availableStock', header: 'Available Stock' },
+    { accessorKey: 'reservedStock', header: 'Reserved Stock' },
+    { accessorKey: 'loanedStock', header: 'Loaned Stock' },
     { accessorKey: 'slug', header: 'Slug' },
   ];
 
@@ -166,7 +169,8 @@ export function BookTable() {
             title: selected.title,
             author: selected.author,
             publisher: selected.publisher,
-            stock: selected.stock,
+            totalStock: selected.totalStock,
+            availableStock: selected.availableStock,
             year: selected.year,
             isbn: selected.isbn,
             categoryId: selected.categoryId,

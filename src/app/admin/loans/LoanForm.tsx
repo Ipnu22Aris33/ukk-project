@@ -1,4 +1,3 @@
-// components/features/loans/LoanForm.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -21,7 +20,21 @@ interface LoanFormProps {
   onClose?: () => void;
 }
 
-export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, submitLabel = 'Save Loan', isUpdate = false, onClose }: LoanFormProps) {
+// Helper untuk format date ke string YYYY-MM-DD agar bisa dibaca input date
+const toISODate = (date: Date | string | undefined) => {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toISOString().split('T')[0];
+};
+
+export function LoanForm({ 
+  initialData = {}, 
+  onSubmit, 
+  isSubmitting = false, 
+  submitLabel = 'Save Loan', 
+  isUpdate = false, 
+  onClose 
+}: LoanFormProps) {
   const router = useRouter();
   const [memberSearch, setMemberSearch] = useState('');
   const [bookSearch, setBookSearch] = useState('');
@@ -48,7 +61,8 @@ export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, sub
 
   const bookOptions = (bookList.data?.data || []).map((book) => ({
     value: book.id,
-    label: `${book.title} - ${book.author} (Stock: ${book.stock})`,
+    // 🔥 SESUAIKAN: Menampilkan availableStock, bukan stock lama
+    label: `${book.title} - ${book.author} (Avail: ${book.availableStock})`,
   }));
 
   const form = useForm({
@@ -57,7 +71,7 @@ export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, sub
       bookId: initialData.bookId || '',
       quantity: initialData.quantity || 1,
       loanDate: initialData.loanDate || new Date(),
-      dueDate: initialData.dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      dueDate: initialData.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       notes: initialData.notes || '',
       status: initialData.status || 'borrowed',
     },
@@ -69,9 +83,7 @@ export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, sub
     },
   });
 
-  const getFieldError = (field: any) => {
-    return field.state.meta.errors?.[0]?.message;
-  };
+  const getFieldError = (field: any) => field.state.meta.errors?.[0]?.message;
 
   const handleClose = () => {
     if (onClose) {
@@ -90,152 +102,123 @@ export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, sub
       }}
     >
       <Flex direction='column' gap='4'>
-        {/* Member Field - Required */}
         <form.Field name='memberId'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <SelectField
-                field={field}
-                label='Member'
-                options={memberOptions}
-                placeholder='Select a member...'
-                required
-                searchable
-                search={memberSearch}
-                onSearchChange={setMemberSearch}
-                icon={<Icon icon='mdi:account' />}
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <SelectField
+              field={field}
+              label='Member'
+              options={memberOptions}
+              placeholder='Select a member...'
+              required
+              searchable
+              search={memberSearch}
+              onSearchChange={setMemberSearch}
+              icon={<Icon icon='mdi:account' />}
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Book Field - Required */}
         <form.Field name='bookId'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <SelectField
-                field={field}
-                label='Book'
-                options={bookOptions}
-                placeholder='Select a book...'
-                required
-                searchable
-                search={bookSearch}
-                onSearchChange={setBookSearch}
-                icon={<Icon icon='mdi:book' />}
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <SelectField
+              field={field}
+              label='Book'
+              options={bookOptions}
+              placeholder='Select a book...'
+              required
+              searchable
+              search={bookSearch}
+              onSearchChange={setBookSearch}
+              icon={<Icon icon='mdi:book' />}
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Quantity Field - Required */}
         <form.Field name='quantity'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='Quantity'
-                type='number'
-                placeholder='Enter quantity...'
-                required
-                icon={<Icon icon='mdi:counter' />}
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Quantity'
+              type='number'
+              placeholder='Enter quantity...'
+              required
+              icon={<Icon icon='mdi:counter' />}
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Loan Date Field - Required */}
-        <form.Field name='loanDate'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
+        <Flex gap="4">
+          <form.Field name='loanDate'>
+            {(field) => (
               <InputField
                 field={field}
                 label='Loan Date'
                 type='date'
-                placeholder='Select loan date...'
                 required
                 icon={<Icon icon='mdi:calendar-start' />}
-                error={error}
+                error={getFieldError(field)}
               />
-            );
-          }}
-        </form.Field>
+            )}
+          </form.Field>
 
-        {/* Due Date Field - Required */}
-        <form.Field name='dueDate'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
+          <form.Field name='dueDate'>
+            {(field) => (
               <InputField
                 field={field}
                 label='Due Date'
                 type='date'
-                placeholder='Select due date...'
                 required
                 icon={<Icon icon='mdi:calendar-end' />}
-                error={error}
+                error={getFieldError(field)}
               />
-            );
-          }}
-        </form.Field>
+            )}
+          </form.Field>
+        </Flex>
 
-        {/* Status Field - Only for Update */}
         {isUpdate && (
           <form.Field name='status'>
-            {(field) => {
-              const error = getFieldError(field);
-              return (
-                <SelectField
-                  field={field}
-                  label='Status'
-                  options={[
-                    { value: 'BORROWED', label: 'Borrowed' },
-                    { value: 'RETURNED', label: 'Returned' },
-                    { value: 'OVERDUE', label: 'Overdue' },
-                    { value: 'LOST', label: 'Lost' },
-                  ]}
-                  placeholder='Select status...'
-                  required
-                  icon={<Icon icon='mdi:status' />}
-                  error={error}
-                />
-              );
-            }}
+            {(field) => (
+              <SelectField
+                field={field}
+                label='Status'
+                options={[
+                  { value: 'borrowed', label: 'Borrowed' },
+                  { value: 'returned', label: 'Returned' },
+                  { value: 'overdue', label: 'Overdue' },
+                  { value: 'lost', label: 'Lost' },
+                ]}
+                placeholder='Select status...'
+                required
+                icon={<Icon icon='mdi:list-status' />}
+                error={getFieldError(field)}
+              />
+            )}
           </form.Field>
         )}
 
-        {/* Notes Field - TextArea */}
         <form.Field name='notes'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <TextareaField
-                field={field}
-                label='Notes'
-                placeholder='Enter any notes...'
-                icon={<Icon icon='mdi:note-text-outline' />}
-                error={error}
-                rows={3}
-              />
-            );
-          }}
+          {(field) => (
+            <TextareaField
+              field={field}
+              label='Notes'
+              placeholder='Enter any notes...'
+              icon={<Icon icon='mdi:note-text-outline' />}
+              error={getFieldError(field)}
+              rows={3}
+            />
+          )}
         </form.Field>
 
-        {/* Form Actions */}
-        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+        <form.Subscribe selector={(state) => [state.canSubmit]}>
           {([canSubmit]) => (
             <Flex gap='3' mt='4' justify='end'>
               <Button variant='soft' color='gray' onClick={handleClose} type='button' disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type='submit' variant='solid' disabled={!canSubmit || isSubmitting} loading={isSubmitting}>
+              <Button type='submit' variant='solid' disabled={!canSubmit || isSubmitting}>
                 {isSubmitting ? 'Saving...' : submitLabel}
               </Button>
             </Flex>

@@ -24,7 +24,6 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
   const router = useRouter();
   const { isMobile } = useResponsive();
   const { logout, session } = useAuth();
-  console.log('Session:', session);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);

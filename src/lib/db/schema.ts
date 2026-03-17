@@ -69,7 +69,10 @@ export const books = pgTable(
       .notNull()
       .references(() => categories.id, { onDelete: 'restrict' }),
     publisher: varchar('publisher', { length: 255 }),
-    stock: integer('stock').notNull(),
+    totalStock: integer('total_stock').notNull().default(0),
+    availableStock: integer('available_stock').notNull().default(0),
+    reservedStock: integer('reserved_stock').notNull().default(0),
+    loanedStock: integer('loaned_stock').notNull().default(0),
     slug: varchar('slug', { length: 255 }).notNull(),
     coverUrl: text('cover_url'),
     coverPublicId: text('cover_public_id'),

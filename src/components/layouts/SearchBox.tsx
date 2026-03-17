@@ -279,9 +279,9 @@ export function SearchBox({ onClose, autoFocus, onSelect }: SearchBoxProps) {
                               <Text size='1' color='gray'>
                                 {book.author}
                               </Text>
-                              {book.stock > 0 ? (
+                              {book.availableStock > 0 ? (
                                 <Badge color='green' size='1' variant='soft'>
-                                  {book.stock} tersedia
+                                  {book.availableStock} tersedia
                                 </Badge>
                               ) : (
                                 <Badge color='red' size='1' variant='soft'>

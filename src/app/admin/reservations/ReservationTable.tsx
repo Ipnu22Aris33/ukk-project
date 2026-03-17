@@ -78,7 +78,7 @@ function ViewReservationContent({ reservation, onClose }: { reservation: Reserva
                 by {reservation.book?.author}
               </Text>
               <Text size='1' color='gray'>
-                Stock: {reservation.book?.stock}
+                Stock: {reservation.book?.totalStock}
               </Text>
             </Flex>
           </DataList.Value>
@@ -174,7 +174,6 @@ export function ReservationTable() {
   const [limit, setLimit] = useState(10);
 
   const { session } = useAuth();
-  console.log('Current session:', session);
   const { data, isLoading, refetch } = reservations.list({
     page,
     search,

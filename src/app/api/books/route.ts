@@ -44,24 +44,23 @@ export const GET = handleApi(async ({ req }) => {
 
 export const POST = handleApi(async ({ req }) => {
   const body = await req.json();
+  const data = validateSchema(createBookSchema, body);
 
-  const { title, author, publisher, categoryId, stock, year, isbn, coverUrl, coverPublicId } = validateSchema(createBookSchema, body);
+  // Jika availableStock tidak dikirim, default-nya adalah totalStock
+  const finalAvailable = data.availableStock !== undefined 
+    ? Math.min(data.availableStock, data.totalStock) 
+    : data.totalStock;
 
   const [newBook] = await db
     .insert(books)
     .values({
-      title,
-      author,
-      isbn,
-      slug: slugify(title),
-      categoryId,
-      publisher,
-      stock,
-      year,
-      coverUrl,
-      coverPublicId,
+      ...data,
+      slug: slugify(data.title),
+      availableStock: finalAvailable,
+      reservedStock: 0,
+      loanedStock: 0,
     })
     .returning();
 
-  return ok(safeParseResponse(bookResponseSchema, newBook).data, { message: 'Book created successfully' });
+  return ok(safeParseResponse(bookResponseSchema, newBook).data);
 });

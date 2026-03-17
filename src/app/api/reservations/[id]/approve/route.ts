@@ -10,35 +10,39 @@ import { loanResponseSchema } from '@/lib/schema/loan';
 
 export const PATCH = handleApi(async ({ params, user }) => {
   const id = Number(params.id);
-
   if (!id) throw new BadRequest('Invalid reservation id');
 
-  const reservation = await db.query.reservations.findFirst({
-    where: and(eq(reservations.id, id), isNull(reservations.deletedAt)),
-    with: {
-      book: true,
-      member: true,
-    },
-  });
-
-  if (!reservation) throw new NotFound('Reservation not found');
-  if (reservation.status !== 'pending') throw new BadRequest('Reservation is not pending');
-  if (reservation.book.stock < reservation.quantity) throw new BadRequest('Book stock is insufficient');
-
   const result = await db.transaction(async (tx) => {
-    // Update reservation status
+    // 1. Ambil data reservasi & Lock baris buku untuk mencegah race condition
+    const reservation = await tx.query.reservations.findFirst({
+      where: and(eq(reservations.id, id), isNull(reservations.deletedAt)),
+    });
+
+    if (!reservation) throw new NotFound('Reservasi tidak ditemukan');
+    if (reservation.status !== 'pending') throw new BadRequest('Reservasi sudah diproses atau dibatalkan');
+
+    // Ambil data buku terbaru
+    const [book] = await tx.select().from(books).where(eq(books.id, reservation.bookId)).for('update');
+    if (!book) throw new NotFound('Data buku tidak ditemukan');
+
+    // Validasi: Karena reservasi sudah memotong availableStock di awal, 
+    // kita hanya perlu memastikan reservasi ini sah.
+    
+    const now = new Date();
+
+    // 2. Update status reservasi menjadi APPROVED
     const [updatedReservation] = await tx
       .update(reservations)
       .set({
         status: 'approved',
-        approvedAt: new Date(),
-        approvedBy: user?.id ?? null,
-        updatedAt: new Date(),
+        approvedAt: now,
+        approvedBy: user?.id ?? null, // Mencatat siapa yang menyetujui
+        updatedAt: now,
       })
       .where(eq(reservations.id, id))
       .returning();
 
-    // Create loan from reservation
+    // 3. Buat data peminjaman (LOAN) otomatis
     const [loan] = await tx
       .insert(loans)
       .values({
@@ -47,27 +51,41 @@ export const PATCH = handleApi(async ({ params, user }) => {
         quantity: reservation.quantity,
         reservationId: reservation.id,
         notes: reservation.notes,
-        loanDate: new Date(),
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+        loanDate: now,
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // Default 14 hari
         status: 'borrowed',
       })
       .returning();
 
-    // Update book stock
+    // 4. Update 4 Pilar Stok: Pindah dari Reserved ke Loaned
+    // availableStock tidak berubah karena sudah dikurangi saat reservasi dibuat (pending)
     await tx
       .update(books)
       .set({
-        stock: sql`${books.stock} - ${reservation.quantity}`,
+        reservedStock: sql`${books.reservedStock} - ${reservation.quantity}`,
+        loanedStock: sql`${books.loanedStock} + ${reservation.quantity}`,
+        updatedAt: now,
       })
       .where(eq(books.id, reservation.bookId));
 
+    // Ambil data lengkap untuk response (karena kita butuh relasi member/book)
+    const fullReservation = await tx.query.reservations.findFirst({
+        where: eq(reservations.id, updatedReservation.id),
+        with: { book: true, member: true }
+    });
+
+    const fullLoan = await tx.query.loans.findFirst({
+        where: eq(loans.id, loan.id),
+        with: { book: true, member: true }
+    });
+
     return {
-      reservation: safeParseResponse(reservationResponseSchema, updatedReservation).data,
-      loan: safeParseResponse(loanResponseSchema, loan).data,
+      reservation: safeParseResponse(reservationResponseSchema, fullReservation).data,
+      loan: safeParseResponse(loanResponseSchema, fullLoan).data,
     };
   });
 
   return ok(result, {
-    message: 'Reservation approved and loan created successfully',
+    message: 'Reservasi disetujui dan peminjaman telah dibuat.',
   });
 });

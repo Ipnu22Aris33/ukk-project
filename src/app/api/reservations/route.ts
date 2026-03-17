@@ -72,17 +72,27 @@ export const POST = handleApi(async ({ req, user }) => {
   const { bookId, quantity = 1, notes } = validateSchema(createReservationSchema, data);
 
   const result = await db.transaction(async (tx) => {
-    const book = await tx.query.books.findFirst({
-      where: and(eq(books.id, bookId), isNull(books.deletedAt)),
-    });
+    // 1. Ambil data buku & kunci row untuk menghindari race condition
+    const [book] = await tx
+      .select()
+      .from(books)
+      .where(and(eq(books.id, bookId), isNull(books.deletedAt)))
+      .limit(1)
+      .for('update'); // Penting: Mengunci row agar tidak ada update stok bersamaan
+
     if (!book) throw new NotFound('Buku tidak ditemukan');
-    if (book.stock < quantity) throw new UnprocessableEntity('Stok buku tidak mencukupi');
+    
+    // Validasi berdasarkan availableStock (stok di rak)
+    if (book.availableStock < quantity) {
+      throw new UnprocessableEntity('Stok buku yang tersedia tidak mencukupi');
+    }
 
     const member = await tx.query.members.findFirst({
       where: and(eq(members.userId, user.id), isNull(members.deletedAt)),
     });
     if (!member) throw new NotFound('Data anggota tidak ditemukan');
 
+    // 2. Cek reservasi aktif
     const activeReservation = await tx.query.reservations.findFirst({
       where: and(
         eq(reservations.memberId, member.id),
@@ -95,17 +105,24 @@ export const POST = handleApi(async ({ req, user }) => {
       throw new UnprocessableEntity('Anda sudah memiliki reservasi aktif untuk buku ini');
     }
 
+    // 3. Generate Reservation Code (Disarankan pakai nanoid/UUID jika traffic tinggi)
     const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const count = await tx.$count(reservations);
-    const sequence = String(count + 1).padStart(4, '0');
-    const reservationCode = `RES-${year}${month}${day}-${sequence}`;
-
+    const reservationCode = `RES-${date.getTime()}-${member.id}`; 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
+    // 4. UPDATE STOK BUKU
+    // Mengurangi available, menambah reserved
+    await tx
+      .update(books)
+      .set({
+        availableStock: book.availableStock - quantity,
+        reservedStock: book.reservedStock + quantity,
+        updatedAt: new Date(),
+      })
+      .where(eq(books.id, bookId));
+
+    // 5. INSERT RESERVASI
     const [insertedReservation] = await tx
       .insert(reservations)
       .values({
@@ -123,5 +140,7 @@ export const POST = handleApi(async ({ req, user }) => {
     return insertedReservation;
   });
 
-  return ok(safeParseResponse(reservationResponseSchema, result).data, { message: 'Reservasi berhasil dibuat' });
+  return ok(safeParseResponse(reservationResponseSchema, result).data, { 
+    message: 'Reservasi berhasil dibuat. Silakan ambil buku dalam 24 jam.' 
+  });
 });

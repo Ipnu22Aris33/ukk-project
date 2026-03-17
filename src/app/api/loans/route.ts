@@ -4,7 +4,7 @@ import { BadRequest, NotFound } from '@/lib/utils/httpErrors';
 import { parseQuery } from '@/lib/utils/parseQuery';
 import { paginate } from '@/lib/db/paginate';
 import { db } from '@/lib/db';
-import { loans, books, members, loanStatusEnum } from '@/lib/db/schema';
+import { loans, books, members, loanStatusEnum, reservations } from '@/lib/db/schema';
 import { eq, and, isNull, sql, asc, desc, or, gte, lte } from 'drizzle-orm';
 import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 import { createLoanSchema, loanResponseSchema } from '@/lib/schema/loan';
@@ -20,33 +20,70 @@ export const POST = handleApi(async ({ req }) => {
     loanDate: data.loanDate ? new Date(data.loanDate) : undefined,
     dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
   };
-  
 
-  const { memberId, bookId, quantity, notes, loanDate, dueDate } = validateSchema(createLoanSchema, transformedBody);
+  const { memberId, bookId, quantity, notes, loanDate, dueDate, reservationId } = 
+    validateSchema(createLoanSchema, transformedBody);
 
-  const [book, member] = await Promise.all([
-    db.query.books.findFirst({ where: eq(books.id, bookId) }),
-    db.query.members.findFirst({ where: eq(members.id, memberId) }),
-  ]);
+  const result = await db.transaction(async (tx) => {
+    // 1. Ambil data buku dengan PESSIMISTIC LOCK (for update)
+    const [book] = await tx
+      .select()
+      .from(books)
+      .where(and(eq(books.id, bookId), isNull(books.deletedAt)))
+      .for('update');
 
-  if (!book) throw new NotFound('Book not found');
-  if (!member) throw new NotFound('Member not found');
-  if (book.stock < quantity) throw new BadRequest('Book stock is insufficient');
+    if (!book) throw new NotFound('Buku tidak ditemukan');
 
-  const now = new Date();
-  const finalLoanDate = loanDate ? new Date(loanDate) : now;
-  const finalDueDate = dueDate ? new Date(dueDate) : new Date(finalLoanDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+    // 2. Cek apakah ini peminjaman dari reservasi atau langsung
+    const isFromReservation = !!reservationId;
 
-  if (finalDueDate <= finalLoanDate) throw new BadRequest('Due date must be after loan date');
+    if (isFromReservation) {
+      // Logic jika dari reservasi: Cek validitas reservasi
+      const reservation = await tx.query.reservations.findFirst({
+        where: and(eq(reservations.id, reservationId), eq(reservations.status, 'pending'))
+      });
+      if (!reservation) throw new BadRequest('Reservasi tidak valid atau sudah expired');
+      
+      // Update stok: reserved berkurang, loaned bertambah (available tetap)
+      await tx.update(books)
+        .set({
+          reservedStock: sql`${books.reservedStock} - ${quantity}`,
+          loanedStock: sql`${books.loanedStock} + ${quantity}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(books.id, bookId));
+        
+      // Update status reservasi jadi completed/loaned
+      await tx.update(reservations)
+        .set({ status: 'completed' })
+        .where(eq(reservations.id, reservationId));
 
-  const [insertedLoan] = await db.transaction(async (tx) => {
-    const [loan] = await tx
+    } else {
+      // Logic peminjaman langsung: Cek availableStock
+      if (book.availableStock < quantity) throw new BadRequest('Stok buku di rak tidak mencukupi');
+
+      // Update stok: available berkurang, loaned bertambah
+      await tx.update(books)
+        .set({
+          availableStock: sql`${books.availableStock} - ${quantity}`,
+          loanedStock: sql`${books.loanedStock} + ${quantity}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(books.id, bookId));
+    }
+
+    // 3. Insert ke tabel loans
+    const now = new Date();
+    const finalLoanDate = loanDate ?? now;
+    const finalDueDate = dueDate ?? new Date(finalLoanDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+    const [insertedLoan] = await tx
       .insert(loans)
       .values({
         memberId,
         bookId,
         quantity,
-        reservationId: null,
+        reservationId: reservationId ?? null,
         notes: notes ?? null,
         loanDate: finalLoanDate,
         dueDate: finalDueDate,
@@ -54,15 +91,12 @@ export const POST = handleApi(async ({ req }) => {
       })
       .returning();
 
-    await tx
-      .update(books)
-      .set({ stock: sql`${books.stock} - ${quantity}` })
-      .where(eq(books.id, bookId));
-
-    return [loan];
+    return insertedLoan;
   });
 
-  return ok(safeParseResponse(loanResponseSchema, insertedLoan).data, { message: 'Loan created successfully' });
+  return ok(safeParseResponse(loanResponseSchema, result).data, { 
+    message: 'Peminjaman berhasil dicatat' 
+  });
 });
 
 export const GET = handleApi(async ({ req, user }) => {

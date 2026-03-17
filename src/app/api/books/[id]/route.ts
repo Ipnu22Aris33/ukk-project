@@ -34,41 +34,37 @@ export const GET = handleApi(async ({ params }) => {
 ====================================================== */
 export const PATCH = handleApi(async ({ req, params }) => {
   const id = Number(params?.id);
-
-  if (!id || isNaN(id)) {
-    throw new BadRequest('Invalid book ID');
-  }
+  if (!id || isNaN(id)) throw new BadRequest('ID Buku tidak valid');
 
   const body = await req.json();
-  const { title, author, categoryId, publisher, stock, isbn, year, coverUrl, coverPublicId } = validateSchema(updateBookSchema,body);
+  const data = validateSchema(updateBookSchema, body);
 
   const existing = await db.query.books.findFirst({
-    where: eq(books.id, id),
+    where: and(eq(books.id, id), isNull(books.deletedAt)),
   });
 
-  if (!existing) {
-    throw new NotFound('Book not found');
-  }
+  if (!existing) throw new NotFound('Buku tidak ditemukan');
+
+  // Deklarasi konstanta untuk logika sinkronisasi
+  const finalTotal = data.totalStock ?? existing.totalStock;
+  const requestedAvailable = data.availableStock ?? existing.availableStock;
+
+  // Pastikan available tidak melebihi total yang baru
+  const finalAvailable = Math.min(requestedAvailable, finalTotal);
 
   const [updated] = await db
     .update(books)
     .set({
-      title,
-      author,
-      slug: slugify(title),
-      categoryId,
-      publisher,
-      stock,
-      isbn,
-      year,
+      ...data,
+      totalStock: finalTotal,
+      availableStock: finalAvailable,
+      slug: data.title ? slugify(data.title) : existing.slug,
       updatedAt: new Date(),
-      coverUrl,
-      coverPublicId
     })
     .where(eq(books.id, id))
     .returning();
 
-  return ok(safeParseResponse(bookResponseSchema, updated).data, { message: 'Book updated successfully' });
+  return ok(safeParseResponse(bookResponseSchema, updated).data, { message: 'Buku berhasil diperbarui' });
 });
 
 /* ======================================================

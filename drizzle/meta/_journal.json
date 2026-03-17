@@ -22,6 +22,13 @@
       "when": 1772333076249,
       "tag": "0002_conscious_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773786640306,
+      "tag": "0003_spotty_betty_brant",
+      "breakpoints": true
     }
   ]
 }
