@@ -14,7 +14,7 @@ export const POST = handleApi(async ({ req, res }) => {
 
   const user = await db.query.users.findFirst({
     where: and(
-      isNull(users.deletedAt), // ⬅️ support soft delete
+      isNull(users.deletedAt),
       or(eq(users.email, identifier), eq(users.username, identifier))
     ),
   });

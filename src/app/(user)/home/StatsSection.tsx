@@ -8,38 +8,13 @@ import {
   ExclamationTriangleIcon,
   BookmarkIcon,
 } from '@radix-ui/react-icons';
-
-// =====================
-// DUMMY DATA
-// Nanti ganti dengan useLoans() dan useReservations()
-// =====================
-const useMemberStats = () => {
-  // Simulasi loading
-  const isLoading = false;
-
-  // Dummy — nanti dihitung dari response api/loans & api/reservations
-  return {
-    isLoading,
-    activeLoans: 3,           // loans.filter(l => l.status === 'active').length
-    dueDaysLeft: 2,           // min(loans.map(l => diffDays(l.dueDate, today)))
-    overdueCount: 1,          // loans.filter(l => l.status === 'overdue').length
-    activeReservations: 2,    // reservations.filter(r => r.status === 'pending').length
-    finesTotalRp: 5000,       // fines.filter(f => !f.paid).reduce((a, f) => a + f.amount, 0)
-    totalReturned: 14,        // loans.filter(l => l.status === 'returned').length
-  };
-};
+import { useProfile } from '@/hooks/useProfile'; // Import hook yang tadi
 
 // =====================
 // HELPERS
 // =====================
 const formatRp = (amount: number) =>
   amount === 0 ? 'Lunas' : `Rp ${amount.toLocaleString('id-ID')}`;
-
-const formatDue = (days: number) => {
-  if (days < 0) return 'Terlambat';
-  if (days === 0) return 'Hari ini';
-  return `${days} hari lagi`;
-};
 
 // =====================
 // STATS CONFIG
@@ -48,7 +23,7 @@ type StatColor = 'blue' | 'orange' | 'red' | 'violet' | 'crimson' | 'green';
 
 interface Stat {
   label: string;
-  value: string;
+  value: string | number;
   icon: React.ElementType;
   color: StatColor;
   urgent?: boolean;
@@ -67,60 +42,49 @@ const colorMap: Record<StatColor, { bg: string; text: string }> = {
 // COMPONENT
 // =====================
 export const StatsSection = () => {
-  const {
-    isLoading,
-    activeLoans,
-    dueDaysLeft,
-    overdueCount,
-    activeReservations,
-    finesTotalRp,
-    totalReturned,
-  } = useMemberStats();
+  // 1. Ambil data asli dari API
+  const { data, isLoading } = useProfile();
 
+  // 2. Mapping data dari API ke variabel lokal
+  const summary = data?.data.summary;
+  
   const stats: Stat[] = [
     {
       label: 'Sedang Dipinjam',
-      value: String(activeLoans),
+      value: summary?.loans.active ?? 0,
       icon: ReaderIcon,
       color: 'blue',
     },
     {
-      label: 'Jatuh Tempo',
-      value: formatDue(dueDaysLeft),
-      icon: ClockIcon,
-      color: dueDaysLeft <= 1 ? 'red' : 'orange',
-      urgent: dueDaysLeft <= 1,
-    },
-    {
       label: 'Terlambat',
-      value: String(overdueCount),
+      value: summary?.loans.overdue ?? 0,
       icon: ExclamationTriangleIcon,
-      color: overdueCount > 0 ? 'red' : 'green',
-      urgent: overdueCount > 0,
+      color: (summary?.loans.overdue ?? 0) > 0 ? 'red' : 'green',
+      urgent: (summary?.loans.overdue ?? 0) > 0,
     },
     {
       label: 'Reservasi Aktif',
-      value: String(activeReservations),
+      value: summary?.reservations.active ?? 0,
       icon: BookmarkIcon,
       color: 'violet',
     },
     {
-      label: 'Denda',
-      value: formatRp(finesTotalRp),
-      icon: ExclamationTriangleIcon,
-      color: finesTotalRp > 0 ? 'crimson' : 'green',
-      urgent: finesTotalRp > 0,
-    },
-    {
       label: 'Total Selesai',
-      value: String(totalReturned),
+      value: summary?.returns.total ?? 0,
       icon: CheckCircledIcon,
+      color: 'green',
+    },
+    // Contoh Denda (Jika di API summary nanti kamu tambahkan field denda)
+    {
+      label: 'Status Denda',
+      value: 'Lunas', // Sementara hardcoded atau sesuaikan jika ada field denda
+      icon: ClockIcon,
       color: 'green',
     },
   ];
 
   return (
-    <Grid columns={{ initial: '1', md: '2', lg: '3' }} gap='3'>
+    <Grid columns={{ initial: '1', sm: '2', md: '4' }} gap='3'>
       {stats.map((stat) => {
         const Icon = stat.icon;
         const { bg, text } = colorMap[stat.color];
@@ -128,7 +92,6 @@ export const StatsSection = () => {
         return (
           <Card
             key={stat.label}
-            variant={stat.urgent ? 'surface' : 'surface'}
             style={{
               padding: 'var(--space-3)',
               borderRadius: 'var(--radius-4)',
@@ -136,7 +99,6 @@ export const StatsSection = () => {
             }}
           >
             <Flex direction='column' gap='2'>
-              {/* Icon */}
               <Flex
                 align='center'
                 justify='center'
@@ -152,7 +114,6 @@ export const StatsSection = () => {
                 <Icon width='15' height='15' />
               </Flex>
 
-              {/* Value */}
               <Skeleton loading={isLoading}>
                 <Text
                   size='5'
@@ -166,7 +127,6 @@ export const StatsSection = () => {
                 </Text>
               </Skeleton>
 
-              {/* Label */}
               <Text size='1' color='gray'>
                 {stat.label}
               </Text>

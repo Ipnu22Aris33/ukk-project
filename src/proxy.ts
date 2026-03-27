@@ -7,7 +7,16 @@ type ProtectedRoute = {
   role?: 'admin' | 'member';
 };
 
-const PROTECTED_ROUTES: ProtectedRoute[] = [{ prefix: '/admin', role: 'admin' }, { prefix: '/home' }, { prefix: '/api/returns' }];
+const PROTECTED_ROUTES: ProtectedRoute[] = [
+  { prefix: '/admin', role: 'admin' },
+  { prefix: '/home' },
+  { prefix: '/api/returns' },
+  { prefix: '/api/reservations' },
+  { prefix: '/api/loans' },
+  { prefix: '/api/members', role: 'admin' },
+  { prefix: '/api/books' },
+  { prefix: '/api/dashboard', role: 'admin' },
+];
 
 function isProtected(pathname: string) {
   return PROTECTED_ROUTES.find((r) => pathname.startsWith(r.prefix));

@@ -166,14 +166,14 @@ function ViewReservationContent({ reservation, onClose }: { reservation: Reserva
 ========================= */
 
 export function ReservationTable() {
-  const reservations = useReservations();
   const { mode, selected, open, close } = usePanel<ReservationResponse>();
-
+  
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-
+  
   const { session } = useAuth();
+  const reservations = useReservations();
   const { data, isLoading, refetch } = reservations.list({
     page,
     search,
