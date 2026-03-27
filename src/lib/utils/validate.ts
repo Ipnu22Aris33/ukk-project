@@ -1,7 +1,9 @@
 import { z, ZodType } from 'zod';
 
 export function validateSchema<T extends ZodType>(schema: T, data: unknown): z.infer<T> {
-  console.log('Validating data:', data);
+  if(process.env.NODE_ENV === 'development') {
+    console.log('Validating schema with data:', data);
+  }
   return schema.parse(data);
 }
 
