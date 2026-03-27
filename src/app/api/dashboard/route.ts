@@ -1,134 +1,66 @@
 import { ok } from '@/lib/utils/apiResponse';
 import { handleApi } from '@/lib/utils/handleApi';
-
 import { db } from '@/lib/db';
 import { books, loans, returns, members, reservations } from '@/lib/db/schema';
-
 import { eq, and, isNull, lt, sql } from 'drizzle-orm';
 
 export const GET = handleApi(async () => {
   const now = new Date();
 
-  /* ===============================
-     BOOKS
-  =============================== */
+  // Kita bungkus semua perhitungan ke dalam satu query besar
+  const [stats] = await db
+    .select({
+      // BOOKS
+      totalBooks: sql<number>`(SELECT count(*) FROM ${books} WHERE ${books.deletedAt} IS NULL)`,
+      borrowedBooks: sql<number>`(SELECT count(*) FROM ${loans} WHERE ${loans.status} = 'borrowed' AND ${loans.deletedAt} IS NULL)`,
+      lostBooks: sql<number>`(SELECT count(*) FROM ${returns} WHERE ${returns.condition} = 'lost' AND ${returns.deletedAt} IS NULL)`,
+      
+      // MEMBERS
+      totalMembers: sql<number>`(SELECT count(*) FROM ${members} WHERE ${members.deletedAt} IS NULL)`,
+      
+      // LOANS
+      totalLoans: sql<number>`(SELECT count(*) FROM ${loans} WHERE ${loans.deletedAt} IS NULL)`,
+      overdueLoans: sql<number>`(SELECT count(*) FROM ${loans} WHERE ${loans.status} = 'borrowed' AND ${loans.dueDate} < ${now} AND ${loans.deletedAt} IS NULL)`,
+      
+      // RETURNS
+      totalReturns: sql<number>`(SELECT count(*) FROM ${returns} WHERE ${returns.deletedAt} IS NULL)`,
+      
+      // RESERVATIONS
+      totalReservations: sql<number>`(SELECT count(*) FROM ${reservations} WHERE ${reservations.deletedAt} IS NULL)`,
+      activeReservations: sql<number>`(SELECT count(*) FROM ${reservations} WHERE ${reservations.status} = 'approved' AND ${reservations.deletedAt} IS NULL)`,
+    })
+    .from(sql`(SELECT 1) as dummy`); // Kita gunakan tabel dummy agar query valid
 
-  const [[{ totalBooks }], [{ borrowedBooks }], [{ lostBooks }]] = await Promise.all([
-    db
-      .select({ totalBooks: sql<number>`count(*)` })
-      .from(books)
-      .where(isNull(books.deletedAt)),
-
-    db
-      .select({ borrowedBooks: sql<number>`count(*)` })
-      .from(loans)
-      .where(and(eq(loans.status, 'borrowed'), isNull(loans.deletedAt))),
-
-    db
-      .select({ lostBooks: sql<number>`count(*)` })
-      .from(returns)
-      .where(and(eq(returns.condition, 'lost'), isNull(returns.deletedAt))),
-  ]);
-
-  const availableBooks = Number(totalBooks) - Number(borrowedBooks);
-
-  /* ===============================
-     MEMBERS
-  =============================== */
-
-  const [{ totalMembers }] = await db
-    .select({ totalMembers: sql<number>`count(*)` })
-    .from(members)
-    .where(isNull(members.deletedAt));
-
-  /* ===============================
-     LOANS
-  =============================== */
-
-  const [[{ totalLoans }], [{ activeLoans }], [{ overdueLoans }]] = await Promise.all([
-    db
-      .select({ totalLoans: sql<number>`count(*)` })
-      .from(loans)
-      .where(isNull(loans.deletedAt)),
-
-    db
-      .select({ activeLoans: sql<number>`count(*)` })
-      .from(loans)
-      .where(and(eq(loans.status, 'borrowed'), isNull(loans.deletedAt))),
-
-    db
-      .select({ overdueLoans: sql<number>`count(*)` })
-      .from(loans)
-      .where(and(eq(loans.status, 'borrowed'), lt(loans.dueDate, now), isNull(loans.deletedAt))),
-  ]);
-
-  /* ===============================
-     RETURNS
-  =============================== */
-
-  const [[{ totalReturns }], [{ lateReturns }]] = await Promise.all([
-    db
-      .select({ totalReturns: sql<number>`count(*)` })
-      .from(returns)
-      .where(isNull(returns.deletedAt)),
-
-    db
-      .select({ lateReturns: sql<number>`count(*)` })
-      .from(returns)
-      .where(and(eq(returns.condition, 'lost'), isNull(returns.deletedAt))),
-  ]);
-
-  /* ===============================
-     RESERVATIONS
-  =============================== */
-
-  const [[{ totalReservations }], [{ activeReservations }]] = await Promise.all([
-    db
-      .select({ totalReservations: sql<number>`count(*)` })
-      .from(reservations)
-      .where(isNull(reservations.deletedAt)),
-
-    db
-      .select({ activeReservations: sql<number>`count(*)` })
-      .from(reservations)
-      .where(and(eq(reservations.status, 'approved'), isNull(reservations.deletedAt))),
-  ]);
-
-  /* ===============================
-     LOANS PER MEMBER (JOIN)
-  =============================== */
-
-  const [{ loansPerMember }] = await db
-    .select({ loansPerMember: sql<number>`count(*)` })
-    .from(loans)
-    .innerJoin(members, eq(members.id, loans.memberId))
-    .where(and(eq(loans.status, 'borrowed'), isNull(loans.deletedAt)));
+  // Kalkulasi sederhana di sisi aplikasi (CPU-light)
+  const totalBooks = Number(stats.totalBooks);
+  const borrowedBooks = Number(stats.borrowedBooks);
+  const availableBooks = totalBooks - borrowedBooks;
 
   return ok(
     {
       books: {
-        total: Number(totalBooks),
+        total: totalBooks,
         available: availableBooks,
-        borrowed: Number(borrowedBooks),
-        lost: Number(lostBooks),
+        borrowed: borrowedBooks,
+        lost: Number(stats.lostBooks),
       },
       members: {
-        total: Number(totalMembers),
+        total: Number(stats.totalMembers),
       },
       loans: {
-        total: Number(totalLoans),
-        active: Number(activeLoans),
-        overdue: Number(overdueLoans),
-        perMember: Number(loansPerMember),
+        total: Number(stats.totalLoans),
+        active: borrowedBooks, // sama dengan borrowedBooks
+        overdue: Number(stats.overdueLoans),
+        perMember: borrowedBooks, // Logika: total buku yg sedang dipinjam secara agregat
       },
       returns: {
-        total: Number(totalReturns),
-        late: Number(lateReturns),
-        lost: Number(lostBooks),
+        total: Number(stats.totalReturns),
+        late: Number(stats.lostBooks), // Sesuai logika awalmu
+        lost: Number(stats.lostBooks),
       },
       reservations: {
-        total: Number(totalReservations),
-        active: Number(activeReservations),
+        total: Number(stats.totalReservations),
+        active: Number(stats.activeReservations),
       },
     },
     { message: 'Dashboard overview retrieved successfully' }
