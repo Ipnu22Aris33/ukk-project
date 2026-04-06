@@ -1,7 +1,7 @@
 'use client';
 
 import { AdminContentWrapper } from '@/components/layouts/AdminContentWrapper';
-import { DashboardContent } from './DashboardContent';
+import { DashboardContent } from './_components/DashboardContent';
 
 export default function AdminPage() {
   return (
