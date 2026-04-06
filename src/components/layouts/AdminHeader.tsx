@@ -1,9 +1,13 @@
 'use client';
 
 import { Icon } from '@iconify/react';
-import { Flex, Heading, Button, Badge, DropdownMenu, IconButton } from '@radix-ui/themes';
+import { Flex, Heading, Button, Badge, DropdownMenu, IconButton, Tooltip } from '@radix-ui/themes';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { AppIcon } from '../ui/AppIcon';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import ScannerModal from './ScannerModal';
+import { ScanLine } from 'lucide-react';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -12,6 +16,9 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed = false, isMobile = false }) => {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+
   // Tentukan icon berdasarkan state
   const getToggleIcon = () => {
     if (isMobile) {
@@ -56,7 +63,24 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapse
       </Flex>
 
       <Flex align='center' gap='3'>
-        <ThemeToggle />
+        <>
+          <Tooltip content='Scan Barcode'>
+            <IconButton variant='soft' onClick={() => setOpen(true)}>
+              <ScanLine size={18} />
+            </IconButton>
+          </Tooltip>
+
+          <ScannerModal
+            open={open}
+            onOpenChange={setOpen}
+            onDetected={(value) => {
+              router.push(`/dashboard/members/${value}`);
+            }}
+          />
+        </>
+        <Tooltip content='Theme'>
+          <ThemeToggle />
+        </Tooltip>
       </Flex>
     </Flex>
   );
