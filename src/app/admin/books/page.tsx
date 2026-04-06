@@ -1,6 +1,6 @@
 import { AdminContentWrapper } from '@/components/layouts/AdminContentWrapper';
 import { AdminContent } from '@/components/layouts/AdminContent';
-import { BookTable } from './BookTable';
+import { BookTable } from './_components/BookTable';
 
 export default function BooksPage() {
   return (

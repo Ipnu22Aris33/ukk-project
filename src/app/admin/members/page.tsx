@@ -1,6 +1,6 @@
 import { AdminContent } from '@/components/layouts/AdminContent';
 import { AdminContentWrapper } from '@/components/layouts/AdminContentWrapper';
-import { MemberTable } from './MemberTable';
+import { MemberTable } from './_components/MemberTable';
 
 export default function AdminPage() {
   return (

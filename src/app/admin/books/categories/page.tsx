@@ -1,6 +1,6 @@
 import { AdminContent } from '@/components/layouts/AdminContent';
 import { AdminContentWrapper } from '@/components/layouts/AdminContentWrapper';
-import { CategoryTable } from './CategoryTable';
+import { CategoryTable } from './_components/CategoryTable';
 
 export default function CategoryPage() {
   return (

@@ -1,11 +1,11 @@
 'use client';
 
 import { Box, Container, Flex, Grid } from '@radix-ui/themes';
-import { GreetingSection } from './GreetingSection';
-import { StatsSection } from './StatsSection';
-import { ActiveLoans } from './ActiveLoans';
-import { QuickActions } from './QuickActions';
-import { RecommendedBooks } from './RecommendedBooks';
+import { GreetingSection } from './_components/GreetingSection';
+import { StatsSection } from './_components/StatsSection';
+import { ActiveLoans } from './_components/ActiveLoans';
+import { QuickActions } from './_components/QuickActions';
+import { RecommendedBooks } from './_components/RecommendedBooks';
 
 export default function HomePage() {
   return (
