@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, integer, timestamp, numeric, pgEnum, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, integer, timestamp, numeric, pgEnum, index, uniqueIndex, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role_enum', ['admin', 'staff', 'member']);
@@ -100,7 +100,7 @@ export const members = pgTable(
   {
     id: serial('id_member').primaryKey(),
     userId: integer('user_id')
-      .notNull()
+      .unique()
       .references(() => users.id, { onDelete: 'cascade' }),
     memberCode: varchar('member_code', { length: 100 }).notNull(),
     fullName: varchar('full_name', { length: 255 }).notNull(),
@@ -109,6 +109,7 @@ export const members = pgTable(
     nis: varchar('nis', { length: 100 }),
     phone: varchar('phone', { length: 50 }),
     major: varchar('major', { length: 150 }),
+    isActive: boolean('is_active').default(false).notNull(),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
     deletedAt: timestamp('deleted_at'),
@@ -118,6 +119,7 @@ export const members = pgTable(
     uniqueIndex('members_code_unique').on(table.memberCode),
     index('members_fullname_idx').on(table.fullName),
     index('members_deleted_at_idx').on(table.deletedAt),
+    index('members_nis_idx').on(table.nis),
   ]
 );
 

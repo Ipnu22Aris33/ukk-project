@@ -91,11 +91,11 @@ export default function LoginForm({ setActiveTab }: { setActiveTab: () => void }
 
       <Flex align='center' justify='center' gap='1' mt='5' pt='5' style={{ borderTop: '1px solid var(--gray-6)' }}>
         <Text size='2' color='gray'>
-          Belum punya akun?
+          Belum melakukan aktivasi?
         </Text>
 
         <Link size='2' weight='medium' onClick={setActiveTab} style={{ cursor: 'pointer' }}>
-          Daftar Sekarang
+          Aktivasi
         </Link>
       </Flex>
     </FormCard>

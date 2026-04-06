@@ -24,7 +24,6 @@ export function MemberForm({ initialData = {}, onSubmit, isSubmitting = false, s
       nis: initialData.nis || '',
       phone: initialData.phone || '', 
       major: initialData.major || '',
-      email: initialData.email || '',
     },
     validators: {
       onChange: memberFormSchema,
@@ -48,23 +47,6 @@ export function MemberForm({ initialData = {}, onSubmit, isSubmitting = false, s
       }}
     >
       <Flex direction='column' gap='4'>
-
-        {/* Email Field - Required */}
-        <form.Field name='email'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='Email'
-                placeholder='Enter email...'
-                icon={<Icon icon='mdi:email' />}
-                required
-                error={error}
-              />
-            );
-          }}
-        </form.Field>
 
         {/* Full Name Field - Required */}
         <form.Field name='fullName'>

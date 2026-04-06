@@ -13,7 +13,7 @@ const PROTECTED_ROUTES: ProtectedRoute[] = [
   { prefix: '/api/returns' },
   { prefix: '/api/reservations' },
   { prefix: '/api/loans' },
-  { prefix: '/api/members', role: 'admin' },
+  // { prefix: '/api/members', role: 'admin' },
   { prefix: '/api/books' },
   { prefix: '/api/dashboard', role: 'admin' },
 ];

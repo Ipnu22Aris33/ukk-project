@@ -1,8 +1,32 @@
-// hooks/useAuth.ts
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LoginInput, RegisterInput } from '@/lib/schema/auth';
+import { toast } from 'sonner';
+import { HttpError } from '@/lib/utils/httpErrors';
+import { ApiResponse } from '@/lib/utils/apiResponse';
+import { LoginInput, ActivateInput } from '@/lib/schema/auth';
+
+/* =======================
+ * CORE FETCH HELPER
+ * ======================= */
+async function fetchApi<T = any>(url: string, init?: RequestInit): Promise<ApiResponse<T>> {
+  const res = await fetch(url, {
+    credentials: 'include',
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
+  });
+
+  const data: ApiResponse<T> = await res.json();
+
+  if (!res.ok || !data.success) {
+    throw new HttpError(data.status ?? res.status, data.message ?? 'Request failed');
+  }
+
+  return data;
+}
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -14,18 +38,11 @@ export function useAuth() {
    */
   const sessionQuery = useQuery({
     queryKey: ['session'],
-    queryFn: async () => {
-      const res = await fetch('/api/auth/session', {
-        credentials: 'include',
-      });
-
-      if (!res.ok) return null;
-
-      const json = await res.json();
-      return json.data ?? null;
-    },
+    queryFn: () => fetchApi('/api/auth/session'),
     retry: false,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 menit
+    // Kita memetakan data.data karena ApiResponse membungkus payload di property 'data'
+    select: (res) => res.data, 
   });
 
   /**
@@ -33,47 +50,40 @@ export function useAuth() {
    * LOGIN (MUTATION)
    * ======================
    */
-  const loginMutation = useMutation({
-    mutationFn: async (payload: LoginInput) => {
-      const res = await fetch('/api/auth/login', {
+  const loginMutation = useMutation<ApiResponse, HttpError, LoginInput>({
+    mutationFn: (payload) =>
+      fetchApi('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message ?? 'Login failed');
-      }
-    },
-    onSuccess: () => {
+      }),
+    onSuccess: (res) => {
+      toast.success(res.message ?? 'Berhasil masuk');
       queryClient.invalidateQueries({ queryKey: ['session'] });
+    },
+    onError: (err) => {
+      toast.error(err.message);
     },
   });
 
   /**
    * ======================
-   * REGISTER (MUTATION)
+   * ACTIVATE (MUTATION) 
+   * Menggantikan Register
    * ======================
    */
-  const registerMutation = useMutation({
-    mutationFn: async (payload: RegisterInput) => {
-      const res = await fetch('/api/auth/register', {
+  const activateMutation = useMutation<ApiResponse, HttpError, ActivateInput>({
+    mutationFn: (payload) =>
+      fetchApi('/api/auth/activate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message ?? 'Register failed');
-      }
-    },
-    onSuccess: () => {
-      // kalau register auto-login
+      }),
+    onSuccess: (res) => {
+      toast.success(res.message ?? 'Akun berhasil diaktifkan!');
+      // Otomatis mendapatkan sesi karena API memberikan token/cookie
       queryClient.invalidateQueries({ queryKey: ['session'] });
+    },
+    onError: (err) => {
+      toast.error(err.message);
     },
   });
 
@@ -82,15 +92,18 @@ export function useAuth() {
    * LOGOUT (MUTATION)
    * ======================
    */
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await fetch('/api/auth/logout', {
+  const logoutMutation = useMutation<ApiResponse, HttpError, void>({
+    mutationFn: () =>
+      fetchApi('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include',
-      });
-    },
-    onSuccess: () => {
+      }),
+    onSuccess: (res) => {
+      toast.success(res.message ?? 'Berhasil keluar');
       queryClient.setQueryData(['session'], null);
+      queryClient.removeQueries(); // Membersihkan semua cache saat logout
+    },
+    onError: (err) => {
+      toast.error(err.message);
     },
   });
 
@@ -102,12 +115,12 @@ export function useAuth() {
 
     /* ===== ACTIONS ===== */
     login: loginMutation.mutateAsync,
-    register: registerMutation.mutateAsync,
+    activate: activateMutation.mutateAsync, // Nama method diubah sesuai konteks
     logout: logoutMutation.mutateAsync,
 
     /* ===== STATUS ===== */
     isLoginLoading: loginMutation.isPending,
-    isRegisterLoading: registerMutation.isPending,
+    isActivateLoading: activateMutation.isPending,
     isLogoutLoading: logoutMutation.isPending,
 
     refetchSession: sessionQuery.refetch,

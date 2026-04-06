@@ -7,7 +7,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
 
 interface TokenPayload {
   sub: string | number;
-  email: string;
+  email?: string;
   role: 'admin' | 'member' | 'staff';
 }
 

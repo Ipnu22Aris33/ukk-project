@@ -9,7 +9,6 @@ import { members, users } from '@/lib/db/schema';
 import { eq, isNull, ilike } from 'drizzle-orm';
 import { paginate } from '@/lib/db/paginate';
 import { createMemberSchema, memberResponseSchema } from '@/lib/schema/member';
-import { registerSchema } from '@/lib/schema/auth';
 import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 
 export const GET = handleApi(async ({ req }) => {
@@ -38,36 +37,24 @@ export const GET = handleApi(async ({ req }) => {
 
 export const POST = handleApi(async ({ req }) => {
   const data = await req.json();
-  const { email, fullName, memberClass, phone, major, nis } = validateSchema(createMemberSchema, data);
+  
+  // 1. Validasi input (Sesuikan createMemberSchema agar tidak minta email/password)
+  const { fullName, memberClass, phone, major, nis, address } = validateSchema(createMemberSchema, data);
+
   const result = await db.transaction(async (tx) => {
-    // cek email
-    const existingUser = await tx.query.users.findFirst({ where: eq(users.email, email) });
-    if (existingUser) {
-      throw new Conflict('Email already registered');
+    // 2. Cek apakah NIS sudah terdaftar di tabel members
+    const existingMember = await tx.query.members.findFirst({ 
+      where: eq(members.nis, nis) 
+    });
+    
+    if (existingMember) {
+      throw new Conflict('NIS sudah terdaftar sebagai member');
     }
 
-    // cek nis untuk menghindari duplikat username
-    const existingNis = await tx.query.users.findFirst({ where: eq(users.username, nis) });
-    if (existingNis) {
-      throw new Conflict('NIS already registered');
-    }
-
-    // password = nis
-    const passwordHash = await hashPassword(nis);
+    // 3. Generate Member Code
     const memberCode = 'MBR-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
-    // insert user
-    const [newUser] = await tx
-      .insert(users)
-      .values({
-        username: nis,
-        email: email,
-        password: passwordHash,
-        role: 'member',
-      })
-      .returning({ id: users.id, username: users.username, email: users.email });
-
-    // insert member
+    // 4. Insert ke tabel members saja
     const [newMember] = await tx
       .insert(members)
       .values({
@@ -77,17 +64,20 @@ export const POST = handleApi(async ({ req }) => {
         memberClass,
         major,
         nis,
-        userId: newUser.id,
+        address,
+        isActive: false, // Default belum aktif
+        // userId: null  <-- Otomatis null karena tidak kita isi
       })
-      .returning({ id: members.id, fullName: members.fullName, memberCode: members.memberCode });
+      .returning();
 
     return {
+      id_member: newMember.id,
       full_name: newMember.fullName,
       member_code: newMember.memberCode,
-      email: newUser.email,
-      password: nis, // return nis sebagai password
+      nis: newMember.nis,
+      status: 'Pending Activation'
     };
   });
 
-  return ok(safeParseResponse(memberResponseSchema, result), { message: 'Member registered successfully' });
+  return ok(result, { message: 'Data member berhasil dibuat, silakan lakukan aktivasi.' });
 });

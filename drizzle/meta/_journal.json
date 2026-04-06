@@ -29,6 +29,13 @@
       "when": 1773786640306,
       "tag": "0003_spotty_betty_brant",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775222020293,
+      "tag": "0004_lean_meteorite",
+      "breakpoints": true
     }
   ]
 }
