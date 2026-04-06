@@ -43,7 +43,7 @@ export const PATCH = handleApi(async ({ req, params }) => {
   }
 
   const body = await req.json();
-  const { fullName, memberClass, address, nis, phone, major, email } = validateSchema(updateMemberSchema, body);
+  const { fullName, memberClass, address, nis, phone, major } = validateSchema(updateMemberSchema, body);
 
   // Cek member exists dan belum di-delete
   const existingMember = await db.query.members.findFirst({
@@ -60,25 +60,6 @@ export const PATCH = handleApi(async ({ req, params }) => {
   // Update dalam transaction
   const result = await db.transaction(async (tx) => {
     // Update user jika email berubah
-    if (email && email !== existingMember.user?.email) {
-      // Cek email tidak digunakan user lain
-      const existingUser = await tx.query.users.findFirst({
-        where: and(eq(users.email, email), isNull(users.deletedAt)),
-      });
-
-      if (existingUser && existingUser.id !== existingMember.userId) {
-        throw new Conflict('Email already used by another user');
-      }
-
-      await tx
-        .update(users)
-        .set({
-          email,
-          username: nis || existingMember.user?.username,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, existingMember.userId));
-    }
 
     // Update member
     const [updated] = await tx

@@ -10,7 +10,6 @@ import { users } from '@/lib/db/schema';
 
 import { eq, and, isNull, or } from 'drizzle-orm';
 import { validateSchema } from '@/lib/utils/validate';
-import { registerSchema } from '@/lib/schema/auth';
 import { createUserInputSchema } from '@/lib/schema/user';
 
 // =========================

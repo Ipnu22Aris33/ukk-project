@@ -83,6 +83,10 @@ export function MemberTable() {
 
   const columns: ColDataTable<MemberResponse>[] = [
     {
+      accessorKey: 'memberCode',
+      header: 'Member Code',
+    },
+    {
       accessorKey: 'fullName',
       header: 'Name',
     },
@@ -103,10 +107,7 @@ export function MemberTable() {
 
       header: 'Address',
     },
-    {
-      accessorKey: 'user.email',
-      header: 'Email',
-    },
+    
   ];
 
   const rowActions: () => RowAction<MemberResponse>[] = () => [
@@ -148,7 +149,6 @@ export function MemberTable() {
       return (
         <MemberForm
           initialData={{
-            email: selected.user.email || '',
             fullName: selected.fullName,
             memberClass: selected.memberClass || '',
             address: selected.address || null,

@@ -6,7 +6,7 @@ import { verifyToken } from '@/lib/utils/auth';
 
 type UserFromToken = {
   id: number;
-  email: string;
+  email?: string;
   role: 'admin' | 'staff' | 'member';
 };
 
