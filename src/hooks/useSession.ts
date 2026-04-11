@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 type SessionUser = {
-  id_user: string;
+  id_user: number;
   email: string;
   role: string;
 };

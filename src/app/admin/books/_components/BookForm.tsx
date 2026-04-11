@@ -16,7 +16,6 @@ interface BookFormProps {
   initialData?: Partial<BookFormInput> & {
     coverUrl?: string | null;
     coverPublicId?: string | null;
-    availableStock?: number; // Tambahkan ini jika ada di data edit
   };
   onSubmit: (data: any) => Promise<void>;
   isSubmitting?: boolean;
@@ -55,7 +54,6 @@ export function BookForm({
       author: initialData.author ?? '',
       publisher: initialData.publisher ?? '',
       totalStock: initialData.totalStock ?? 1,
-      availableStock: initialData.availableStock ?? initialData.totalStock ?? 1,
       year: initialData.year ?? new Date().getFullYear(),
       isbn: initialData.isbn ?? '',
       categoryId: initialData.categoryId ?? 0,
@@ -164,35 +162,20 @@ export function BookForm({
           )}
         </form.Field>
 
-        {/* 🔥 BERUBAH: Field Stock dibagi menjadi Total dan Available (Opsional) */}
-        <Flex gap="4">
-          <form.Field name='totalStock'>
-            {(field) => (
-              <InputField
-                field={field}
-                type='number'
-                label='Total Stock'
-                icon={<Icon icon='mdi:counter' />}
-                required
-                error={getFieldError(field)}
-                placeholder='Total physical books...'
-              />
-            )}
-          </form.Field>
-
-          <form.Field name='availableStock'>
-            {(field) => (
-              <InputField
-                field={field}
-                type='number'
-                label='Available Stock'
-                icon={<Icon icon='mdi:check-circle' />}
-                error={getFieldError(field)}
-                placeholder='Books on shelf...'
-              />
-            )}
-          </form.Field>
-        </Flex>
+        {/* Hanya Total Stock yang diinput manual */}
+        <form.Field name='totalStock'>
+          {(field) => (
+            <InputField
+              field={field}
+              type='number'
+              label='Total Stock'
+              icon={<Icon icon='mdi:counter' />}
+              required
+              error={getFieldError(field)}
+              placeholder='Total physical books...'
+            />
+          )}
+        </form.Field>
 
         <form.Field name='categoryId'>
           {(field) => (

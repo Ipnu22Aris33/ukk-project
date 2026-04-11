@@ -49,10 +49,7 @@ export const createBookSchema = bookSchema.omit({
   deletedAt: true,
   reservedStock: true, // Default 0
   loanedStock: true,   // Default 0
-}).extend({
-  // Kita buat availableStock opsional saat create
-  availableStock: z.number().int().min(0).optional(),
-});
+})
 
 // 4. Update API Schema
 export const updateBookSchema = createBookSchema.partial();

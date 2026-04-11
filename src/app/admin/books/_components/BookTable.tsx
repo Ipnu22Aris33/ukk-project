@@ -142,7 +142,6 @@ export function BookTable() {
     },
   ];
 
-  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Books' }];
 
   const renderPanelContent = () => {
     if (mode === 'add') {
@@ -170,7 +169,6 @@ export function BookTable() {
             author: selected.author,
             publisher: selected.publisher,
             totalStock: selected.totalStock,
-            availableStock: selected.availableStock,
             year: selected.year,
             isbn: selected.isbn,
             categoryId: selected.categoryId,
@@ -203,7 +201,6 @@ export function BookTable() {
   return (
     <Box position='relative' minHeight='100vh'>
       <Container size='4' py='6'>
-        <Breadcrumb items={breadcrumbItems} />
 
         <Flex justify='between' align='center' mb='6'>
           <Heading size='8'>Books Management</Heading>

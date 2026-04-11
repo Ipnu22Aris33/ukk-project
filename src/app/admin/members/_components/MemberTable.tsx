@@ -128,7 +128,7 @@ export function MemberTable() {
    
   ];
 
-  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }];
+  // const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }];
 
   const renderPanelContent = () => {
     if (mode === 'add') {
@@ -182,7 +182,7 @@ export function MemberTable() {
   return (
     <Box position='relative' minHeight='100vh'>
       <Container size='4' py='6'>
-        <Breadcrumb items={breadcrumbItems} />
+        {/* <Breadcrumb items={breadcrumbItems} /> */}
 
         <Flex justify='between' align='center' mb='6'>
           <Heading size='8'>Members Management</Heading>

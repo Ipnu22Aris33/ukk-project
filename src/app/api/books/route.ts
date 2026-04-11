@@ -67,14 +67,13 @@ export const POST = handleApi(async ({ req }) => {
   const data = validateSchema(createBookSchema, body);
 
   // Jika availableStock tidak dikirim, default-nya adalah totalStock
-  const finalAvailable = data.availableStock !== undefined ? Math.min(data.availableStock, data.totalStock) : data.totalStock;
 
   const [newBook] = await db
     .insert(books)
     .values({
       ...data,
       slug: slugify(data.title),
-      availableStock: finalAvailable,
+      availableStock: data.totalStock,
       reservedStock: 0,
       loanedStock: 0,
     })
