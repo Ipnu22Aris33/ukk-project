@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapse
             open={open}
             onOpenChange={setOpen}
             onDetected={(value) => {
-              router.push(`/admin/dashboard/members/${value}`);
+              router.push(`/admin/members/${value}`);
             }}
           />
         </>
