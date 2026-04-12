@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Flex, Container, Text, IconButton, Avatar, DropdownMenu, Badge } from '@radix-ui/themes';
+import { Box, Flex, Container, Text, IconButton, Avatar, DropdownMenu, Badge, Dialog, Button } from '@radix-ui/themes';
 import { BellIcon, ArchiveIcon, PersonIcon, GearIcon, ExitIcon, HamburgerMenuIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
 import { AnimatePresence, motion } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react'; // Import Library QR
 
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -14,6 +15,7 @@ import { getInitials } from '@/lib/utils/getInitials';
 import { DesktopSubNav } from './DesktopSubNav';
 import { MobileDrawer } from './MobileDrawer';
 import { SearchBox } from './SearchBox';
+import { useMembers } from '@/hooks/useMembers';
 
 interface UserHeaderProps {
   schoolName: string;
@@ -28,6 +30,12 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
+  // Nilai QR Code (Misal: ID Member atau URL profil)
+  const member = useMembers();
+
+  const { data } = member.getOne(session?.member?.id || '');
+  const memberCode = data?.data.memberCode || 'No-Code';
+
   const handleLogout = async () => {
     await logout();
     router.replace('/');
@@ -36,7 +44,6 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
   const menus = [
     { label: 'Home', href: '/home' },
     { label: 'Koleksi Buku', href: '/catalog' },
-    { label: 'Peminjaman', href: '/loans' },
     { label: 'Riwayat', href: '/history' },
   ];
 
@@ -51,7 +58,6 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
         WebkitBackdropFilter: 'blur(16px)',
       }}
     >
-      {/* ── Main row ── */}
       <Box style={{ borderBottom: '1px solid var(--gray-a4)' }}>
         <Container size='4' px={{ initial: '4', md: '0' }}>
           <Flex align='center' py='3' gap='3'>
@@ -92,7 +98,6 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
 
             {/* ── Right actions ── */}
             <Flex align='center' gap='2' style={{ flex: 1, justifyContent: 'flex-end' }}>
-              {/* Desktop search */}
               {!isMobile && (
                 <Box style={{ width: 260 }}>
                   <SearchBox />
@@ -113,6 +118,62 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
 
               <ThemeToggle variant='soft' />
 
+              {/* ── QR CODE MODAL ── */}
+              <Dialog.Root>
+                <Dialog.Trigger>
+                  <IconButton size='2' variant='soft' color='indigo' style={{ cursor: 'pointer' }}>
+                    {/* Menggunakan Icon QR (asumsi dari react-icons atau radix) */}
+                    <Box style={{ transform: 'scale(1.2)' }}>
+                      <svg width='15' height='15' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg'>
+                        <path
+                          d='M1 1H6V6H1V1ZM2 2V5H5V2H2ZM1 9H6V14H1V9ZM2 10V13H5V10H2ZM9 1H14V6H9V1ZM10 2V5H13V2H10ZM9 9H11V11H9V9ZM12 9H14V11H12V9ZM9 12H11V14H9V12ZM12 12H14V14H12V12ZM11 11H12V12H11V11Z'
+                          fill='currentColor'
+                          fillRule='evenodd'
+                          clipRule='evenodd'
+                        ></path>
+                      </svg>
+                    </Box>
+                  </IconButton>
+                </Dialog.Trigger>
+
+                <Dialog.Content style={{ maxWidth: 350, textAlign: 'center' }}>
+                  <Dialog.Title size='4'>Kartu Anggota Digital</Dialog.Title>
+                  <Dialog.Description size='2' mb='4'>
+                    Tunjukkan QR Code ini ke petugas perpustakaan.
+                  </Dialog.Description>
+
+                  <Flex direction='column' align='center' justify='center' gap='4' py='4'>
+                    <Box
+                      style={{
+                        background: 'white',
+                        padding: '16px',
+                        borderRadius: '16px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      <QRCodeSVG value={memberCode} size={200} level='H'/>
+                    </Box>
+
+                    <Box>
+                      <Text as='div' weight='bold' size='3'>
+                        {userName}
+                      </Text>
+                      <Text as='div' color='gray' size='2'>
+                        ID: {memberCode}
+                      </Text>
+                    </Box>
+                  </Flex>
+
+                  <Flex gap='3' mt='4' justify='end'>
+                    <Dialog.Close>
+                      <Button variant='soft' color='gray'>
+                        Tutup
+                      </Button>
+                    </Dialog.Close>
+                  </Flex>
+                </Dialog.Content>
+              </Dialog.Root>
+
               {/* Notification */}
               <Box style={{ position: 'relative', flexShrink: 0 }}>
                 <IconButton size='2' variant='soft' style={{ cursor: 'pointer' }}>
@@ -132,7 +193,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                 </Badge>
               </Box>
 
-              {/* User dropdown — desktop & mobile */}
+              {/* User dropdown */}
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
                   <Box
@@ -147,7 +208,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                   >
                     <Avatar
                       size='2'
-                      fallback={getInitials(session?.member.fullName)}
+                      fallback={getInitials(session?.member?.fullName || userName)}
                       style={{
                         border: '2px solid var(--color-panel-solid)',
                         borderRadius: 999,
@@ -158,10 +219,9 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                 </DropdownMenu.Trigger>
 
                 <DropdownMenu.Content align='end' style={{ minWidth: 200 }} sideOffset={8}>
-                  {/* User info */}
                   <Box px='3' py='3' style={{ borderBottom: '1px solid var(--gray-a4)' }}>
                     <Flex align='center' gap='3'>
-                      <Avatar size='3' fallback={getInitials(session?.member.fullName)} style={{ borderRadius: 999, flexShrink: 0 }} />
+                      <Avatar size='3' fallback={getInitials(session?.member?.fullName || userName)} style={{ borderRadius: 999, flexShrink: 0 }} />
                       <Box>
                         <Text size='2' weight='bold' style={{ display: 'block', lineHeight: 1.4 }}>
                           {userName}
@@ -196,7 +256,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
         </Container>
       </Box>
 
-      {/* ── Mobile search bar — slide down ── */}
+      {/* Mobile search bar & Nav (tetap sama) */}
       <AnimatePresence initial={false}>
         {isMobile && mobileSearchOpen && (
           <motion.div
@@ -223,10 +283,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
         )}
       </AnimatePresence>
 
-      {/* Desktop sub nav */}
       {!isMobile && <DesktopSubNav menus={menus} />}
-
-      {/* Mobile drawer */}
       {isMobile && <MobileDrawer open={menuOpen} onClose={() => setMenuOpen(false)} menus={menus} />}
     </Box>
   );
