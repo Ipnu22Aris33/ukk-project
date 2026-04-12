@@ -27,7 +27,7 @@ export type UserSummaryApiResponse = {
 
 export const useProfile = () => {
   // Kita arahkan ke endpoint summary user
-  const userCRUD = useCRUD<never, never, UserSummaryApiResponse>('/api/profile/summary', {
+  const userCRUD = useCRUD<never, never, UserSummaryApiResponse>('/api/members/summary', {
     disableToasts: true, // Agar tidak muncul notifikasi sukses tiap kali fetch profil
     staleTime: 1000 * 60 * 5, // Data dianggap fresh selama 5 menit
     gcTime: 1000 * 60 * 10,

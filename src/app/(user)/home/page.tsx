@@ -4,8 +4,7 @@ import { Box, Container, Flex, Grid } from '@radix-ui/themes';
 import { GreetingSection } from './_components/GreetingSection';
 import { StatsSection } from './_components/StatsSection';
 import { ActiveLoans } from './_components/ActiveLoans';
-import { QuickActions } from './_components/QuickActions';
-import { RecommendedBooks } from './_components/RecommendedBooks';
+import { ActiveReservations } from './_components/ActiveReservations';
 
 export default function HomePage() {
   return (
@@ -16,13 +15,10 @@ export default function HomePage() {
 
           <StatsSection />
 
-          <Grid columns={{ initial: '1', md: '2', lg: '2fr 1fr' }} gap='6' width='100%' align='start'>
+          <Grid columns={{ initial: '1', md: '2', lg: '1fr 1fr' }} gap='6' width='100%' align='start'>
             <ActiveLoans />
 
-            <Flex direction='column' gap='5' className='min-w-0'>
-              <QuickActions />
-              <RecommendedBooks />
-            </Flex>
+            <ActiveReservations/>
           </Grid>
         </Flex>
       </Container>

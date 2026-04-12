@@ -10,7 +10,6 @@ import { Icon } from '@iconify/react';
 import { useState } from 'react';
 import type { ReservationResponse } from '@/lib/schema/reservation';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
-import { useSession } from '@/hooks/useSession';
 import { useAuth } from '@/hooks/useAuth';
 
 /* =========================

@@ -1,87 +1,82 @@
 'use client';
 
 import { Box, Card, Flex, Text, Badge, Skeleton } from '@radix-ui/themes';
-import { ReaderIcon } from '@radix-ui/react-icons';
+import { BookmarkIcon } from '@radix-ui/react-icons';
 import { useRouter } from 'next/navigation';
 import { SectionHeader } from './SectionHeader';
-import { useLoans } from '@/hooks/useLoans'; // Pastikan hook ini sudah ada via createCRUD
+import { useReservations } from '@/hooks/useReservation'; // Pastikan hook ini sudah dibuat via createCRUD
 
-const statusConfig: Record<string, { label: string; color: 'blue' | 'red' | 'green' }> = {
-  borrowed: { label: 'Aktif',     color: 'blue' },
-  late:     { label: 'Terlambat', color: 'red' },
-  returned: { label: 'Kembali',   color: 'green' },
+const statusConfig: Record<string, { label: string; color: 'violet' | 'green' | 'red' | 'gray' }> = {
+  pending: { label: 'Menunggu', color: 'violet' },
+  approved: { label: 'Tersedia', color: 'green' },
+  rejected: { label: 'Ditolak', color: 'red' },
+  expired: { label: 'Kadaluwarsa', color: 'gray' },
 };
 
-export const ActiveLoans = () => {
+export const ActiveReservations = () => {
   const router = useRouter();
-  const loansHook = useLoans();
+  const resHook = useReservations();
 
-  // Ambil 5 data terbaru yang belum kembali (borrowed & late)
-  const { data: response, isLoading } = loansHook.list({
+  // Ambil 5 reservasi terbaru yang belum selesai/diambil
+  const { data: response, isLoading } = resHook.list({
     limit: 5,
-    status: 'borrowed',
-    orderBy: 'loanDate',
-    orderDir: 'desc'
+    orderBy: 'createdAt',
+    orderDir: 'desc',
+    // status: 'pending,approved' // Sesuaikan jika API mendukung filter multiple status
   });
 
-  const activeLoans = response?.data || [];
+  const reservations = response?.data || [];
 
   return (
     <Box className='min-w-0'>
-      <SectionHeader 
-        title='Peminjaman Aktif' 
-        action='Lihat semua' 
-        onAction={() => router.push('/member/loans')} 
-      />
-      
+      <SectionHeader title='Reservasi Saya' action='Lihat semua' onAction={() => router.push('/member/reservations')} />
+
       <Flex direction='column' gap='2'>
         {isLoading ? (
-          // Skeleton Loading
           Array.from({ length: 3 }).map((_, i) => (
             <Card key={i} className='p-3 px-4 rounded-xl'>
-              <Skeleton height="40px" />
+              <Skeleton height='40px' />
             </Card>
           ))
-        ) : activeLoans.length === 0 ? (
-          // Empty State
+        ) : reservations.length === 0 ? (
           <Card className='p-8 rounded-xl border-dashed border-2 flex flex-col items-center justify-center bg-gray-1'>
-            <Text size="2" color="gray">Tidak ada pinjaman aktif</Text>
+            <Text size='2' color='gray'>
+              Belum ada reservasi buku
+            </Text>
           </Card>
         ) : (
-          // Data List
-          activeLoans.map((loan: any) => {
-            const s = statusConfig[loan.status] || { label: loan.status, color: 'gray' };
-            
+          reservations.map((res: any) => {
+            const s = statusConfig[res.status] || { label: res.status, color: 'gray' };
+
             return (
-              <Card 
-                key={loan.id} 
+              <Card
+                key={res.id}
                 className='p-3 px-4 rounded-xl cursor-pointer hover:bg-gray-2 transition-colors'
-                onClick={() => router.push(`/member/loans/${loan.id}`)}
+                onClick={() => router.push(`/member/reservations/${res.id}`)}
               >
                 <Flex align='center' justify='between' gap='3'>
                   <Flex align='center' gap='3' className='flex-1 min-w-0'>
-                    <Box className='w-9 h-9 rounded-lg shrink-0 bg-indigo-3 text-indigo-9 flex items-center justify-center'>
-                      <ReaderIcon width='16' height='16' />
+                    <Box className='w-9 h-9 rounded-lg shrink-0 bg-violet-3 text-violet-9 flex items-center justify-center'>
+                      <BookmarkIcon width='16' height='16' />
                     </Box>
                     <Box className='min-w-0 flex-1'>
                       <Text size='2' weight='medium' className='block leading-snug truncate'>
-                        {loan.book?.title} {/* Mengasumsikan ada relation join ke book */}
+                        {res.book?.title}
                       </Text>
                       <Text size='1' color='gray' className='block leading-snug'>
-                        {loan.book?.author}
+                        Ref: {res.reservationCode ?? `#${res.id}`}
                       </Text>
                     </Box>
                   </Flex>
-                  
+
                   <Flex direction='column' align='end' gap='1' className='shrink-0'>
                     <Badge color={s.color} radius='full' size='1'>
                       {s.label}
                     </Badge>
                     <Text size='1' color='gray'>
-                      {new Date(loan.dueDate).toLocaleDateString('id-ID', {
+                      {new Date(res.createdAt).toLocaleDateString('id-ID', {
                         day: '2-digit',
                         month: 'short',
-                        year: 'numeric'
                       })}
                     </Text>
                   </Flex>

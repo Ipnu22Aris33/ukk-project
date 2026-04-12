@@ -5,20 +5,24 @@ import { db } from '@/lib/db';
 import { members, loans, returns, reservations } from '@/lib/db/schema';
 import { isNull, eq, and, sql } from 'drizzle-orm';
 
-export const GET = handleApi(async ({ params }) => {
-  const id = params?.id;
-  const memberId = Number(id);
+export const GET = handleApi(async ({ user }) => {
+  // Check if the user is an admin
+  if (!user?.role || user.role !== 'admin') {
+    throw new NotFound('Access denied');
+  }
 
-  if (!memberId || Number.isNaN(memberId)) {
+  const member = await db.query.members.findFirst({
+    where: eq(members.userId, user.id),
+  });
+  
+
+  if (!member || Number.isNaN(member)) {
     throw new NotFound('Invalid member ID');
   }
 
   // =====================
   // 🔹 FETCH MEMBER
   // =====================
-  const member = await db.query.members.findFirst({
-    where: eq(members.id, memberId),
-  });
 
   if (!member) {
     throw new NotFound('Member not found');
@@ -30,25 +34,25 @@ export const GET = handleApi(async ({ params }) => {
   const totalLoans = await db
     .select({ count: sql<number>`count(*)` })
     .from(loans)
-    .where(and(eq(loans.memberId, memberId), isNull(loans.deletedAt)))
+    .where(and(eq(loans.memberId, member.id), isNull(loans.deletedAt)))
     .then((r) => Number(r[0].count));
 
   const activeLoans = await db
     .select({ count: sql<number>`count(*)` })
     .from(loans)
-    .where(and(eq(loans.memberId, memberId), isNull(loans.deletedAt), eq(loans.status, 'borrowed')))
+    .where(and(eq(loans.memberId, member.id), isNull(loans.deletedAt), eq(loans.status, 'borrowed')))
     .then((r) => Number(r[0].count));
 
   const returnedLoans = await db
     .select({ count: sql<number>`count(*)` })
     .from(loans)
-    .where(and(eq(loans.memberId, memberId), isNull(loans.deletedAt), eq(loans.status, 'returned')))
+    .where(and(eq(loans.memberId, member.id), isNull(loans.deletedAt), eq(loans.status, 'returned')))
     .then((r) => Number(r[0].count));
 
   const lateLoans = await db
     .select({ count: sql<number>`count(*)` })
     .from(loans)
-    .where(and(eq(loans.memberId, memberId), isNull(loans.deletedAt), eq(loans.status, 'late')))
+    .where(and(eq(loans.memberId, member.id), isNull(loans.deletedAt), eq(loans.status, 'late')))
     .then((r) => Number(r[0].count));
 
   // =====================
@@ -58,7 +62,7 @@ export const GET = handleApi(async ({ params }) => {
     .select({ count: sql<number>`count(*)` })
     .from(returns)
     .leftJoin(loans, eq(returns.loanId, loans.id))
-    .where(and(eq(loans.memberId, memberId), isNull(returns.deletedAt), isNull(loans.deletedAt)))
+    .where(and(eq(loans.memberId, member.id), isNull(returns.deletedAt), isNull(loans.deletedAt)))
     .then((r) => Number(r[0].count));
 
   // =====================
@@ -67,7 +71,7 @@ export const GET = handleApi(async ({ params }) => {
   const totalReservations = await db
     .select({ count: sql<number>`count(*)` })
     .from(reservations)
-    .where(and(eq(reservations.memberId, memberId), isNull(reservations.deletedAt)))
+    .where(and(eq(reservations.memberId, member.id), isNull(reservations.deletedAt)))
     .then((r) => Number(r[0].count));
 
   return ok(

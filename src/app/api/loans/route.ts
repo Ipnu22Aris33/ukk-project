@@ -5,7 +5,7 @@ import { parseQuery } from '@/lib/utils/parseQuery';
 import { paginate } from '@/lib/db/paginate';
 import { db } from '@/lib/db';
 import { loans, books, members, loanStatusEnum, reservations } from '@/lib/db/schema';
-import { eq, and, isNull, sql, asc, desc, or, gte, lte } from 'drizzle-orm';
+import { eq, and, isNull, sql, gte, lte } from 'drizzle-orm';
 import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 import { createLoanSchema, loanResponseSchema } from '@/lib/schema/loan';
 
@@ -101,7 +101,13 @@ export const POST = handleApi(async ({ req }) => {
 
 export const GET = handleApi(async ({ req, user }) => {
   const url = new URL(req.url);
-  const { page, limit, search, orderBy, orderDir = 'desc', filters } = parseQuery(url);
+  const { page, limit, search, orderBy, orderDir = 'desc', filters } = parseQuery(url, {filters: {
+    status: 'string',
+    fromDate: 'string',
+    toDate: 'string',
+    memberId: 'number',
+    bookId: 'number',
+  }});
 
   const conditions = [isNull(loans.deletedAt)];
 

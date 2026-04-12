@@ -159,7 +159,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                         {userName}
                       </Text>
                       <Text as='div' color='gray' size='2'>
-                        ID: {memberCode}
+                         {memberCode}
                       </Text>
                     </Box>
                   </Flex>
