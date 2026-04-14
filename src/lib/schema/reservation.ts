@@ -34,7 +34,7 @@ const reservationInputSchema = reservationSchema.omit({
 export const reservationResponseSchema = reservationSchema.omit({ deletedAt: true }).extend({
   member: memberResponseSchema,
   book: bookResponseSchema,
-  approver: userResponseSchema.nullable(),
+  pickedUpByUser: userResponseSchema.nullable(),
 });
 
 export const createReservationSchema = reservationInputSchema.omit({
