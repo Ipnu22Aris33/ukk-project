@@ -54,7 +54,7 @@ export const GET = handleApi(async ({ req, user }) => {
     with: {
       member: { with: { user: true } },
       book: {with: { category: true } },
-      approver: true,
+      pickedUpByUser: true,
     },
   });
 
