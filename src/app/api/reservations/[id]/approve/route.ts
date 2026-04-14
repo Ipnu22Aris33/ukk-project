@@ -52,7 +52,7 @@ export const PATCH = handleApi(async ({ params, user }) => {
         reservationId: reservation.id,
         notes: reservation.notes,
         loanDate: now,
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // Default 14 hari
+        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // Default 14 hari
         status: 'borrowed',
       })
       .returning();
