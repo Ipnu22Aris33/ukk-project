@@ -1,14 +1,12 @@
 import '@/style/globals.css';
-import "@radix-ui/themes/styles.css";
-
 
 import { AppProvider } from '@/components/providers/AppProvider';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'My App',
+  title: 'Nexa Library',
   icons: {
-    icon: 'next.svg',
+    icon: 'library.svg',
   },
 };
 
@@ -16,9 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang='en'>
       <body>
-        <AppProvider>
-          {children}
-        </AppProvider>
+        <AppProvider>{children}</AppProvider>
       </body>
     </html>
   );

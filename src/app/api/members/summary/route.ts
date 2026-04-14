@@ -41,7 +41,7 @@ export const GET = handleApi(async ({ user }) => {
       .select({
         total: sql<number>`count(*)`,
         pending: sql<number>`count(*) filter (where ${reservations.status} = 'pending')`,
-        approved: sql<number>`count(*) filter (where ${reservations.status} = 'approved')`,
+        pickedUp: sql<number>`count(*) filter (where ${reservations.status} = 'picked_up')`,
       })
       .from(reservations)
       .where(and(eq(reservations.memberId, memberId), isNull(reservations.deletedAt))),
@@ -89,7 +89,7 @@ export const GET = handleApi(async ({ user }) => {
         reservations: {
           total: Number(res_result.total) || 0,
           pending: Number(res_result.pending) || 0,
-          approved: Number(res_result.approved) || 0,
+          pickedUp: Number(res_result.pickedUp) || 0,
         },
         returns: {
           total: Number(ret_result.total) || 0,

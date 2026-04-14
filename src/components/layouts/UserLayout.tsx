@@ -18,7 +18,7 @@ interface UserLayoutProps {
 export default function UserLayout({ children }: UserLayoutProps) {
   const { session } = useAuth();
   return (
-    <Theme appearance='inherit' accentColor='indigo' radius='medium' className='min-h-screen flex flex-col'>
+    <Theme appearance='inherit' accentColor='violet' radius='medium' className='min-h-screen flex flex-col'>
       {/* Header */}
       <UserHeader schoolName='BM' userName={session?.email} />
 

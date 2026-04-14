@@ -8,7 +8,7 @@ import { useReservations } from '@/hooks/useReservation'; // Pastikan hook ini s
 
 const statusConfig: Record<string, { label: string; color: 'violet' | 'green' | 'red' | 'gray' }> = {
   pending: { label: 'Menunggu', color: 'violet' },
-  approved: { label: 'Tersedia', color: 'green' },
+  picked_up: { label: 'Diambil', color: 'green' },
   rejected: { label: 'Ditolak', color: 'red' },
   expired: { label: 'Kadaluwarsa', color: 'gray' },
 };
@@ -22,7 +22,7 @@ export const ActiveReservations = () => {
     limit: 5,
     orderBy: 'createdAt',
     orderDir: 'desc',
-    // status: 'pending,approved' // Sesuaikan jika API mendukung filter multiple status
+    // status: 'pending,picked_up' // Sesuaikan jika API mendukung filter multiple status
   });
 
   const reservations = response?.data || [];

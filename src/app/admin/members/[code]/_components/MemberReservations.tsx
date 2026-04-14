@@ -54,13 +54,13 @@ export function MemberReservations({ code }: { code: string }) {
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'approved':
+      case 'picked_up':
         return 'green';
       case 'rejected':
         return 'red';
       case 'pending':
         return 'amber';
-      case 'canceled':
+      case 'cancelled':
         return 'gray';
       default:
         return 'gray';

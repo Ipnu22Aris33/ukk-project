@@ -35,8 +35,8 @@ export const PATCH = handleApi(async ({ req, params, user }) => {
 
     // --- LOGIKA 4 PILAR STOK BERDASARKAN PERUBAHAN STATUS ---
 
-    // CASE A: PENDING -> APPROVED (Buku diambil oleh member)
-    if (payload.status === 'approved' && reservation.status === 'pending') {
+    // CASE A: PENDING -> PICKED_UP (Buku diambil oleh member)
+    if (payload.status === 'picked_up' && reservation.status === 'pending') {
       // Buat data Loan otomatis
       await tx.insert(loans).values({
         memberId: reservation.memberId,
@@ -56,12 +56,12 @@ export const PATCH = handleApi(async ({ req, params, user }) => {
         })
         .where(eq(books.id, reservation.bookId));
       
-      payload.approvedAt = now;
-      payload.approvedBy = user.id;
+      payload.pickedUpAt = now;
+      payload.pickedUpBy = user.id;
     }
 
     // CASE B: PENDING -> CANCELED / REJECTED (Reservasi batal, stok balik ke rak)
-    if ((payload.status === 'canceled' || payload.status === 'rejected') && reservation.status === 'pending') {
+    if ((payload.status === 'cancelled' || payload.status === 'rejected') && reservation.status === 'pending') {
       await tx.update(books)
         .set({
           reservedStock: sql`${books.reservedStock} - ${reservation.quantity}`,
@@ -70,8 +70,8 @@ export const PATCH = handleApi(async ({ req, params, user }) => {
         .where(eq(books.id, reservation.bookId));
     }
 
-    // CASE C: APPROVED -> CANCELED (Skenario khusus jika peminjaman dibatalkan sepihak sebelum buku dibawa)
-    if (payload.status === 'canceled' && reservation.status === 'approved') {
+    // CASE C: PICKED_UP -> CANCELLED (Skenario khusus jika peminjaman dibatalkan sepihak sebelum buku dibawa)
+    if (payload.status === 'cancelled' && reservation.status === 'picked_up') {
        // Opsional: Hapus loan yang terlanjur dibuat atau update status loan-nya
        await tx.update(books)
         .set({

@@ -45,7 +45,7 @@ export const StatsSection = () => {
           loading={isLoading}
           details={[
             { label: 'Pending', value: summary?.reservations.pending ?? 0 },
-            { label: 'Disetujui', value: summary?.reservations.approved ?? 0 },
+            { label: 'Diambil', value: summary?.reservations.picked_up ?? 0 },
           ]}
         />
 

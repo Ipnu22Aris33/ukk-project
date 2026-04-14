@@ -26,7 +26,7 @@ export const GET = handleApi(async () => {
 
       // RESERVATIONS
       totalReservations: sql<number>`(SELECT count(*) FROM ${reservations} WHERE ${reservations.deletedAt} IS NULL)`,
-      activeReservations: sql<number>`(SELECT count(*) FROM ${reservations} WHERE ${reservations.status} = 'approved' AND ${reservations.deletedAt} IS NULL)`,
+      activeReservations: sql<number>`(SELECT count(*) FROM ${reservations} WHERE ${reservations.status} = 'picked_up' AND ${reservations.deletedAt} IS NULL)`,
     })
     .from(sql`(SELECT 1) as dummy`);
 

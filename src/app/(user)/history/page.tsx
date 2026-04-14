@@ -15,9 +15,9 @@ import {
   UploadIcon,
 } from '@radix-ui/react-icons';
 
-import { ReservationSection } from './ReservationSection';
-import { LoanSection } from './LoanSection';
-import { ReturnSection } from './ReturnSection';
+import { ReservationSection } from './_components/ReservationSection';
+import { LoanSection } from './_components/LoanSection';
+import { ReturnSection } from './_components/ReturnSection';
 
 export default function RiwayatPage() {
   return (

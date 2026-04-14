@@ -30,13 +30,13 @@ export const PATCH = handleApi(async ({ params, user }) => {
     
     const now = new Date();
 
-    // 2. Update status reservasi menjadi APPROVED
+    // 2. Update status reservasi menjadi picked_up (diambil)
     const [updatedReservation] = await tx
       .update(reservations)
       .set({
-        status: 'approved',
-        approvedAt: now,
-        approvedBy: user?.id ?? null, // Mencatat siapa yang menyetujui
+        status: 'picked_up',
+        pickedUpAt: now,
+        pickedUpBy: user?.id ?? null, // Mencatat siapa yang menyetujui
         updatedAt: now,
       })
       .where(eq(reservations.id, id))

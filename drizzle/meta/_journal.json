@@ -36,6 +36,13 @@
       "when": 1775222020293,
       "tag": "0004_lean_meteorite",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776169454754,
+      "tag": "0005_strong_blazing_skull",
+      "breakpoints": true
     }
   ]
 }

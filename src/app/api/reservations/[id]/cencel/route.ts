@@ -30,7 +30,7 @@ export const PATCH = handleApi(async ({ params }) => {
     const [updatedReservation] = await tx
       .update(reservations)
       .set({
-        status: 'canceled',
+        status: 'cancelled',
         updatedAt: now,
       })
       .where(eq(reservations.id, id))

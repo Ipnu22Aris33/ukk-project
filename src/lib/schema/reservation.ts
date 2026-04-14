@@ -12,8 +12,8 @@ export const reservationSchema = z.object({
   status: z.enum(reservationStatusEnum.enumValues),
   quantity: z.number().int().positive(),
   reservedAt: z.date(),
-  approvedAt: z.date().nullable(),
-  approvedBy: z.number().int().positive().nullable(),
+  pickedUpAt: z.date().nullable(),
+  pickedUpBy: z.number().int().positive().nullable(),
   expiresAt: z.date().nullable(),
   notes: z.string().nullable().optional(),
   createdAt: z.date(),
@@ -39,8 +39,8 @@ export const reservationResponseSchema = reservationSchema.omit({ deletedAt: tru
 
 export const createReservationSchema = reservationInputSchema.omit({
   status: true,
-  approvedAt: true,
-  approvedBy: true,
+  pickedUpAt: true,
+  pickedUpBy: true,
   expiresAt: true,
 });
 

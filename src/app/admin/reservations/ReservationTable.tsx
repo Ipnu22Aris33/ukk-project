@@ -18,7 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 const STATUS_CONFIG = {
   pending: { label: 'Pending', color: 'orange' as const },
-  approved: { label: 'Approved', color: 'green' as const },
+  picked_up: { label: 'Picked Up', color: 'green' as const },
   rejected: { label: 'Rejected', color: 'red' as const },
   cancelled: { label: 'Cancelled', color: 'gray' as const },
   fulfilled: { label: 'Fulfilled', color: 'blue' as const },
@@ -103,11 +103,11 @@ function ViewReservationContent({ reservation, onClose }: { reservation: Reserva
           </DataList.Value>
         </DataList.Item>
 
-        {reservation.approvedAt && (
+        {reservation.pickedUpAt && (
           <DataList.Item>
-            <DataList.Label>Approved At</DataList.Label>
+            <DataList.Label>Picked Up At</DataList.Label>
             <DataList.Value>
-              {new Date(reservation.approvedAt).toLocaleDateString('id-ID', {
+              {new Date(reservation.pickedUpAt).toLocaleDateString('id-ID', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',
@@ -118,10 +118,10 @@ function ViewReservationContent({ reservation, onClose }: { reservation: Reserva
           </DataList.Item>
         )}
 
-        {reservation.approver && (
+        {reservation.pickedUpBy && (
           <DataList.Item>
-            <DataList.Label>Approved By</DataList.Label>
-            <DataList.Value>{reservation.approver.username}</DataList.Value>
+            <DataList.Label>Picked Up By</DataList.Label>
+            <DataList.Value>{reservation.pickedUpBy}</DataList.Value>
           </DataList.Item>
         )}
 

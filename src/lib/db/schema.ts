@@ -3,7 +3,7 @@ import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role_enum', ['admin', 'staff', 'member']);
 export const loanStatusEnum = pgEnum('loan_status_enum', ['borrowed', 'returned', 'late', 'lost']);
-export const reservationStatusEnum = pgEnum('reservation_status_enum', ['pending', 'approved', 'rejected', 'expired', 'completed', 'canceled']);
+export const reservationStatusEnum = pgEnum('reservation_status_enum', ['pending', 'picked_up', 'rejected', 'expired', 'completed', 'cancelled']);
 export const fineStatusEnum = pgEnum('fine_status_enum', ['none', 'paid', 'unpaid']);
 export const returnConditionEnum = pgEnum('return_condition_enum', ['good', 'damaged', 'lost']);
 
@@ -141,8 +141,8 @@ export const reservations = pgTable(
     quantity: integer('quantity').notNull(),
     status: reservationStatusEnum('status').notNull(),
     reservedAt: timestamp('reserved_at').notNull(),
-    approvedAt: timestamp('approved_at'),
-    approvedBy: integer('approved_by').references(() => users.id),
+    pickedUpAt: timestamp('picked_up_at'),
+    pickedUpBy: integer('picked_up_by').references(() => users.id),
     expiresAt: timestamp('expires_at'),
     notes: text('notes'),
     createdAt: timestamp('created_at').defaultNow(),
@@ -280,8 +280,8 @@ export const reservationsRelations = relations(reservations, ({ one }) => ({
     fields: [reservations.bookId],
     references: [books.id],
   }),
-  approver: one(users, {
-    fields: [reservations.approvedBy],
+  pickedUpByUser: one(users, {
+    fields: [reservations.pickedUpBy],
     references: [users.id],
   }),
 }));
