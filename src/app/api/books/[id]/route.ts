@@ -45,26 +45,20 @@ export const PATCH = handleApi(async ({ req, params }) => {
 
   if (!existing) throw new NotFound('Buku tidak ditemukan');
 
-  // Deklarasi konstanta untuk logika sinkronisasi
-  const finalTotal = data.totalStock ?? existing.totalStock;
-  const requestedAvailable = data.availableStock ?? existing.availableStock;
-
-  // Pastikan available tidak melebihi total yang baru
-  const finalAvailable = Math.min(requestedAvailable, finalTotal);
-
   const [updated] = await db
     .update(books)
     .set({
       ...data,
-      totalStock: finalTotal,
-      availableStock: finalAvailable,
       slug: data.title ? slugify(data.title) : existing.slug,
       updatedAt: new Date(),
     })
     .where(eq(books.id, id))
     .returning();
 
-  return ok(safeParseResponse(bookResponseSchema, updated).data, { message: 'Buku berhasil diperbarui' });
+  return ok(
+    safeParseResponse(bookResponseSchema, updated).data,
+    { message: 'Buku berhasil diperbarui' }
+  );
 });
 
 /* ======================================================
