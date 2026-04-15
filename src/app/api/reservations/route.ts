@@ -10,10 +10,12 @@ import { reservations, books, members } from '@/lib/db/schema';
 import { eq, isNull, and, gte, lte } from 'drizzle-orm';
 import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 import { reservationStatusEnum } from '@/lib/db/schema';
+import { processExpiredReservations } from '@/lib/jobs/processExpiredReservations';
 type ReservationStatus = (typeof reservationStatusEnum.enumValues)[number];
 
 export const GET = handleApi(async ({ req, user }) => {
   const url = new URL(req.url);
+  await processExpiredReservations()
   const { page, limit, search, orderBy, orderDir, filters } = parseQuery(url);
 
   const conditions = [isNull(reservations.deletedAt)];

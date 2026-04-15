@@ -10,9 +10,11 @@ import { eq, isNull, ilike } from 'drizzle-orm';
 import { paginate } from '@/lib/db/paginate';
 import { createMemberSchema, memberResponseSchema } from '@/lib/schema/member';
 import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
+import { processExpiredReservations } from '@/lib/jobs/processExpiredReservations';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
+  await processExpiredReservations()
   const { page, limit, search, orderBy, orderDir = 'desc' } = parseQuery(url);
 
   const result = await paginate({

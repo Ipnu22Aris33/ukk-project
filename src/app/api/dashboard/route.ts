@@ -3,9 +3,11 @@ import { handleApi } from '@/lib/utils/handleApi';
 import { db } from '@/lib/db';
 import { books, loans, returns, members, reservations } from '@/lib/db/schema';
 import { eq, and, isNull, lt, sql } from 'drizzle-orm';
+import { processExpiredReservations } from '@/lib/jobs/processExpiredReservations';
 
 export const GET = handleApi(async () => {
   const now = new Date().toISOString();
+  await processExpiredReservations()
   
   const [stats] = await db
     .select({

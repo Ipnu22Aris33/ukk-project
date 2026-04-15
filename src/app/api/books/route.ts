@@ -10,10 +10,12 @@ import { slugify } from '@/lib/utils/slugify';
 import { validateSchema } from '@/lib/utils/validate';
 import { isNull, inArray, SQL } from 'drizzle-orm';
 import { safeParseResponse } from '@/lib/utils/validate';
+import { processExpiredReservations } from '@/lib/jobs/processExpiredReservations';
 
 export const GET = handleApi(async ({ req }) => {
   const url = new URL(req.url);
 
+  await processExpiredReservations()
   const { page, limit, search, orderBy, orderDir, filters } = parseQuery(url, {
     filters: {
       category: 'number',

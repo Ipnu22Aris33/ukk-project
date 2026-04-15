@@ -8,6 +8,7 @@ import { loans, books, members, loanStatusEnum, reservations } from '@/lib/db/sc
 import { eq, and, isNull, sql, gte, lte } from 'drizzle-orm';
 import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 import { createLoanSchema, loanResponseSchema } from '@/lib/schema/loan';
+import { processExpiredReservations } from '@/lib/jobs/processExpiredReservations';
 
 type LoanStatus = (typeof loanStatusEnum.enumValues)[number];
 // =========================
@@ -101,6 +102,7 @@ export const POST = handleApi(async ({ req }) => {
 
 export const GET = handleApi(async ({ req, user }) => {
   const url = new URL(req.url);
+  await processExpiredReservations()
   const { page, limit, search, orderBy, orderDir = 'desc', filters } = parseQuery(url, {filters: {
     status: 'string',
     fromDate: 'string',

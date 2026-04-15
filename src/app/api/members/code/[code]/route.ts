@@ -7,10 +7,11 @@ import { db } from '@/lib/db';
 import { members, users } from '@/lib/db/schema';
 import { safeParseResponse, validateSchema } from '@/lib/utils/validate';
 import { memberResponseSchema, updateMemberSchema } from '@/lib/schema/member';
+import { processExpiredReservations } from '@/lib/jobs/processExpiredReservations';
 
 export const GET = handleApi(async ({ params }) => {
   const code = String(params?.code);
-
+  await processExpiredReservations();
   const member = await db.query.members.findFirst({
     where: and(eq(members.memberCode, code), isNull(members.deletedAt)),
     with: {
@@ -24,4 +25,3 @@ export const GET = handleApi(async ({ params }) => {
 
   return ok(safeParseResponse(memberResponseSchema, member).data, { message: 'Member retrieved successfully' });
 });
-
