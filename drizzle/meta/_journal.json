@@ -43,6 +43,13 @@
       "when": 1776169454754,
       "tag": "0005_strong_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776256905699,
+      "tag": "0006_even_random",
+      "breakpoints": true
     }
   ]
 }

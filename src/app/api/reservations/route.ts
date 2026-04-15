@@ -16,7 +16,11 @@ type ReservationStatus = (typeof reservationStatusEnum.enumValues)[number];
 export const GET = handleApi(async ({ req, user }) => {
   const url = new URL(req.url);
   await processExpiredReservations()
-  const { page, limit, search, orderBy, orderDir, filters } = parseQuery(url);
+  const { page, limit, search, orderBy, orderDir, filters } = parseQuery(url, {filters: {
+    status: 'string',
+    fromDate: 'string',
+    toDate: 'string',
+  }});
 
   const conditions = [isNull(reservations.deletedAt)];
 

@@ -156,6 +156,7 @@ export const reservations = pgTable(
     index('reservations_status_idx').on(table.status),
     index('reservations_deleted_at_idx').on(table.deletedAt),
     index('reservations_member_status_idx').on(table.memberId, table.status),
+    index('reservations_expires_at_idx').on(table.expiresAt),
   ]
 );
 

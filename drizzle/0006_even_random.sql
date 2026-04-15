@@ -1,0 +1,1 @@
+CREATE INDEX "reservations_expires_at_idx" ON "reservations" USING btree ("expires_at");
