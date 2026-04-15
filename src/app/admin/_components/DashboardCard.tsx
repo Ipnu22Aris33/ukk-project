@@ -6,8 +6,6 @@ export type StatItem = {
   value: number;
   icon: React.ReactNode;
   color: string;
-  trend: string;
-  trendUp: boolean;
 };
 
 export function DashboardCard({ item, index, loading = false }: { item: StatItem; index: number; loading?: boolean }) {
@@ -51,13 +49,7 @@ export function DashboardCard({ item, index, loading = false }: { item: StatItem
               {item.icon}
             </Box>
 
-            <Badge color={item.trendUp ? 'green' : 'red'} variant='soft' size='1'>
-              <Flex align='center' gap='1'>
-                <Badge>
-                  <Text size='1'>{item.trend}</Text>
-                </Badge>
-              </Flex>
-            </Badge>
+            
           </Flex>
 
           <Flex direction='column' gap='1'>

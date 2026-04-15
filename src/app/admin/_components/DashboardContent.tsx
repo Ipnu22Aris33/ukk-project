@@ -18,7 +18,6 @@ export function DashboardContent() {
         value: dashboardData?.books.total ?? 0,
         icon: <Book />,
         color: 'indigo',
-        trend: '+12%',
         trendUp: true,
       },
       {
@@ -26,24 +25,18 @@ export function DashboardContent() {
         value: dashboardData?.loans.active ?? 0,
         icon: <Book />,
         color: 'orange',
-        trend: '+8%',
-        trendUp: true,
       },
       {
         title: 'Buku Dikembalikan',
         value: dashboardData?.returns.total ?? 0,
         icon: <Book />,
         color: 'green',
-        trend: '-3%',
-        trendUp: false,
       },
       {
         title: 'Anggota',
         value: dashboardData?.members.total ?? 0,
         icon: <Users2 />,
         color: 'cyan',
-        trend: '+5%',
-        trendUp: true,
       },
     ],
     [dashboardData]
