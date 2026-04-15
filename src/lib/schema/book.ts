@@ -35,7 +35,6 @@ export const bookFormSchema = z.object({
   categoryId: z.number().min(1, 'Kategori wajib dipilih'),
   publisher: z.string().min(1, 'Penerbit wajib diisi').max(255),
   totalStock: z.number().min(0, 'Total stok minimal 0'),
-  availableStock: z.number().min(0, 'Stok tersedia minimal 0'),
   isbn: z.string().min(10, 'ISBN minimal 10 digit').max(13, 'ISBN maksimal 13 digit'),
   year: z.number().min(1900).max(CURRENT_YEAR + 5),
 });
@@ -47,7 +46,8 @@ export const createBookSchema = bookSchema.omit({
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
-  reservedStock: true, // Default 0
+  reservedStock: true, // Default 0a
+  availableStock: true, // Default sama dengan totalStock
   loanedStock: true,   // Default 0
 })
 

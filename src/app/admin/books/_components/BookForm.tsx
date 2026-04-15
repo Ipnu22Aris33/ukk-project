@@ -23,14 +23,7 @@ interface BookFormProps {
   onClose?: () => void;
 }
 
-export function BookForm({
-  mode,
-  initialData = {},
-  onSubmit,
-  isSubmitting = false,
-  submitLabel = 'Save Book',
-  onClose,
-}: BookFormProps) {
+export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = false, submitLabel = 'Save Book', onClose }: BookFormProps) {
   const categories = useCategories();
   const [categorySearch, setCategorySearch] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -96,7 +89,7 @@ export function BookForm({
           error={coverError ?? undefined}
           initialPreviewUrl={initialData.coverUrl ?? null}
         />
-        
+
         <form.Field name='title'>
           {(field) => (
             <InputField
@@ -162,7 +155,6 @@ export function BookForm({
           )}
         </form.Field>
 
-        {/* Hanya Total Stock yang diinput manual */}
         <form.Field name='totalStock'>
           {(field) => (
             <InputField
@@ -194,6 +186,7 @@ export function BookForm({
           )}
         </form.Field>
 
+        {/* BUTTON */}
         <form.Subscribe selector={(state) => [state.canSubmit]}>
           {([canSubmit]) => (
             <Flex gap='3' justify='end' mt='4'>
