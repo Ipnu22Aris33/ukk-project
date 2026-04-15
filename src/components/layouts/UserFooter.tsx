@@ -7,7 +7,7 @@ interface FooterProps {
   schoolName?: string;
 }
 
-export function UserFooter({ schoolName = 'SMA Negeri 1' }: FooterProps) {
+export function UserFooter({ schoolName = 'NEXALIBRARY' }: FooterProps) {
   const quickMenuItems = ['Tentang Perpustakaan', 'Syarat & Ketentuan', 'Panduan Peminjaman', 'FAQ'];
 
   const contactItems = [

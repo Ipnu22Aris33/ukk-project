@@ -11,11 +11,13 @@ import { useRouter } from 'next/navigation';
 import { useResponsive } from '@/hooks/useResponsive';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { getInitials } from '@/lib/utils/getInitials';
-
+import { BarcodeIcon } from 'lucide-react';
 import { DesktopSubNav } from './DesktopSubNav';
 import { MobileDrawer } from './MobileDrawer';
 import { SearchBox } from './SearchBox';
 import { useMembers } from '@/hooks/useMembers';
+
+import { ScanBarcodeIcon } from 'lucide-react';
 
 interface UserHeaderProps {
   schoolName: string;
@@ -121,17 +123,10 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
               {/* ── QR CODE MODAL ── */}
               <Dialog.Root>
                 <Dialog.Trigger>
-                  <IconButton size='2' variant='soft' color='indigo' style={{ cursor: 'pointer' }}>
+                  <IconButton size='2' variant='soft' style={{ cursor: 'pointer' }}>
                     {/* Menggunakan Icon QR (asumsi dari react-icons atau radix) */}
                     <Box style={{ transform: 'scale(1.2)' }}>
-                      <svg width='15' height='15' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg'>
-                        <path
-                          d='M1 1H6V6H1V1ZM2 2V5H5V2H2ZM1 9H6V14H1V9ZM2 10V13H5V10H2ZM9 1H14V6H9V1ZM10 2V5H13V2H10ZM9 9H11V11H9V9ZM12 9H14V11H12V9ZM9 12H11V14H9V12ZM12 12H14V14H12V12ZM11 11H12V12H11V11Z'
-                          fill='currentColor'
-                          fillRule='evenodd'
-                          clipRule='evenodd'
-                        ></path>
-                      </svg>
+                      <ScanBarcodeIcon size={20} />
                     </Box>
                   </IconButton>
                 </Dialog.Trigger>

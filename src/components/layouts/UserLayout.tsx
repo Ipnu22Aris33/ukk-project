@@ -20,7 +20,7 @@ export default function UserLayout({ children }: UserLayoutProps) {
   return (
     <Theme appearance='inherit' accentColor='violet' radius='medium' className='min-h-screen flex flex-col'>
       {/* Header */}
-      <UserHeader schoolName='BM' userName={session?.email} />
+      <UserHeader schoolName='NEXALIBRARY' userName={session?.email} />
 
       {/* Content */}
       <Flex direction='column' style={{ flexGrow: 1 }}>
@@ -28,7 +28,7 @@ export default function UserLayout({ children }: UserLayoutProps) {
       </Flex>
 
       {/* Footer */}
-      <UserFooter schoolName='BM' />
+      <UserFooter schoolName='NEXALIBRARY' />
     </Theme>
   );
 }
