@@ -151,7 +151,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                       }}
                     >
-                      <QRCodeSVG value={memberCode} size={200} level='H'/>
+                      <QRCodeSVG value={memberCode} size={200} level='H' />
                     </Box>
 
                     <Box>
@@ -159,7 +159,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                         {userName}
                       </Text>
                       <Text as='div' color='gray' size='2'>
-                         {memberCode}
+                        {memberCode}
                       </Text>
                     </Box>
                   </Flex>
@@ -173,25 +173,6 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                   </Flex>
                 </Dialog.Content>
               </Dialog.Root>
-
-              {/* Notification */}
-              <Box style={{ position: 'relative', flexShrink: 0 }}>
-                <IconButton size='2' variant='soft' style={{ cursor: 'pointer' }}>
-                  <BellIcon />
-                </IconButton>
-                <Badge
-                  color='red'
-                  radius='full'
-                  style={{
-                    position: 'absolute',
-                    top: -4,
-                    right: -4,
-                    pointerEvents: 'none',
-                  }}
-                >
-                  3
-                </Badge>
-              </Box>
 
               {/* User dropdown */}
               <DropdownMenu.Root>
