@@ -17,12 +17,11 @@ export const ActiveReservations = () => {
   const router = useRouter();
   const resHook = useReservations();
 
-  // Ambil 5 reservasi terbaru yang belum selesai/diambil
   const { data: response, isLoading } = resHook.list({
     limit: 5,
     orderBy: 'createdAt',
     orderDir: 'desc',
-    // status: 'pending,picked_up' // Sesuaikan jika API mendukung filter multiple status
+    status: 'pending',
   });
 
   const reservations = response?.data || [];
