@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import { Grid, Card, Text, Flex, Badge, Box, Button, Skeleton, Dialog, Callout, TextArea } from '@radix-ui/themes';
 import {
-  CheckCircledIcon,
-  CrossCircledIcon,
   ReaderIcon,
   BookmarkIcon,
   InfoCircledIcon,
@@ -43,7 +41,7 @@ function ReservationModal({ book }: { book: any }) {
       }}
     >
       <Dialog.Trigger>
-        <Button size='1' disabled={availableCount === 0} style={{ width: '100%' }}>
+        <Button size='2' disabled={availableCount === 0} style={{ width: '100%' }}>
           <BookmarkIcon /> Reservasi
         </Button>
       </Dialog.Trigger>
@@ -105,10 +103,7 @@ function ReservationModal({ book }: { book: any }) {
   );
 }
 
-/* ─── Cover Placeholder ───
-   Warna dipilih via hash dari judul buku — konsisten, tidak bergantung
-   pada nama kategori, dan otomatis support kategori berapapun dari API.
-─── */
+/* ─── Cover Placeholder ─── */
 const NEUTRAL_PALETTES = [
   { bg: '#1c1c1e', text: '#ffffff' },
   { bg: '#1e293b', text: '#e2e8f0' },
@@ -120,7 +115,8 @@ const NEUTRAL_PALETTES = [
   { bg: '#2c2c2e', text: '#ebebf5' },
 ];
 
-const hashString = (str: string): number => str.split('').reduce((hash, ch) => (hash * 31 + ch.charCodeAt(0)) >>> 0, 0);
+const hashString = (str: string): number =>
+  str.split('').reduce((hash, ch) => (hash * 31 + ch.charCodeAt(0)) >>> 0, 0);
 
 function CoverPlaceholder({ title, author }: { title: string; author: string }) {
   const palette = NEUTRAL_PALETTES[hashString(title) % NEUTRAL_PALETTES.length];
@@ -141,13 +137,13 @@ function CoverPlaceholder({ title, author }: { title: string; author: string }) 
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
-        padding: '20px 14px',
+        gap: 8,
+        padding: '16px 10px',
       }}
     >
       <Text
         style={{
-          fontSize: 40,
+          fontSize: 36,
           fontWeight: 700,
           color: palette.text,
           opacity: 0.12,
@@ -161,7 +157,7 @@ function CoverPlaceholder({ title, author }: { title: string; author: string }) 
 
       <Box
         style={{
-          width: 28,
+          width: 24,
           height: 1,
           background: palette.text,
           opacity: 0.18,
@@ -172,14 +168,14 @@ function CoverPlaceholder({ title, author }: { title: string; author: string }) 
         style={{
           textAlign: 'center',
           color: palette.text,
-          opacity: 0.5,
-          fontSize: 10,
+          opacity: 0.45,
+          fontSize: 9,
           fontWeight: 500,
           lineHeight: 1.5,
           letterSpacing: '0.07em',
           textTransform: 'uppercase',
           display: '-webkit-box',
-          WebkitLineClamp: 4,
+          WebkitLineClamp: 3,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
         }}
@@ -190,6 +186,7 @@ function CoverPlaceholder({ title, author }: { title: string; author: string }) 
   );
 }
 
+/* ─── Book Card ─── */
 function BookCard({ book }: { book: any }) {
   const hasImage = !!book.coverUrl;
 
@@ -200,17 +197,17 @@ function BookCard({ book }: { book: any }) {
         overflow: 'hidden',
         padding: 0,
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
+        height: 160,
       }}
     >
-      {/* Cover */}
+      {/* Cover — kiri */}
       <Box
         style={{
           position: 'relative',
-          width: '100%',
-          aspectRatio: '2 / 3',
-          overflow: 'hidden',
+          width: 108,
           flexShrink: 0,
+          overflow: 'hidden',
         }}
       >
         {hasImage ? (
@@ -218,99 +215,78 @@ function BookCard({ book }: { book: any }) {
             src={book.coverUrl}
             alt={book.title}
             fill
-            sizes='(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw'
-            style={{
-              objectFit: 'cover',
-            }}
+            sizes='108px'
+            style={{ objectFit: 'cover' }}
             priority={false}
           />
         ) : (
           <CoverPlaceholder title={book.title} author={book.author} />
         )}
 
-        {/* Overlay */}
+        {/* Overlay gelap untuk buku dengan gambar */}
         {hasImage && (
           <Box
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.5), transparent)',
             }}
           />
         )}
 
-        {/* Category */}
+        {/* Badge kategori */}
         <Box style={{ position: 'absolute', top: 8, left: 8 }}>
-          <Badge variant='solid' radius='full'>
+          <Badge variant='solid' radius='full' style={{ fontSize: 10 }}>
             {book.category.name}
           </Badge>
         </Box>
-
-        {/* Title overlay */}
-        {hasImage && (
-          <Box style={{ position: 'absolute', bottom: 0, padding: 12 }}>
-            <Text
-              weight='bold'
-              size='2'
-              style={{
-                color: '#fff',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }}
-            >
-              {book.title}
-            </Text>
-            <Text size='1' style={{ color: 'rgba(255,255,255,0.7)' }}>
-              {book.author}
-            </Text>
-          </Box>
-        )}
       </Box>
 
-      {/* Content */}
-      <Flex direction='column' gap='2' style={{ padding: 10 }}>
-        {!hasImage && (
-          <Box>
-            <Text weight='medium'>{book.title}</Text>
-            <Text size='1' color='gray'>
-              {book.author}
-            </Text>
-          </Box>
-        )}
+      {/* Content — kanan */}
+      <Flex
+        direction='column'
+        justify='between'
+        style={{ padding: '14px 16px', flex: 1, minWidth: 0 }}
+      >
+        {/* Judul + author + tahun */}
+        <Box>
+          <Text
+            weight='medium'
+            size='2'
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              lineHeight: 1.4,
+            }}
+          >
+            {book.title}
+          </Text>
+          <Text size='1' color='gray' style={{ display: 'block', marginTop: 2 }}>
+            {book.author}
+          </Text>
+          <Text size='1' color='gray' style={{ display: 'block', marginTop: 1, opacity: 0.7 }}>
+            {book.year}
+          </Text>
+        </Box>
 
-        <Text size='1' color='gray'>
-          {book.year}
-        </Text>
-
-        {/* Stock */}
-        <Flex gap='1' wrap='wrap' align='center' style={{ opacity: 0.9 }}>
-          <Text size='1' color='green'>
-            {book.availableStock ?? 0} tersedia
-          </Text>
-          <Text size='1' color='gray'>
-            •
-          </Text>
-          <Text size='1' color='blue'>
-            {book.loanedStock ?? 0} dipinjam
-          </Text>
-          <Text size='1' color='gray'>
-            •
-          </Text>
-          <Text size='1' color='amber'>
-            {book.reservedStock ?? 0} reservasi
-          </Text>
+        {/* Stok */}
+        <Flex gap='1' wrap='wrap' align='center'>
+          <Text size='1' color='green'>{book.availableStock ?? 0} tersedia</Text>
+          <Text size='1' color='gray'>•</Text>
+          <Text size='1' color='blue'>{book.loanedStock ?? 0} dipinjam</Text>
+          <Text size='1' color='gray'>•</Text>
+          <Text size='1' color='amber'>{book.reservedStock ?? 0} reservasi</Text>
         </Flex>
 
-        {/* Actions */}
-        <Flex gap='2' mt='1'>
+        {/* Tombol aksi */}
+        <Flex gap='2'>
           <Link href={`/catalog/${book.slug}`} style={{ flex: 1 }}>
-            <Button size='1' variant='soft' color='gray' style={{ width: '100%' }}>
+            <Button size='2' variant='soft' color='gray' style={{ width: '100%' }}>
               Detail
             </Button>
           </Link>
-
           <Box style={{ flex: 2 }}>
             <ReservationModal book={book} />
           </Box>
@@ -331,9 +307,9 @@ export function BookList() {
 
   if (isLoading)
     return (
-      <Grid columns={{ initial: '2', sm: '3', md: '4', lg: '5' }} gap='4'>
+      <Grid columns={{ initial: '1', sm: '2', md: '2', lg: '3' }} gap='3'>
         {[...Array(10)].map((_, i) => (
-          <Skeleton key={i} style={{ aspectRatio: '2/3', borderRadius: 8 }} />
+          <Skeleton key={i} style={{ height: 160, borderRadius: 8 }} />
         ))}
       </Grid>
     );
@@ -353,7 +329,7 @@ export function BookList() {
         </Flex>
       ) : (
         <>
-          <Grid columns={{ initial: '2', sm: '3', md: '4', lg: '5' }} gap='4'>
+          <Grid columns={{ initial: '1', sm: '2', md: '2', lg: '3' }} gap='3'>
             {booksData.map((book: any) => (
               <BookCard key={book.id} book={book} />
             ))}
