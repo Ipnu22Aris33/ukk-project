@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { Box, Card, Flex, Text, Badge, Skeleton, Dialog, Button } from '@radix-ui/themes';
-import { BookmarkIcon, Cross2Icon, EyeOpenIcon } from '@radix-ui/react-icons';
-import { SectionHeader } from './SectionHeader';
+import { BookmarkIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { useReservations } from '@/hooks/useReservation';
 
 const statusConfig: Record<string, { label: string; color: 'violet' | 'green' | 'red' | 'gray' }> = {
@@ -27,10 +26,29 @@ export const ActiveReservations = () => {
 
   const reservations = response?.data || [];
 
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+
+  const getDaysLeft = (date: string) => {
+    const today = new Date();
+    const target = new Date(date);
+    const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diff < 0) return `${Math.abs(diff)} hari lewat`;
+    if (diff === 0) return 'Hari ini';
+    return `${diff} hari lagi`;
+  };
+
   return (
     <>
       <Box className='min-w-0'>
-        <SectionHeader title='Reservasi Saya' />
+        <Text size='4' weight='bold' mb='3'>
+          Reservasi Saya
+        </Text>
 
         <Flex direction='column' gap='2'>
           {isLoading ? (
@@ -53,45 +71,47 @@ export const ActiveReservations = () => {
               };
 
               return (
-                <Card key={res.id} className='p-3 px-4 rounded-xl hover:bg-gray-2 transition-colors'>
-                  <Flex align='center' justify='between' gap='3'>
-                    {/* LEFT CLICK */}
-                    <Flex align='center' gap='3' className='flex-1 min-w-0 cursor-pointer' onClick={() => setSelected(res)}>
-                      <Box className='w-9 h-9 rounded-lg shrink-0 bg-violet-3 text-violet-9 flex items-center justify-center'>
-                        <BookmarkIcon width='16' height='16' />
-                      </Box>
+                <Card key={res.id} className='p-3 px-4 rounded-xl hover:bg-gray-2 transition-colors cursor-pointer' onClick={() => setSelected(res)}>
+                  <Flex direction='column' gap='2'>
+                    <Flex align='center' justify='between' gap='3'>
+                      <Flex align='center' gap='3' className='flex-1 min-w-0'>
+                        <Box className='w-9 h-9 rounded-lg shrink-0 bg-violet-3 text-violet-9 flex items-center justify-center'>
+                          <BookmarkIcon width='16' height='16' />
+                        </Box>
 
-                      <Box className='min-w-0 flex-1'>
-                        <Text size='2' weight='medium' className='block leading-snug truncate'>
-                          {res.book?.title}
-                        </Text>
-                        <Text size='1' color='gray'>
-                          Ref: {res.reservationCode ?? `#${res.id}`}
-                        </Text>
-                      </Box>
-                    </Flex>
-
-                    {/* RIGHT */}
-                    <Flex align='center' gap='2'>
-                      <Flex direction='column' align='end' gap='1'>
-                        <Badge color={s.color} radius='full' size='1'>
-                          {s.label}
-                        </Badge>
-                        <Text size='1' color='gray'>
-                          {new Date(res.createdAt).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: 'short',
-                          })}
-                        </Text>
+                        <Box className='min-w-0 flex-1'>
+                          <Text size='2' weight='medium' className='truncate'>
+                            {res.book?.title}
+                          </Text>
+                          <Text size='1' color='gray'>
+                            Ref: {res.reservationCode ?? `#${res.id}`}
+                          </Text>
+                        </Box>
                       </Flex>
 
-                      {/* CANCEL (only pending) */}
-                      {res.status === 'pending' && (
-                        <Button size='1' variant='ghost' color='red'>
-                          <Cross2Icon />
-                        </Button>
+                      <Badge color={s.color} radius='full' size='1'>
+                        {s.label}
+                      </Badge>
+                    </Flex>
+
+                    {/* DATE INFO */}
+                    <Flex justify='between'>
+                      <Text size='1' color='gray'>
+                        Dibuat: {formatDate(res.createdAt)}
+                      </Text>
+                      {res.expiresAt && (
+                        <Text size='1' color='gray'>
+                          Exp: {formatDate(res.expiresAt)}
+                        </Text>
                       )}
                     </Flex>
+
+                    {/* DAYS LEFT */}
+                    {res.expiresAt && (
+                      <Text size='1' weight='medium' color={getDaysLeft(res.expiresAt).includes('lewat') ? 'red' : 'gray'}>
+                        {getDaysLeft(res.expiresAt)}
+                      </Text>
+                    )}
                   </Flex>
                 </Card>
               );
@@ -143,6 +163,11 @@ export const ActiveReservations = () => {
                 <Text size='2'>
                   <strong>Dibuat:</strong> {new Date(selected.createdAt).toLocaleString('id-ID')}
                 </Text>
+                {selected.expiresAt && (
+                  <Text size='2'>
+                    <strong>Expired:</strong> {formatDate(selected.expiresAt)}
+                  </Text>
+                )}
                 <Text size='2'>
                   <strong>Status:</strong> {statusConfig[selected.status]?.label}
                 </Text>
@@ -153,7 +178,11 @@ export const ActiveReservations = () => {
                   <Button variant='soft'>Tutup</Button>
                 </Dialog.Close>
 
-                {selected.status === 'pending' && <Button color='red'>Batalkan</Button>}
+                {selected.status === 'pending' && (
+                  <Button color='red'>
+                    <Cross2Icon /> Batalkan
+                  </Button>
+                )}
               </Flex>
             </Flex>
           )}
