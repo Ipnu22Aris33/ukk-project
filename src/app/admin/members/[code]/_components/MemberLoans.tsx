@@ -1,8 +1,7 @@
 'use client';
 
 import { Text, Card, Flex, Badge, Box, Tooltip, IconButton, Spinner, Dialog, Button } from '@radix-ui/themes';
-import { Info, Undo2 } from 'lucide-react';
-import { Icon } from '@iconify/react';
+import { BookCheck, Info, NotepadText, Undo2 } from 'lucide-react';
 import { useLoans } from '@/hooks/useLoans';
 import { useReturns } from '@/hooks/useReturns';
 import { useForm } from '@tanstack/react-form';
@@ -122,7 +121,7 @@ export function MemberLoans({ code }: { code: string }) {
                             <SelectField
                               field={field}
                               label='Condition'
-                              icon={<Icon icon='mdi:check-decagram' />}
+                              icon={<BookCheck />}
                               required
                               error={getFieldError(field)}
                               options={[
@@ -139,7 +138,7 @@ export function MemberLoans({ code }: { code: string }) {
                             <TextareaField
                               field={field}
                               label='Notes'
-                              icon={<Icon icon='mdi:note-text' />}
+                              icon={<NotepadText />}
                               placeholder='Tambahkan catatan jika ada kerusakan...'
                               error={getFieldError(field)}
                             />

@@ -5,11 +5,11 @@ import { Flex, Button } from '@radix-ui/themes';
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
 import { InputField, SelectField, TextareaField } from '@/components/features/forms';
-import { Icon } from '@iconify/react';
 import { useState } from 'react';
 import { useMembers } from '@/hooks/useMembers';
 import { useBooks } from '@/hooks/useBooks';
 import { loanFormSchema, LoanInput } from '@/lib/schema/loan';
+import { Book, CalendarClock, ListChecks, NotepadText, User2, LayersPlus } from 'lucide-react';
 
 interface LoanFormProps {
   initialData?: Partial<LoanInput>;
@@ -113,7 +113,7 @@ export function LoanForm({
               searchable
               search={memberSearch}
               onSearchChange={setMemberSearch}
-              icon={<Icon icon='mdi:account' />}
+              icon={<User2/>}
               error={getFieldError(field)}
             />
           )}
@@ -130,7 +130,7 @@ export function LoanForm({
               searchable
               search={bookSearch}
               onSearchChange={setBookSearch}
-              icon={<Icon icon='mdi:book' />}
+              icon={<Book />}
               error={getFieldError(field)}
             />
           )}
@@ -144,7 +144,7 @@ export function LoanForm({
               type='number'
               placeholder='Enter quantity...'
               required
-              icon={<Icon icon='mdi:counter' />}
+              icon={<LayersPlus />}
               error={getFieldError(field)}
             />
           )}
@@ -158,7 +158,7 @@ export function LoanForm({
                 label='Loan Date'
                 type='date'
                 required
-                icon={<Icon icon='mdi:calendar-start' />}
+                icon={<CalendarClock/>}
                 error={getFieldError(field)}
               />
             )}
@@ -171,7 +171,7 @@ export function LoanForm({
                 label='Due Date'
                 type='date'
                 required
-                icon={<Icon icon='mdi:calendar-end' />}
+                icon={<CalendarClock/>}
                 error={getFieldError(field)}
               />
             )}
@@ -192,7 +192,7 @@ export function LoanForm({
                 ]}
                 placeholder='Select status...'
                 required
-                icon={<Icon icon='mdi:list-status' />}
+                icon={<ListChecks/>}
                 error={getFieldError(field)}
               />
             )}
@@ -205,7 +205,7 @@ export function LoanForm({
               field={field}
               label='Notes'
               placeholder='Enter any notes...'
-              icon={<Icon icon='mdi:note-text-outline' />}
+              icon={<NotepadText />}
               error={getFieldError(field)}
               rows={3}
             />

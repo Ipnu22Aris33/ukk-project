@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import { Container, Heading, Flex, Box, Button, DataList, AlertDialog, Badge, Text } from '@radix-ui/themes';
-import { Icon } from '@iconify/react';
 import { useLoans } from '@/hooks/useLoans';
 import { usePanel } from '@/hooks/usePanel';
 import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
@@ -12,6 +11,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { LoanForm } from './LoanForm';
 import type { LoanResponse } from '@/lib/schema/loan';
 import { useReturns } from '@/hooks/useReturns';
+import { BookCheck, Eye, Pencil } from 'lucide-react';
 
 /* =========================
    STATUS BADGE CONFIG
@@ -197,21 +197,21 @@ export function LoanTable() {
     {
       key: 'view',
       label: 'View Details',
-      icon: <Icon icon='mdi:eye' />,
+      icon: <Eye />,
       color: 'blue',
       onClick: (row) => open('view', row),
     },
     {
       key: 'edit',
       label: 'Edit Loan',
-      icon: <Icon icon='mdi:pencil' />,
+      icon: <Pencil />,
       color: 'green',
       onClick: (row) => open('edit', row),
     },
     {
       key: 'return',
       label: 'Mark as Returned',
-      icon: <Icon icon='mdi:book-check' />,
+      icon: <BookCheck/>,
       color: 'green',
       disabled: (row) => row.status === 'returned' || row.status === 'lost',
       onClick: async (row) => {

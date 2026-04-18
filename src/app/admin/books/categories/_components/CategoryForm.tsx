@@ -6,8 +6,8 @@ import { Flex, Button } from '@radix-ui/themes';
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
 import { InputField, TextareaField } from '@/components/features/forms';
-import { Icon } from '@iconify/react';
 import { CreateCategoryInput, UpdateCategoryInput, categoryFormSchema } from '@/lib/schema/category';
+import { Tag, Text } from 'lucide-react';
 
 interface CategoryFormProps {
   initialData?: CreateCategoryInput | UpdateCategoryInput;
@@ -52,7 +52,7 @@ export function CategoryForm({ initialData = {}, onSubmit, isSubmitting = false,
           {(field) => {
             const error = getFieldError(field);
             return (
-              <InputField field={field} label='Name' placeholder='Enter category name...' icon={<Icon icon='mdi:tag' />} required error={error} />
+              <InputField field={field} label='Name' placeholder='Enter category name...' icon={<Tag/>} required error={error} />
             );
           }}
         </form.Field>
@@ -66,7 +66,7 @@ export function CategoryForm({ initialData = {}, onSubmit, isSubmitting = false,
                 field={field}
                 label='Description'
                 placeholder='Enter category description...'
-                // icon={<Icon icon='mdi:text-box' />}
+                icon={<Text />}
                 required
                 error={error}
                 rows={4}

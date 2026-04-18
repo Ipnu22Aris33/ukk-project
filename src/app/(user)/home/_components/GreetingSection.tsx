@@ -17,32 +17,18 @@ export const GreetingSection = () => {
 
   const firstName = session?.member.fullName?.split(' ')[0] ?? 'Pengguna';
 
-
   return (
     <Flex direction='column' gap='1'>
-      <Text
-        size='1'
-        weight='medium'
-        color='gray'
-        style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}
-      >
+      <Text size='1' weight='medium' color='gray' style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         {text} {emoji}
       </Text>
 
       <Skeleton loading={isLoading}>
         <Box style={{ display: 'inline-block' }}>
-          <Text
-            as='span'
-            size='6'
-            weight='bold'
-            style={{ letterSpacing: '-0.02em', lineHeight: '1.2', display: 'block' }}
-          >
+          <Text as='span' size='6' weight='bold' style={{ letterSpacing: '-0.02em', lineHeight: '1.2', display: 'block' }}>
             {firstName}
           </Text>
-          <Separator
-            color='indigo'
-            style={{ width: '100%', marginTop: 'var(--space-1)' }}
-          />
+          <Separator color='indigo' style={{ width: '100%', marginTop: 'var(--space-1)' }} />
         </Box>
       </Skeleton>
     </Flex>

@@ -11,6 +11,7 @@ import { useState } from 'react';
 import type { ReservationResponse } from '@/lib/schema/reservation';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useAuth } from '@/hooks/useAuth';
+import { CheckCircledIcon } from '@radix-ui/react-icons';
 
 /* =========================
    STATUS BADGE CONFIG
@@ -246,7 +247,7 @@ export function ReservationTable() {
     actions.push({
       key: 'approve',
       label: 'Approve',
-      icon: <Icon icon='mdi:check-circle' />,
+      icon: <CheckCircledIcon/>,
       color: 'green',
       //   disabled: (row) => row.status !== 'pending',
       onClick: async (row) => {

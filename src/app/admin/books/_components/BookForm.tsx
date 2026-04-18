@@ -9,7 +9,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { uploadImage } from '@/lib/upload/uploadClient';
 import { bookFormSchema, BookFormInput } from '@/lib/schema/book';
 import { FileField } from '@/components/features/forms/FileField';
-import { Icon } from '@iconify/react';
+import { BarcodeIcon, BookIcon, Building, CalendarIcon, LayersPlus, PenBoxIcon, Boxes } from 'lucide-react';
 
 interface BookFormProps {
   mode: 'create' | 'edit';
@@ -95,7 +95,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
             <InputField
               field={field}
               label='Title'
-              icon={<Icon icon='mdi:book' />}
+              icon={<BookIcon/>}
               required
               error={getFieldError(field)}
               placeholder='Enter book title...'
@@ -108,7 +108,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
             <InputField
               field={field}
               label='Author'
-              icon={<Icon icon='mdi:account-edit' />}
+              icon={<PenBoxIcon/>}
               required
               error={getFieldError(field)}
               placeholder='Enter author name...'
@@ -121,7 +121,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
             <InputField
               field={field}
               label='Publisher'
-              icon={<Icon icon='mdi:office-building' />}
+              icon={<Building/>}
               required
               error={getFieldError(field)}
               placeholder='Enter publisher name...'
@@ -134,7 +134,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
             <InputField
               field={field}
               label='ISBN'
-              icon={<Icon icon='mdi:barcode' />}
+              icon={<BarcodeIcon/>}
               error={getFieldError(field)}
               placeholder='Enter ISBN number...'
             />
@@ -147,7 +147,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
               field={field}
               type='number'
               label='Year'
-              icon={<Icon icon='mdi:calendar' />}
+              icon={<CalendarIcon/>}
               required
               error={getFieldError(field)}
               placeholder='Enter publication year...'
@@ -161,7 +161,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
               field={field}
               type='number'
               label='Total Stock'
-              icon={<Icon icon='mdi:counter' />}
+              icon={<LayersPlus/>}
               required
               error={getFieldError(field)}
               placeholder='Total physical books...'
@@ -179,7 +179,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
               searchable
               search={categorySearch}
               onSearchChange={setCategorySearch}
-              icon={<Icon icon='mdi:shape' />}
+              icon={<Boxes/>}
               required
               error={getFieldError(field)}
             />

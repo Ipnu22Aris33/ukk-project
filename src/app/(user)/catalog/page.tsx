@@ -2,7 +2,7 @@
 
 import { Container, Flex, Heading, Box, Section, Text } from '@radix-ui/themes';
 import { ReaderIcon } from '@radix-ui/react-icons';
-import { BookList } from './BookLists'; // Pastikan path import benar
+import { BookList } from './_components/BookLists';
 
 export default function KatalogPage() {
   return (

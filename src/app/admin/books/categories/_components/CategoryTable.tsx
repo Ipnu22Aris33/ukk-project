@@ -6,11 +6,11 @@ import { Panel } from '@/components/ui/Panel';
 import { useCategories } from '@/hooks/useCategories';
 import { usePanel } from '@/hooks/usePanel';
 import { Container, Heading, Flex, Box, Button, DataList, AlertDialog } from '@radix-ui/themes';
-import { Icon } from '@iconify/react';
 import { useState } from 'react';
 import type { CategoryResponse } from '@/lib/schema/category';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { CategoryForm } from './CategoryForm';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 
 /* =========================
    VIEW CONTENT
@@ -66,21 +66,21 @@ export function CategoryTable() {
     {
       key: 'view',
       label: 'View Details',
-      icon: <Icon icon='mdi:eye' />,
+      icon: <Eye/>,
       color: 'blue',
       onClick: (row) => open('view', row),
     },
     {
       key: 'edit',
       label: 'Edit Category',
-      icon: <Icon icon='mdi:pencil' />,
+      icon: <Pencil/>,
       color: 'green',
       onClick: (row) => open('edit', row),
     },
     {
       key: 'delete',
       label: 'Delete Category',
-      icon: <Icon icon='mdi:delete' />,
+      icon: <Trash2 />,
       color: 'red',
       onClick: (row) => setDeleteTarget(row),
     },

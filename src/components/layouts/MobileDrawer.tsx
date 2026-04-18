@@ -68,7 +68,7 @@ export const MobileDrawer = ({ open, onClose, menus }: Props) => {
             <Box
               style={{
                 background:
-                  'linear-gradient(135deg, var(--indigo-9), var(--violet-9))',
+                  'linear-gradient(135deg, var(--violet-9), var(--indigo-9))',
                 padding: '8px',
                 borderRadius: '10px',
                 display: 'flex',
@@ -105,7 +105,7 @@ export const MobileDrawer = ({ open, onClose, menus }: Props) => {
                   cursor: 'pointer',
                   borderRadius: 10,
                   backgroundColor: active
-                    ? 'var(--indigo-a3)'
+                    ? 'var(--violet-a3)'
                     : 'var(--gray-a2)',
                   padding: '12px 16px',
                 }}
@@ -115,7 +115,7 @@ export const MobileDrawer = ({ open, onClose, menus }: Props) => {
                   weight={active ? 'medium' : 'regular'}
                   style={{
                     color: active
-                      ? 'var(--indigo-11)'
+                      ? 'var(--violet-11)'
                       : 'var(--gray-12)',
                   }}
                 >

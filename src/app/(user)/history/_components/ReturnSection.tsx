@@ -3,34 +3,38 @@
 
 import { useState } from 'react';
 import { Card, Flex, Grid, Text, Heading, Badge, Box, DataList, Button, Spinner, Dialog } from '@radix-ui/themes';
-
 import { CalendarIcon, TimerIcon, EyeOpenIcon } from '@radix-ui/react-icons';
-
+import Image from 'next/image';
 import { useReturns } from '@/hooks/useReturns';
 
 export function ReturnSection() {
   const returns = useReturns();
-  const { data, isLoading } = returns.list({
-    page: 1,
-    limit: 10,
-  });
+  const { data, isLoading } = returns.list({ page: 1, limit: 10 });
 
   const [selected, setSelected] = useState<any>(null);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID');
-  };
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('id-ID');
-  };
+  const formatDateTime = (dateString: string) =>
+    new Date(dateString).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   const getFineStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
         return <Badge color='green'>Lunas</Badge>;
       default:
-        return <Badge color='red'>Belum Dibayar</Badge>;
+        return <Badge color='red'>Belum Bayar</Badge>;
     }
   };
 
@@ -57,104 +61,117 @@ export function ReturnSection() {
     );
   }
 
+  const items = data?.data || [];
+
   return (
     <>
       <Card size='3'>
         <Flex direction='column' gap='4'>
           <Heading size='4'>Riwayat Pengembalian</Heading>
 
-          <Grid columns={{ initial: '1', md: '2' }} gap='4'>
-            {data?.data?.map((item: any) => (
-              <Card key={item.id} size='2'>
-                <Flex gap='3'>
-                  {/* Cover */}
-                  {item.loan?.book?.coverUrl ? (
-                    <img
-                      src={item.loan.book.coverUrl}
-                      alt={item.loan.book.title}
-                      style={{
-                        width: 70,
-                        height: 90,
-                        objectFit: 'cover',
-                        borderRadius: 'var(--radius-3)',
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
-                    <Box
-                      style={{
-                        width: 70,
-                        height: 90,
-                        background: 'var(--gray-9)',
-                        borderRadius: 'var(--radius-3)',
-                        flexShrink: 0,
-                      }}
-                    />
-                  )}
+          <Grid columns={{ initial: '1', md: '2', lg: '3' }} gap='4'>
+            {items.map((item: any) => {
+              const hasFine = item.fineAmount > 0;
 
-                  {/* Content */}
-                  <Box style={{ flex: 1 }}>
-                    <Flex align='center' justify='between' mb='1'>
-                      <Text size='3' weight='bold'>
-                        {item.loan?.book?.title}
+              return (
+                <Card key={item.id} size='2'>
+                  <Flex direction='column' gap='3'>
+                    {/* HEADER: cover + judul + kondisi */}
+                    <Flex gap='3' align='start'>
+                      <Box
+                        style={{ width: 52, height: 72, borderRadius: 'var(--radius-3)', overflow: 'hidden', flexShrink: 0, position: 'relative' }}
+                      >
+                        {item.loan?.book?.coverUrl ? (
+                          <Image src={item.loan.book.coverUrl} alt={item.loan.book.title} fill style={{ objectFit: 'cover' }} />
+                        ) : (
+                          <Box style={{ width: '100%', height: '100%', background: 'var(--gray-9)' }} />
+                        )}
+                      </Box>
+
+                      <Box style={{ flex: 1, minWidth: 0 }}>
+                        <Flex justify='between' align='start' gap='2' mb='1'>
+                          <Text
+                            size='2'
+                            weight='bold'
+                            style={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              lineHeight: 1.4,
+                              flex: 1,
+                            }}
+                          >
+                            {item.loan?.book?.title}
+                          </Text>
+                          {getConditionBadge(item.condition)}
+                        </Flex>
+                        <Text size='1' color='gray'>
+                          {item.loan?.book?.author}
+                        </Text>
+                      </Box>
+                    </Flex>
+
+                    {/* DATE INFO */}
+                    <Grid columns={{ initial: '1', md: '2' }} gap='2'>
+                      <Box style={{ background: 'var(--gray-2)', borderRadius: 'var(--radius-2)', padding: '8px 10px' }}>
+                        <Flex align='center' gap='1' mb='1'>
+                          <CalendarIcon width='11' height='11' />
+                          <Text size='1' color='gray'>
+                            Dipinjam
+                          </Text>
+                        </Flex>
+                        <Text size='1' weight='medium'>
+                          {formatDate(item.loan?.loanDate)}
+                        </Text>
+                      </Box>
+
+                      <Box style={{ background: 'var(--gray-2)', borderRadius: 'var(--radius-2)', padding: '8px 10px' }}>
+                        <Flex align='center' gap='1' mb='1'>
+                          <TimerIcon width='11' height='11' />
+                          <Text size='1' color='gray'>
+                            Dikembalikan
+                          </Text>
+                        </Flex>
+                        <Text size='1' weight='medium'>
+                          {formatDateTime(item.returnedAt)}
+                        </Text>
+                      </Box>
+                    </Grid>
+
+                    {/* DENDA — selalu render */}
+                    <Flex
+                      direction='column'
+                      gap='1'
+                      style={{
+                        background: !hasFine ? 'var(--gray-2)' : item.fineStatus === 'paid' ? 'var(--green-2)' : 'var(--red-2)',
+                        borderRadius: 'var(--radius-2)',
+                        padding: '8px 12px',
+                      }}
+                    >
+                      <Flex align='center' justify='between'>
+                        <Text size='1' color={!hasFine ? 'gray' : item.fineStatus === 'paid' ? 'green' : 'red'}>
+                          Denda
+                        </Text>
+                        {hasFine && getFineStatusBadge(item.fineStatus)}
+                      </Flex>
+                      <Text size='2' weight='medium' color={!hasFine ? 'gray' : item.fineStatus === 'paid' ? 'green' : 'red'}>
+                        {hasFine ? `Rp ${item.fineAmount.toLocaleString('id-ID')}` : 'Tidak ada'}
                       </Text>
-                      {getConditionBadge(item.condition)}
                     </Flex>
-
-                    <Text size='2' style={{ color: 'var(--gray-11)' }} mb='2'>
-                      {item.loan?.book?.author}
-                    </Text>
-
-                    <DataList.Root size='1'>
-                      <DataList.Item>
-                        <DataList.Label minWidth='70px'>
-                          <Flex align='center' gap='1'>
-                            <CalendarIcon />
-                            Pinjam
-                          </Flex>
-                        </DataList.Label>
-                        <DataList.Value>{formatDate(item.loan?.loanDate)}</DataList.Value>
-                      </DataList.Item>
-
-                      <DataList.Item>
-                        <DataList.Label minWidth='70px'>
-                          <Flex align='center' gap='1'>
-                            <TimerIcon />
-                            Kembali
-                          </Flex>
-                        </DataList.Label>
-                        <DataList.Value>{formatDateTime(item.returnedAt)}</DataList.Value>
-                      </DataList.Item>
-
-                      {item.fineAmount > 0 && (
-                        <DataList.Item>
-                          <DataList.Label>Denda</DataList.Label>
-                          <DataList.Value>
-                            <Flex direction='column' gap='1'>
-                              <Text color='red'>Rp {item.fineAmount.toLocaleString()}</Text>
-                              {getFineStatusBadge(item.fineStatus)}
-                            </Flex>
-                          </DataList.Value>
-                        </DataList.Item>
-                      )}
-                    </DataList.Root>
-
-                    {/* Action */}
-                    <Flex mt='3'>
-                      <Button size='1' variant='soft' style={{ flex: 1 }} onClick={() => setSelected(item)}>
-                        <EyeOpenIcon />
-                        Detail
-                      </Button>
-                    </Flex>
-                  </Box>
-                </Flex>
-              </Card>
-            ))}
+                    {/* ACTION */}
+                    <Button size='2' variant='soft' onClick={() => setSelected(item)}>
+                      <EyeOpenIcon /> Detail
+                    </Button>
+                  </Flex>
+                </Card>
+              );
+            })}
           </Grid>
 
-          {data?.data?.length === 0 && (
+          {items.length === 0 && (
             <Flex justify='center' py='8'>
-              <Text style={{ color: 'var(--gray-11)' }}>Tidak ada riwayat pengembalian</Text>
+              <Text color='gray'>Tidak ada riwayat pengembalian</Text>
             </Flex>
           )}
         </Flex>
@@ -168,28 +185,27 @@ export function ReturnSection() {
           {selected && (
             <Flex direction='column' gap='4'>
               <Flex gap='3'>
-                {selected.loan?.book?.coverUrl ? (
-                  <img
-                    src={selected.loan.book.coverUrl}
-                    style={{
-                      width: 80,
-                      height: 110,
-                      objectFit: 'cover',
-                      borderRadius: 'var(--radius-3)',
-                    }}
-                  />
-                ) : (
-                  <Box
-                    style={{
-                      width: 80,
-                      height: 110,
-                      background: 'var(--gray-9)',
-                    }}
-                  />
-                )}
+                <Box style={{ width: 80, height: 110, borderRadius: 'var(--radius-3)', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                  {selected.loan?.book?.coverUrl ? (
+                    <Image src={selected.loan.book.coverUrl} alt={selected.loan.book.title} fill style={{ objectFit: 'cover' }} />
+                  ) : (
+                    <Box style={{ width: '100%', height: '100%', background: 'var(--gray-9)' }} />
+                  )}
+                </Box>
 
-                <Box>
-                  <Text weight='bold'>{selected.loan?.book?.title}</Text>
+                <Box style={{ minWidth: 0 }}>
+                  <Text
+                    weight='bold'
+                    size='3'
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {selected.loan?.book?.title}
+                  </Text>
                   <Text size='2' color='gray'>
                     {selected.loan?.book?.author}
                   </Text>
@@ -198,12 +214,22 @@ export function ReturnSection() {
 
               <DataList.Root>
                 <DataList.Item>
-                  <DataList.Label>Tanggal Pinjam</DataList.Label>
+                  <DataList.Label>
+                    <Flex align='center' gap='1'>
+                      <CalendarIcon />
+                      Tanggal Pinjam
+                    </Flex>
+                  </DataList.Label>
                   <DataList.Value>{formatDate(selected.loan?.loanDate)}</DataList.Value>
                 </DataList.Item>
 
                 <DataList.Item>
-                  <DataList.Label>Tanggal Kembali</DataList.Label>
+                  <DataList.Label>
+                    <Flex align='center' gap='1'>
+                      <TimerIcon />
+                      Dikembalikan
+                    </Flex>
+                  </DataList.Label>
                   <DataList.Value>{formatDateTime(selected.returnedAt)}</DataList.Value>
                 </DataList.Item>
 
@@ -213,14 +239,27 @@ export function ReturnSection() {
                 </DataList.Item>
 
                 {selected.fineAmount > 0 && (
+                  <>
+                    <DataList.Item>
+                      <DataList.Label>Denda</DataList.Label>
+                      <DataList.Value>
+                        <Text color='red' weight='bold'>
+                          Rp {selected.fineAmount.toLocaleString('id-ID')}
+                        </Text>
+                      </DataList.Value>
+                    </DataList.Item>
+
+                    <DataList.Item>
+                      <DataList.Label>Status Denda</DataList.Label>
+                      <DataList.Value>{getFineStatusBadge(selected.fineStatus)}</DataList.Value>
+                    </DataList.Item>
+                  </>
+                )}
+
+                {selected.notes && (
                   <DataList.Item>
-                    <DataList.Label>Denda</DataList.Label>
-                    <DataList.Value>
-                      <Flex direction='column' gap='1'>
-                        <Text color='red'>Rp {selected.fineAmount.toLocaleString()}</Text>
-                        {getFineStatusBadge(selected.fineStatus)}
-                      </Flex>
-                    </DataList.Value>
+                    <DataList.Label>Catatan</DataList.Label>
+                    <DataList.Value>{selected.notes}</DataList.Value>
                   </DataList.Item>
                 )}
               </DataList.Root>
