@@ -9,14 +9,12 @@ import { validateSchema } from '@/lib/utils/validate';
 import { eq, and } from 'drizzle-orm';
 import { createToken } from '@/lib/utils/auth';
 
-export const POST = handleApi(async ({ req }) => {
+export const POST = handleApi(async ({ req, res }) => {
   const body = await req.json();
-  
-  // 1. Validasi input menggunakan schema yang sudah kita buat
+
   const { nis, username, email, password } = validateSchema(activateSchema, body);
 
   const result = await db.transaction(async (tx) => {
-    // 2. Cari member berdasarkan NIS
     const existingMember = await tx.query.members.findFirst({
       where: eq(members.nis, nis),
     });
@@ -25,36 +23,30 @@ export const POST = handleApi(async ({ req }) => {
       throw new NotFound('NIS tidak terdaftar di database perpustakaan.');
     }
 
-    // 3. Cek apakah member sudah aktivasi (punya userId atau isActive true)
     if (existingMember.isActive || existingMember.userId) {
       throw new Conflict('Akun dengan NIS ini sudah diaktivasi sebelumnya.');
     }
 
-    // 4. Ceth apakah username atau email sudah diambil orang lain di tabel users
     const duplicateUser = await tx.query.users.findFirst({
-      where: (users, { or, eq }) => or(
-        eq(users.username, username),
-        eq(users.email, email)
-      ),
+      where: (users, { or, eq }) => or(eq(users.username, username), eq(users.email, email)),
     });
 
     if (duplicateUser) {
       throw new Conflict('Username atau Email sudah digunakan.');
     }
 
-    // 5. Hash password & Insert ke tabel users
     const hashedPassword = await hashPassword(password);
+
     const [newUser] = await tx
       .insert(users)
       .values({
         username,
         email,
         password: hashedPassword,
-        role: 'member', // Default role untuk aktivasi mandiri
+        role: 'member',
       })
       .returning();
 
-    // 6. Update tabel members: hubungkan ke user baru dan set aktif
     const [updatedMember] = await tx
       .update(members)
       .set({
@@ -65,10 +57,21 @@ export const POST = handleApi(async ({ req }) => {
       .where(eq(members.id, existingMember.id))
       .returning();
 
-    const token = createToken({ 
-      sub: newUser.id, 
+    const token = createToken({
+      sub: newUser.id,
       role: newUser.role,
-      email: newUser.email
+      email: newUser.email,
+    });
+
+    // 🔥 SET COOKIE DI SINI (INI KUNCI NYA)
+    res.cookies.set({
+      name: 'access_token',
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return {
@@ -79,7 +82,6 @@ export const POST = handleApi(async ({ req }) => {
         role: newUser.role,
       },
       member: updatedMember,
-      token,
     };
   });
 

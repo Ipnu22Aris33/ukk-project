@@ -1,5 +1,12 @@
-import AuthTabs from './AuthTabs';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function AuthPage() {
-  return <AuthTabs />;
+export default async function AuthPage() {
+  const token =  (await cookies()).get('access_token');
+
+  if (token) {
+    redirect('/');
+  }
+
+  redirect('/auth/login');
 }
