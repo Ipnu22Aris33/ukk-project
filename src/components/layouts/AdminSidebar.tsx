@@ -67,6 +67,7 @@ const menuItems: MenuItems[] = [
     ],
   },
   { id: 'members', label: 'Anggota', icon: <Users size={20} />, href: '/admin/members' },
+  { id: 'reports', label: 'Laporan', icon: <BookMarked size={20} />, href: '/admin/reports' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, onCloseMobile }) => {
@@ -101,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
           marginBottom: '16px',
         }}
       >
-        <MaterialSymbolsLocalLibraryOutline  width={24} height={24} />
+        <MaterialSymbolsLocalLibraryOutline width={24} height={24} />
 
         <Box
           style={{

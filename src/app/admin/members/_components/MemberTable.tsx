@@ -1,71 +1,16 @@
-// app/admin/members/MemberTable.tsx
 'use client';
 
-import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
+import { useState } from 'react';
+import { Container, Heading, Flex, Box } from '@radix-ui/themes';
+import { DataTable } from '@/components/features/datatable';
 import { Panel } from '@/components/ui/Panel';
 import { useMembers } from '@/hooks/useMembers';
 import { usePanel } from '@/hooks/usePanel';
-import { Container, Heading, Flex, Box, Button, DataList, AlertDialog } from '@radix-ui/themes';
-import { Icon } from '@iconify/react';
-import { useState } from 'react';
 import type { MemberResponse } from '@/lib/schema/member';
-import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { MemberForm } from './MemberForm';
-
-/* =========================
-   VIEW CONTENT
-========================= */
-
-function ViewMemberContent({ member, onClose }: { member: MemberResponse; onClose: () => void }) {
-  return (
-    <>
-      <DataList.Root>
-        <DataList.Item>
-          <DataList.Label>Full Name</DataList.Label>
-          <DataList.Value>{member.fullName}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>NIS</DataList.Label>
-          <DataList.Value>{member.nis || '-'}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Phone</DataList.Label>
-          <DataList.Value>{member.phone || '-'}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Class</DataList.Label>
-          <DataList.Value>{member.memberClass || '-'}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Major</DataList.Label>
-          <DataList.Value>{member.major || '-'}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Address</DataList.Label>
-          <DataList.Value>{member.address}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Member Code</DataList.Label>
-          <DataList.Value>{member.memberCode}</DataList.Value>
-        </DataList.Item>
-      </DataList.Root>
-
-      <Button mt='4' variant='soft' onClick={onClose}>
-        Close
-      </Button>
-    </>
-  );
-}
-
-/* =========================
-   MAIN COMPONENT
-========================= */
+import { memberColumns } from './Columns';
+import { getRowActions } from './RowActions';
+import { ViewMemberContent } from './ViewMemberContent';
 
 export function MemberTable() {
   const members = useMembers();
@@ -81,54 +26,7 @@ export function MemberTable() {
     limit,
   });
 
-  const columns: ColDataTable<MemberResponse>[] = [
-    {
-      accessorKey: 'memberCode',
-      header: 'Member Code',
-    },
-    {
-      accessorKey: 'fullName',
-      header: 'Name',
-    },
-    {
-      accessorKey: 'phone',
-      header: 'Phone',
-    },
-    {
-      accessorKey: 'memberClass',
-      header: 'Class',
-    },
-    {
-      accessorKey: 'major',
-      header: 'Major',
-    },
-    {
-      accessorKey: 'address',
-
-      header: 'Address',
-    },
-    
-  ];
-
-  const rowActions: () => RowAction<MemberResponse>[] = () => [
-    {
-      key: 'view',
-      label: 'View Details',
-      icon: <Icon icon='mdi:eye' />,
-      color: 'blue',
-      onClick: (row) => open('view', row),
-    },
-    {
-      key: 'edit',
-      label: 'Edit Member',
-      icon: <Icon icon='mdi:pencil' />,
-      color: 'green',
-      onClick: (row) => open('edit', row),
-    },
-   
-  ];
-
-  // const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }];
+  const rowActions = getRowActions(open);
 
   const renderPanelContent = () => {
     if (mode === 'add') {
@@ -182,15 +80,13 @@ export function MemberTable() {
   return (
     <Box position='relative' minHeight='100vh'>
       <Container size='4' py='6'>
-        {/* <Breadcrumb items={breadcrumbItems} /> */}
-
         <Flex justify='between' align='center' mb='6'>
           <Heading size='8'>Members Management</Heading>
         </Flex>
 
         <DataTable
           data={data?.data ?? []}
-          columns={columns}
+          columns={memberColumns}
           meta={data?.meta}
           isLoading={isLoading}
           onRefresh={refetch}
@@ -212,8 +108,6 @@ export function MemberTable() {
       <Panel open={mode !== null} onClose={close} title={panelTitle} width={mode === 'view' ? 500 : 480}>
         {renderPanelContent()}
       </Panel>
-
-      
     </Box>
   );
 }

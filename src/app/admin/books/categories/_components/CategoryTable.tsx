@@ -1,7 +1,7 @@
 // app/admin/books/categories/CategoryTable.tsx
 'use client';
 
-import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
+import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable';
 import { Panel } from '@/components/ui/Panel';
 import { useCategories } from '@/hooks/useCategories';
 import { usePanel } from '@/hooks/usePanel';

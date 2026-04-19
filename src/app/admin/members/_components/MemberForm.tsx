@@ -6,6 +6,7 @@ import * as Form from '@radix-ui/react-form';
 import { InputField, TextareaField } from '@/components/features/forms';
 import { Icon } from '@iconify/react';
 import { CreateMemberInput, UpdateMemberInput, memberFormSchema } from '@/lib/schema/member';
+import { School, User2 } from 'lucide-react';
 
 interface MemberFormProps {
   initialData?: CreateMemberInput | UpdateMemberInput;
@@ -57,7 +58,7 @@ export function MemberForm({ initialData = {}, onSubmit, isSubmitting = false, s
                 field={field}
                 label='Full Name'
                 placeholder='Enter full name...'
-                icon={<Icon icon='mdi:account' />}
+                icon={<User2 size={16} />}
                 required
                 error={error}
               />
@@ -69,7 +70,7 @@ export function MemberForm({ initialData = {}, onSubmit, isSubmitting = false, s
         <form.Field name='memberClass'>
           {(field) => {
             const error = getFieldError(field);
-            return <InputField field={field} label='Class' placeholder='Enter class (optional)...' icon={<Icon icon='mdi:school' />} error={error} />;
+            return <InputField field={field} label='Class' placeholder='Enter class (optional)...' icon={<School size={16}/>} error={error} />;
           }}
         </form.Field>
 

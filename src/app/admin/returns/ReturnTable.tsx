@@ -2,14 +2,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Container, Heading, Flex, Box, Button, DataList, AlertDialog, Badge, Text } from '@radix-ui/themes';
+import { Container, Heading, Flex, Box, Button, DataList, Dialog, Badge, Text } from '@radix-ui/themes';
 import { Icon } from '@iconify/react';
 import { useReturns } from '@/hooks/useReturns';
 import { usePanel } from '@/hooks/usePanel';
-import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
+import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable';
 import { Panel } from '@/components/ui/Panel';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import type { ReturnResponse } from '@/lib/schema/return';
+import { Banknote, Eye } from 'lucide-react';
 
 /* =========================
    STATUS BADGE CONFIG
@@ -41,6 +42,79 @@ function LoanStatusBadge({ status }: { status: LoanStatus }) {
 }
 
 /* =========================
+   PAY FINE MODAL
+========================= */
+
+function PayFineDialog({
+  return: returnData,
+  open,
+  onClose,
+  onConfirm,
+  isLoading,
+}: {
+  return: ReturnResponse;
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <Dialog.Root open={open} onOpenChange={(v) => !v && !isLoading && onClose()}>
+      <Dialog.Content maxWidth='420px'>
+        <Dialog.Title>Confirm Fine Payment</Dialog.Title>
+        <Dialog.Description size='2' color='gray' mb='4'>
+          Please confirm the following fine payment details.
+        </Dialog.Description>
+
+        <DataList.Root size='2' mb='4'>
+          <DataList.Item>
+            <DataList.Label minWidth='100px'>Member</DataList.Label>
+            <DataList.Value>
+              <Flex direction='column'>
+                <Text weight='medium'>{returnData.loan?.member?.fullName}</Text>
+                <Text size='1' color='gray'>
+                  {returnData.loan?.member?.memberClass} – {returnData.loan?.member?.memberCode}
+                </Text>
+              </Flex>
+            </DataList.Value>
+          </DataList.Item>
+
+          <DataList.Item>
+            <DataList.Label minWidth='100px'>Book</DataList.Label>
+            <DataList.Value>
+              <Text>{returnData.loan?.book?.title}</Text>
+            </DataList.Value>
+          </DataList.Item>
+
+          <DataList.Item>
+            <DataList.Label minWidth='100px'>Fine Amount</DataList.Label>
+            <DataList.Value>
+              <Text weight='bold' color='red'>
+                {new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  minimumFractionDigits: 0,
+                }).format(returnData.fineAmount || 0)}
+              </Text>
+            </DataList.Value>
+          </DataList.Item>
+        </DataList.Root>
+
+        <Flex gap='3' justify='end'>
+          <Button variant='soft' color='gray' onClick={onClose} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button color='green' onClick={onConfirm} loading={isLoading}>
+            <Icon icon='mdi:cash-check' />
+            Confirm Payment
+          </Button>
+        </Flex>
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+}
+
+/* =========================
    VIEW CONTENT
 ========================= */
 
@@ -52,8 +126,6 @@ function ViewReturnContent({ return: returnData, onClose }: { return: ReturnResp
           <DataList.Label>Return ID</DataList.Label>
           <DataList.Value>#{returnData.id}</DataList.Value>
         </DataList.Item>
-
-        {/* <DataList.Separator /> */}
 
         <DataList.Item>
           <DataList.Label>Loan Information</DataList.Label>
@@ -70,7 +142,9 @@ function ViewReturnContent({ return: returnData, onClose }: { return: ReturnResp
           <DataList.Value>
             <Flex direction='column'>
               <Text weight='medium'>{returnData.loan?.member?.fullName}</Text>
-              <Text size='1' color='gray'>{returnData.loan?.member?.memberClass} - {returnData.loan?.member?.memberCode}</Text>
+              <Text size='1' color='gray'>
+                {returnData.loan?.member?.memberClass} - {returnData.loan?.member?.memberCode}
+              </Text>
             </Flex>
           </DataList.Value>
         </DataList.Item>
@@ -80,12 +154,12 @@ function ViewReturnContent({ return: returnData, onClose }: { return: ReturnResp
           <DataList.Value>
             <Flex direction='column'>
               <Text weight='medium'>{returnData.loan?.book?.title}</Text>
-              <Text size='1' color='gray'>by {returnData.loan?.book?.author}</Text>
+              <Text size='1' color='gray'>
+                by {returnData.loan?.book?.author}
+              </Text>
             </Flex>
           </DataList.Value>
         </DataList.Item>
-
-        {/* <DataList.Separator /> */}
 
         <DataList.Item>
           <DataList.Label>Fine Amount</DataList.Label>
@@ -103,29 +177,24 @@ function ViewReturnContent({ return: returnData, onClose }: { return: ReturnResp
           </DataList.Value>
         </DataList.Item>
 
-        {/* <DataList.Separator /> */}
-
         <DataList.Item>
           <DataList.Label>Return Date</DataList.Label>
           <DataList.Value>
-            {new Date(returnData.returnedAt).toLocaleDateString('id-ID', { 
-              day: 'numeric', 
-              month: 'long', 
+            {new Date(returnData.returnedAt).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'long',
               year: 'numeric',
               hour: '2-digit',
-              minute: '2-digit'
+              minute: '2-digit',
             })}
           </DataList.Value>
         </DataList.Item>
 
         {returnData.notes && (
-          <>
-            {/* <DataList.Separator /> */}
-            <DataList.Item>
-              <DataList.Label>Notes</DataList.Label>
-              <DataList.Value>{returnData.notes}</DataList.Value>
-            </DataList.Item>
-          </>
+          <DataList.Item>
+            <DataList.Label>Notes</DataList.Label>
+            <DataList.Value>{returnData.notes}</DataList.Value>
+          </DataList.Item>
         )}
       </DataList.Root>
 
@@ -150,11 +219,22 @@ export function ReturnTable() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const { data, isLoading, refetch } = returns.list({
-    page,
-    search,
-    limit,
-  });
+  // State untuk pay fine dialog
+  const [payTarget, setPayTarget] = useState<ReturnResponse | null>(null);
+
+  const { data, isLoading, refetch } = returns.list({ page, search, limit });
+  const { mutateAsync: payFine, isPending: isPaying } = returns.custom;
+
+  const handlePayConfirm = async () => {
+    if (!payTarget) return;
+    await payFine({
+      id: payTarget.id,
+      action: 'payment',
+      method: 'POST',
+    });
+    setPayTarget(null);
+    refetch();
+  };
 
   const columns: ColDataTable<ReturnResponse>[] = [
     {
@@ -168,7 +248,9 @@ export function ReturnTable() {
       cell: ({ row }) => (
         <Flex direction='column'>
           <Text weight='medium'>{row.original.loan?.member?.fullName}</Text>
-          <Text size='1' color='gray'>{row.original.loan?.member?.memberClass}</Text>
+          <Text size='1' color='gray'>
+            {row.original.loan?.member?.memberClass}
+          </Text>
         </Flex>
       ),
     },
@@ -178,7 +260,9 @@ export function ReturnTable() {
       cell: ({ row }) => (
         <Flex direction='column'>
           <Text>{row.original.loan?.book?.title}</Text>
-          <Text size='1' color='gray'>{row.original.loan?.book?.author}</Text>
+          <Text size='1' color='gray'>
+            {row.original.loan?.book?.author}
+          </Text>
         </Flex>
       ),
     },
@@ -212,30 +296,38 @@ export function ReturnTable() {
     },
   ];
 
-  const rowActions: () => RowAction<ReturnResponse>[] = () => [
-    {
-      key: 'view',
-      label: 'View Details',
-      icon: <Icon icon='mdi:eye' />,
-      color: 'blue',
-      onClick: (row) => open('view', row),
-    },
-  ];
+  const rowActions = (row: ReturnResponse): RowAction<ReturnResponse>[] => {
+    const actions: RowAction<ReturnResponse>[] = [
+      {
+        key: 'view',
+        label: 'View Details',
+        icon: <Eye size={16} />,
+        color: 'blue',
+        onClick: (row) => open('view', row),
+      },
+    ];
 
-  const breadcrumbItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Returns' },
-  ];
+    if (row.fineAmount && row.fineStatus === 'unpaid') {
+      actions.push({
+        key: 'pay',
+        label: 'Pay Fine',
+        icon: <Banknote size={16} />,
+        color: 'green',
+        onClick: (row) => setPayTarget(row),
+      });
+    }
+
+    return actions;
+  };
+
+  const breadcrumbItems = [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Returns' }];
 
   const renderPanelContent = () => {
     if (mode === 'view' && selected) {
       return <ViewReturnContent return={selected} onClose={close} />;
     }
-
     return null;
   };
-
-  const panelTitle = mode === 'view' ? 'Return Details' : '';
 
   return (
     <Box position='relative' minHeight='100vh'>
@@ -260,22 +352,21 @@ export function ReturnTable() {
           rowActions={rowActions}
           enableSearch
           enablePagination
-          showAdd={false} // Explicitly set to false to hide add button
+          showAdd={false}
           showPrint
           showRefresh
         />
       </Container>
 
-      <Panel 
-        open={mode === 'view'} 
-        onClose={close} 
-        title={panelTitle} 
-        width={500}
-      >
+      {/* Panel: View Details */}
+      <Panel open={mode === 'view'} onClose={close} title='Return Details' width={500}>
         {renderPanelContent()}
       </Panel>
 
-      
+      {/* Modal: Pay Fine */}
+      {payTarget && (
+        <PayFineDialog return={payTarget} open={!!payTarget} onClose={() => setPayTarget(null)} onConfirm={handlePayConfirm} isLoading={isPaying} />
+      )}
     </Box>
   );
 }

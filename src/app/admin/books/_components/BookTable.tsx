@@ -1,6 +1,6 @@
 'use client';
 
-import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable/DataTable';
+import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable';
 import { Panel } from '@/components/ui/Panel';
 import { useBooks } from '@/hooks/useBooks';
 import { usePanel } from '@/hooks/usePanel';
