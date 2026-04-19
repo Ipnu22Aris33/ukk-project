@@ -45,10 +45,12 @@ export function ReservationTable() {
   const handleCancel = async () => {
     if (!cancelTarget) return;
     try {
-      await reservations.update.mutateAsync({
+      await reservations.custom.mutateAsync({
         id: cancelTarget.id,
-        data: { status: 'cancelled' },
+        action: 'cancel',
+        method: 'PATCH',
       });
+      
       setCancelTarget(null);
       refetch();
     } catch {}
@@ -57,9 +59,10 @@ export function ReservationTable() {
   const handleReject = async () => {
     if (!rejectTarget) return;
     try {
-      await reservations.update.mutateAsync({
+      await reservations.custom.mutateAsync({
         id: rejectTarget.id,
-        data: { status: 'rejected' },
+        action: 'reject',
+        method: 'PATCH',
       });
       setRejectTarget(null);
       refetch();

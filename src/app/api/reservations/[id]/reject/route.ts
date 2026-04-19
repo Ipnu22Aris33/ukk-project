@@ -22,33 +22,53 @@ export const PATCH = handleApi(async ({ params, user }) => {
       throw new BadRequest(`Reservasi tidak bisa ditolak karena statusnya sudah ${reservation.status}`);
     }
 
+    // 2. Cek current stock buku
+    const currentBook = await tx.query.books.findFirst({
+      where: eq(books.id, reservation.bookId),
+    });
+
+    if (!currentBook) throw new NotFound('Buku tidak ditemukan');
+
+    // 3. Validasi agar tidak menjadi negatif
+    const newReservedStock = currentBook.reservedStock - reservation.quantity;
+    const newAvailableStock = currentBook.availableStock + reservation.quantity;
+
+    if (newReservedStock < 0) {
+      throw new BadRequest(`Data tidak konsisten: reserved stock (${currentBook.reservedStock}) tidak bisa dikurangi ${reservation.quantity}`);
+    }
+
+    if (newAvailableStock > currentBook.totalStock) {
+      throw new BadRequest(`Data tidak konsisten: available stock (${newAvailableStock}) melebihi total stock (${currentBook.totalStock})`);
+    }
+
     const now = new Date();
 
-    // 2. Update status reservasi menjadi REJECTED
+    // 4. Update status reservasi menjadi REJECTED
     const [updatedReservation] = await tx
       .update(reservations)
       .set({
         status: 'rejected',
         updatedAt: now,
-        // Optional: Jika kamu punya kolom rejectedBy atau notes untuk alasan penolakan
+        // rejectedBy: user?.id, // jika ada kolom rejectedBy
+        // rejectedAt: now, // jika ada kolom rejectedAt
       })
       .where(eq(reservations.id, id))
       .returning();
 
-    // 3. Kembalikan stok: Kurangi Reserved, Tambahkan kembali ke Available
+    // 5. Kembalikan stok dengan aman menggunakan nilai absolut
     await tx
       .update(books)
       .set({
-        reservedStock: sql`${books.reservedStock} - ${reservation.quantity}`,
-        availableStock: sql`${books.availableStock} + ${reservation.quantity}`,
+        reservedStock: sql`GREATEST(${books.reservedStock} - ${reservation.quantity}, 0)`,
+        availableStock: sql`LEAST(${books.availableStock} + ${reservation.quantity}, ${books.totalStock})`,
         updatedAt: now,
       })
       .where(eq(books.id, reservation.bookId));
 
-    // 4. Ambil data lengkap untuk response
+    // 6. Ambil data lengkap untuk response
     const fullReservation = await tx.query.reservations.findFirst({
       where: eq(reservations.id, updatedReservation.id),
-      with: { book: true, member: true }
+      with: { book: true, member: true },
     });
 
     return safeParseResponse(reservationResponseSchema, fullReservation).data;
