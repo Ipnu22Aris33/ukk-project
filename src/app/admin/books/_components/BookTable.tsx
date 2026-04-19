@@ -63,6 +63,7 @@ export function BookTable() {
             author: selected.author,
             publisher: selected.publisher,
             totalStock: selected.totalStock,
+            availableStock: selected.availableStock, // ← tambah ini
             year: selected.year,
             isbn: selected.isbn,
             categoryId: selected.categoryId,

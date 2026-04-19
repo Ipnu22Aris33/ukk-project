@@ -1,13 +1,12 @@
 // components/features/categories/CategoryForm.tsx
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { Flex, Button } from '@radix-ui/themes';
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
 import { InputField, TextareaField } from '@/components/features/forms';
 import { CreateCategoryInput, UpdateCategoryInput, categoryFormSchema } from '@/lib/schema/category';
-import { Tag, Text } from 'lucide-react';
+import { Tag, AlignLeft } from 'lucide-react';
 
 interface CategoryFormProps {
   initialData?: CreateCategoryInput | UpdateCategoryInput;
@@ -18,8 +17,6 @@ interface CategoryFormProps {
 }
 
 export function CategoryForm({ initialData = {}, onSubmit, isSubmitting = false, submitLabel = 'Save Category', onClose }: CategoryFormProps) {
-  const router = useRouter();
-
   const form = useForm({
     defaultValues: {
       name: initialData.name || '',
@@ -29,14 +26,11 @@ export function CategoryForm({ initialData = {}, onSubmit, isSubmitting = false,
       onChange: categoryFormSchema,
     },
     onSubmit: async ({ value }) => {
-      console.log('FORM VALUE:', value);
       await onSubmit(value);
     },
   });
 
-  const getFieldError = (field: any) => {
-    return field.state.meta.errors?.[0]?.message;
-  };
+  const getFieldError = (field: any) => field.state.meta.errors?.[0]?.message;
 
   return (
     <Form.Root
@@ -47,37 +41,35 @@ export function CategoryForm({ initialData = {}, onSubmit, isSubmitting = false,
       }}
     >
       <Flex direction='column' gap='4'>
-        {/* Name Field */}
         <form.Field name='name'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField field={field} label='Name' placeholder='Enter category name...' icon={<Tag/>} required error={error} />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Name'
+              placeholder='Enter category name...'
+              icon={<Tag size={16} />}
+              required
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Description Field with TextArea */}
         <form.Field name='description'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <TextareaField
-                field={field}
-                label='Description'
-                placeholder='Enter category description...'
-                icon={<Text />}
-                required
-                error={error}
-                rows={4}
-              />
-            );
-          }}
+          {(field) => (
+            <TextareaField
+              field={field}
+              label='Description'
+              placeholder='Enter category description...'
+              icon={<AlignLeft size={16} />}
+              required
+              error={getFieldError(field)}
+              rows={4}
+            />
+          )}
         </form.Field>
 
-        {/* Form Actions */}
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-          {([canSubmit]) => (
+          {([canSubmit, isSubmitting]) => (
             <Flex gap='3' mt='4' justify='end'>
               <Button variant='soft' color='gray' onClick={onClose} type='button' disabled={isSubmitting}>
                 Cancel

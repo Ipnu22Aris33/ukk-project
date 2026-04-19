@@ -4,9 +4,8 @@ import { Flex, Button } from '@radix-ui/themes';
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
 import { InputField, TextareaField } from '@/components/features/forms';
-import { Icon } from '@iconify/react';
 import { CreateMemberInput, UpdateMemberInput, memberFormSchema } from '@/lib/schema/member';
-import { School, User2 } from 'lucide-react';
+import { User2, School, CreditCard, Phone, BookOpen, MapPin } from 'lucide-react';
 
 interface MemberFormProps {
   initialData?: CreateMemberInput | UpdateMemberInput;
@@ -23,21 +22,18 @@ export function MemberForm({ initialData = {}, onSubmit, isSubmitting = false, s
       memberClass: initialData.memberClass || '',
       address: initialData.address || '',
       nis: initialData.nis || '',
-      phone: initialData.phone || '', 
+      phone: initialData.phone || '',
       major: initialData.major || '',
     },
     validators: {
       onChange: memberFormSchema,
     },
     onSubmit: async ({ value }) => {
-      console.log('FORM VALUE:', value);
       await onSubmit(value);
     },
   });
 
-  const getFieldError = (field: any) => {
-    return field.state.meta.errors?.[0]?.message;
-  };
+  const getFieldError = (field: any) => field.state.meta.errors?.[0]?.message;
 
   return (
     <Form.Root
@@ -48,95 +44,83 @@ export function MemberForm({ initialData = {}, onSubmit, isSubmitting = false, s
       }}
     >
       <Flex direction='column' gap='4'>
-
-        {/* Full Name Field - Required */}
         <form.Field name='fullName'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='Full Name'
-                placeholder='Enter full name...'
-                icon={<User2 size={16} />}
-                required
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Full Name'
+              placeholder='Enter full name...'
+              icon={<User2 size={16} />}
+              required
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Class Field - Optional */}
         <form.Field name='memberClass'>
-          {(field) => {
-            const error = getFieldError(field);
-            return <InputField field={field} label='Class' placeholder='Enter class (optional)...' icon={<School size={16}/>} error={error} />;
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Class'
+              placeholder='Enter class (optional)...'
+              icon={<School size={16} />}
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* NIS Field - Optional */}
         <form.Field name='nis'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='NIS'
-                placeholder='Enter NIS (optional)...'
-                icon={<Icon icon='mdi:card-account-details' />}
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='NIS'
+              placeholder='Enter NIS (optional)...'
+              icon={<CreditCard size={16} />}
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Phone Field - Optional */}
         <form.Field name='phone'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField field={field} label='Phone' placeholder='Enter phone number (optional)...' icon={<Icon icon='mdi:phone' />} error={error} />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Phone'
+              placeholder='Enter phone number (optional)...'
+              icon={<Phone size={16} />}
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Major Field - Optional */}
         <form.Field name='major'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <InputField
-                field={field}
-                label='Major'
-                placeholder='Enter major (optional)...'
-                icon={<Icon icon='mdi:book-education' />}
-                error={error}
-              />
-            );
-          }}
+          {(field) => (
+            <InputField
+              field={field}
+              label='Major'
+              placeholder='Enter major (optional)...'
+              icon={<BookOpen size={16} />}
+              error={getFieldError(field)}
+            />
+          )}
         </form.Field>
 
-        {/* Address Field - TextArea */}
         <form.Field name='address'>
-          {(field) => {
-            const error = getFieldError(field);
-            return (
-              <TextareaField
-                field={field}
-                icon={<Icon icon='mdi:map-marker-outline'/>}
-                label='Address'
-                placeholder='Enter address...'
-                required
-                error={error}
-                rows={3}
-              />
-            );
-          }}
+          {(field) => (
+            <TextareaField
+              field={field}
+              label='Address'
+              placeholder='Enter address...'
+              icon={<MapPin size={16} />}
+              required
+              error={getFieldError(field)}
+              rows={3}
+            />
+          )}
         </form.Field>
 
-        {/* Form Actions */}
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-          {([canSubmit]) => (
+          {([canSubmit, isSubmitting]) => (
             <Flex gap='3' mt='4' justify='end'>
               <Button variant='soft' color='gray' onClick={onClose} type='button' disabled={isSubmitting}>
                 Cancel

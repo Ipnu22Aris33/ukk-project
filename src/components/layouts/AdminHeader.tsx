@@ -1,18 +1,16 @@
 'use client';
 
-import { Icon } from '@iconify/react';
-import { Flex, Heading, Button, Badge, DropdownMenu, IconButton, Tooltip } from '@radix-ui/themes';
+import { Flex, IconButton, Tooltip } from '@radix-ui/themes';
 import { ThemeToggle } from '../ui/ThemeToggle';
-import { AppIcon } from '../ui/AppIcon';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import ScannerModal from './ScannerModal';
-import { ScanLine } from 'lucide-react';
+import { ScanLine, Menu, ArrowLeft, ArrowRight, X } from 'lucide-react';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
-  sidebarCollapsed?: boolean; // Tambahkan prop ini
-  isMobile?: boolean; // Tambahkan prop ini
+  sidebarCollapsed?: boolean;
+  isMobile?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed = false, isMobile = false }) => {
@@ -23,10 +21,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapse
   const getToggleIcon = () => {
     if (isMobile) {
       // Mobile: selalu hamburger menu
-      return 'RiArrowRightDoubleLine';
+      return <Menu size={20} />;
     } else {
       // Desktop: arrow kiri/kanan berdasarkan collapsed state
-      return sidebarCollapsed ? 'RiArrowLeftDoubleLine' : 'RiArrowRightDoubleLine';
+      return sidebarCollapsed ? <ArrowRight size={20} /> : <ArrowLeft size={20} />;
     }
   };
 
@@ -58,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapse
             transition: 'transform 0.2s ease',
           }}
         >
-          <AppIcon name={getToggleIcon()} size={32} />
+          {getToggleIcon()}
         </IconButton>
       </Flex>
 

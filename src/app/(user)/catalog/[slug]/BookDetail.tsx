@@ -13,6 +13,8 @@ import {
   IdCardIcon,
   HomeIcon,
   InfoCircledIcon,
+  StackIcon,
+  BookmarkFilledIcon,
 } from '@radix-ui/react-icons';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -20,7 +22,10 @@ import Image from 'next/image';
 import { BookResponse as Book } from '@/lib/schema/book';
 import { useReservations } from '@/hooks/useReservation';
 
-// 🔥 Update: Menggunakan stock yang tersedia untuk indikator warna
+/* =========================
+   HELPERS
+========================= */
+
 const getStockColor = (available: number): 'green' | 'orange' | 'red' => {
   if (available === 0) return 'red';
   if (available <= 2) return 'orange';
@@ -33,13 +38,61 @@ const getStockLabel = (available: number) => {
   return `${available} tersedia`;
 };
 
-type MetaField = {
-  label: string;
-  value: string | number | undefined | null;
-  icon: React.ReactNode;
-  color?: 'green' | 'orange' | 'red' | 'gray';
-  mono?: boolean;
-};
+/* =========================
+   STOCK INDICATOR
+========================= */
+
+function StockBar({ total, available, reserved, loaned }: { total: number; available: number; reserved: number; loaned: number }) {
+  const availablePct = total > 0 ? (available / total) * 100 : 0;
+  const reservedPct = total > 0 ? (reserved / total) * 100 : 0;
+  const loanedPct = total > 0 ? (loaned / total) * 100 : 0;
+
+  return (
+    <Flex direction='column' gap='2'>
+      {/* Bar */}
+      <Flex style={{ height: 8, borderRadius: 999, overflow: 'hidden', background: 'var(--gray-4)' }}>
+        <Box style={{ width: `${availablePct}%`, background: 'var(--green-9)', transition: 'width 0.3s' }} />
+        <Box style={{ width: `${reservedPct}%`, background: 'var(--orange-9)', transition: 'width 0.3s' }} />
+        <Box style={{ width: `${loanedPct}%`, background: 'var(--blue-9)', transition: 'width 0.3s' }} />
+      </Flex>
+
+      {/* Legend */}
+      <Grid columns='3' gap='2'>
+        <Flex align='center' gap='1'>
+          <Box style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--green-9)', flexShrink: 0 }} />
+          <Text size='1' color='gray'>
+            Tersedia{' '}
+            <Text weight='bold' color='green'>
+              {available}
+            </Text>
+          </Text>
+        </Flex>
+        <Flex align='center' gap='1'>
+          <Box style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--orange-9)', flexShrink: 0 }} />
+          <Text size='1' color='gray'>
+            Reservasi{' '}
+            <Text weight='bold' color='orange'>
+              {reserved}
+            </Text>
+          </Text>
+        </Flex>
+        <Flex align='center' gap='1'>
+          <Box style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--blue-9)', flexShrink: 0 }} />
+          <Text size='1' color='gray'>
+            Dipinjam{' '}
+            <Text weight='bold' color='blue'>
+              {loaned}
+            </Text>
+          </Text>
+        </Flex>
+      </Grid>
+    </Flex>
+  );
+}
+
+/* =========================
+   MAIN COMPONENT
+========================= */
 
 interface Props {
   book: Book | null;
@@ -49,16 +102,35 @@ interface Props {
 export const BookDetail = ({ book, isLoading }: Props) => {
   const router = useRouter();
 
-  // 🔥 Update: Logika ketersediaan berdasarkan availableStock
   const availableCount = book?.availableStock ?? 0;
+  const totalCount = book?.totalStock ?? 0;
+  const reservedCount = book?.reservedStock ?? 0;
+  const loanedCount = book?.loanedStock ?? 0;
+
   const stockColor = book ? getStockColor(availableCount) : 'gray';
   const isAvailable = availableCount > 0;
+  const maxQty = isAvailable ? availableCount : 1;
 
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState('');
 
-  // 🔥 Update: Maksimal reservasi adalah stok yang tersedia
-  const maxQty = availableCount > 0 ? availableCount : 1;
+  const reserveBook = useReservations();
+
+  const handleSubmit = () => {
+    reserveBook.create.mutateAsync({
+      bookId: book?.id!,
+      quantity: qty,
+      notes: note,
+    });
+  };
+
+  type MetaField = {
+    label: string;
+    value: string | number | undefined | null;
+    icon: React.ReactNode;
+    color?: 'green' | 'orange' | 'red' | 'gray';
+    mono?: boolean;
+  };
 
   const metaFields: MetaField[] = [
     {
@@ -78,32 +150,37 @@ export const BookDetail = ({ book, isLoading }: Props) => {
       mono: true,
     },
     {
-      label: 'Status Rak',
-      value: book ? getStockLabel(availableCount) : null,
-      icon: <BarChartIcon width={13} height={13} color={`var(--${stockColor}-9)`} />,
-      color: stockColor,
+      label: 'Total Koleksi',
+      value: `${totalCount} eksemplar`,
+      icon: <StackIcon width={13} height={13} color='var(--gray-8)' />,
     },
   ];
 
-  const reserveBook = useReservations();
-
-  const handleSubmit = () => {
-    reserveBook.create.mutateAsync({
-      bookId: book?.id!,
-      quantity: qty,
-      notes: note,
-    });
-  };
-
-  const reservasiTrigger = (
-    <Button size='3' color='indigo' variant={isAvailable ? 'solid' : 'soft'} disabled={!isAvailable || isLoading} style={{ width: '100%' }}>
-      <BookmarkIcon />
-      {isAvailable ? 'Reservasi' : 'Stok di Rak Habis'}
-    </Button>
-  );
-
   const ctaSection = (
-    <Flex direction='column' gap='2'>
+    <Flex direction='column' gap='3'>
+      {/* Stock Bar */}
+      <Skeleton loading={isLoading}>
+        <Box
+          p='3'
+          style={{
+            background: 'var(--gray-2)',
+            borderRadius: 'var(--radius-3)',
+            border: '1px solid var(--gray-4)',
+          }}
+        >
+          <Flex justify='between' align='center' mb='2'>
+            <Text size='1' weight='medium' color='gray' style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Ketersediaan Stok
+            </Text>
+            <Badge color={stockColor} variant='soft' size='1'>
+              {getStockLabel(availableCount)}
+            </Badge>
+          </Flex>
+          <StockBar total={totalCount} available={availableCount} reserved={reservedCount} loaned={loanedCount} />
+        </Box>
+      </Skeleton>
+
+      {/* Reservasi Button + Dialog */}
       <Dialog.Root
         onOpenChange={(open) => {
           if (!open) {
@@ -112,7 +189,12 @@ export const BookDetail = ({ book, isLoading }: Props) => {
           }
         }}
       >
-        <Dialog.Trigger>{reservasiTrigger}</Dialog.Trigger>
+        <Dialog.Trigger>
+          <Button size='3' color='indigo' variant={isAvailable ? 'solid' : 'soft'} disabled={!isAvailable || isLoading} style={{ width: '100%' }}>
+            <BookmarkIcon />
+            {isAvailable ? 'Reservasi Buku' : 'Stok di Rak Habis'}
+          </Button>
+        </Dialog.Trigger>
 
         <Dialog.Content maxWidth='420px'>
           <Dialog.Title>Reservasi Buku</Dialog.Title>
@@ -176,7 +258,6 @@ export const BookDetail = ({ book, isLoading }: Props) => {
                 Batal
               </Button>
             </Dialog.Close>
-            {/* 🔥 Logic Submit Tetap Sama */}
             <Button color='indigo' onClick={handleSubmit} loading={reserveBook.create.isPending}>
               <BookmarkIcon />
               Konfirmasi Reservasi
@@ -184,15 +265,6 @@ export const BookDetail = ({ book, isLoading }: Props) => {
           </Flex>
         </Dialog.Content>
       </Dialog.Root>
-
-      <Skeleton loading={isLoading}>
-        <Flex align='center' justify='center' gap='1'>
-          {isAvailable ? <CheckCircledIcon color={`var(--${stockColor}-9)`} /> : <CrossCircledIcon color='var(--red-9)' />}
-          <Text size='1' color={stockColor} weight='medium'>
-            {book ? getStockLabel(availableCount) : ''}
-          </Text>
-        </Flex>
-      </Skeleton>
     </Flex>
   );
 
@@ -206,6 +278,7 @@ export const BookDetail = ({ book, isLoading }: Props) => {
       </Box>
 
       <Grid columns={{ initial: '1', sm: '200px 1fr' }} gap={{ initial: '6', sm: '8' }} align='start'>
+        {/* Cover */}
         <Flex direction='column' gap='3'>
           <Skeleton loading={isLoading}>
             <Box
@@ -229,26 +302,38 @@ export const BookDetail = ({ book, isLoading }: Props) => {
             </Box>
           </Skeleton>
 
+          {/* CTA mobile */}
           <Box display={{ initial: 'block', sm: 'none' }}>{ctaSection}</Box>
         </Flex>
 
+        {/* Info */}
         <Flex direction='column' gap='5'>
+          {/* Category badge */}
           <Skeleton loading={isLoading}>
-            <Flex gap='2' wrap='wrap'>
+            <Flex gap='2' wrap='wrap' align='center'>
               {book?.category && (
-                <Badge variant='soft' color='indigo' radius='full' size='1'>
-                  {book.category.name}
-                </Badge>
+                <>
+                  <Badge variant='soft' color='indigo' radius='full' size='1'>
+                    {book.category.name}
+                  </Badge>
+                  {book.category.description && (
+                    <Text size='1' color='gray'>
+                      {book.category.description}
+                    </Text>
+                  )}
+                </>
               )}
             </Flex>
           </Skeleton>
 
+          {/* Title */}
           <Skeleton loading={isLoading}>
             <Text as='p' size='8' weight='bold' style={{ lineHeight: 1.15, letterSpacing: '-0.025em', fontFamily: 'Georgia, serif' }}>
               {book?.title ?? 'Memuat...'}
             </Text>
           </Skeleton>
 
+          {/* Author */}
           <Skeleton loading={isLoading}>
             <Flex align='center' gap='2'>
               <PersonIcon color='var(--gray-9)' />
@@ -260,6 +345,7 @@ export const BookDetail = ({ book, isLoading }: Props) => {
 
           <Separator size='4' />
 
+          {/* Meta grid */}
           <Grid columns='2' gap='4'>
             {metaFields.map(({ label, value, icon, color, mono }) => (
               <Skeleton key={label} loading={isLoading}>
@@ -278,6 +364,7 @@ export const BookDetail = ({ book, isLoading }: Props) => {
             ))}
           </Grid>
 
+          {/* CTA desktop */}
           <Box display={{ initial: 'none', sm: 'block' }}>
             <Separator size='4' mb='4' />
             {ctaSection}

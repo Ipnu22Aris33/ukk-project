@@ -5,13 +5,11 @@ import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
 import { FormCard, FormActions, InputField } from '@/components/features/forms';
 import { Text, Flex, Link, Button, Dialog, Box, IconButton } from '@radix-ui/themes';
-import { CheckIcon } from 'lucide-react';
-import { Icon } from '@iconify/react';
 import { useAuth } from '@/hooks/useAuth';
 import { activateFormSchema } from '@/lib/schema/auth';
 import { useRouter } from 'next/navigation';
-import NextLink from 'next/link';
 import { useMembers } from '@/hooks/useMembers';
+import { CreditCard, User, Mail, Lock, ShieldCheck, Search } from 'lucide-react';
 
 export default function ActivateForm() {
   const router = useRouter();
@@ -22,7 +20,6 @@ export default function ActivateForm() {
   const [nisData, setNisData] = useState<any>(null);
   const [nis, setNis] = useState<string | null>(null);
 
-  // 🔥 query dipanggil di top-level
   const { data, isFetching, error } = member.getBy('nis', nis, !!nis);
 
   const form = useForm({
@@ -47,22 +44,17 @@ export default function ActivateForm() {
     },
   });
 
-  // 🔥 handle hasil fetch
   useEffect(() => {
     if (data) {
       const d = data.data;
-      console.log(d);
-
       setNisData({
         name: d.fullName,
         class: d.memberClass,
         status: d.isActive === true ? 'Sudah Aktif' : 'Belum Aktif',
       });
-
       setOpen(true);
       setNis(null);
     }
-
     if (error) {
       setNis(null);
     }
@@ -70,9 +62,7 @@ export default function ActivateForm() {
 
   const handleCheckNis = () => {
     const value = form.getFieldValue('nis');
-
     if (!value) return alert('Masukkan NIS dulu');
-
     setNis(value);
     setNisData(null);
   };
@@ -89,10 +79,8 @@ export default function ActivateForm() {
             form.handleSubmit();
           }}
         >
-          {/* NIS + BUTTON */}
-          <form.Field
-            name='nis'
-            children={(field) => (
+          <form.Field name='nis'>
+            {(field) => (
               <Flex gap='2' align='end'>
                 <Box style={{ flex: 1 }}>
                   <InputField
@@ -100,72 +88,42 @@ export default function ActivateForm() {
                     label='Nomor Induk Siswa (NIS)'
                     placeholder='Masukkan NIS Anda'
                     required
-                    icon={<Icon icon='mdi:card-account-details-outline' />}
+                    icon={<CreditCard size={16} />}
                   />
                 </Box>
-
-                <IconButton
-                  variant='soft'
-                  onClick={handleCheckNis}
-                  loading={isFetching}
-                  style={{
-                    height: 40,
-                    width: 40,
-                  }}
-                >
-                  <CheckIcon />
+                <IconButton variant='soft' onClick={handleCheckNis} loading={isFetching} style={{ height: 40, width: 40 }}>
+                  <Search size={16} />
                 </IconButton>
               </Flex>
             )}
-          />
+          </form.Field>
 
-          <form.Field
-            name='username'
-            children={(field) => (
-              <InputField
-                field={field}
-                label='Username'
-                placeholder='Pilih username unik'
-                required
-                icon={<Icon icon='mdi:account-circle-outline' />}
-              />
+          <form.Field name='username'>
+            {(field) => <InputField field={field} label='Username' placeholder='Pilih username unik' required icon={<User size={16} />} />}
+          </form.Field>
+
+          <form.Field name='email'>
+            {(field) => <InputField field={field} label='Email' type='email' placeholder='contoh@email.com' required icon={<Mail size={16} />} />}
+          </form.Field>
+
+          <form.Field name='password'>
+            {(field) => (
+              <InputField field={field} label='Password Baru' type='password' placeholder='Minimal 8 karakter' required icon={<Lock size={16} />} />
             )}
-          />
+          </form.Field>
 
-          <form.Field
-            name='email'
-            children={(field) => (
-              <InputField field={field} label='Email' type='email' placeholder='contoh@email.com' required icon={<Icon icon='mdi:email-outline' />} />
-            )}
-          />
-
-          <form.Field
-            name='password'
-            children={(field) => (
-              <InputField
-                field={field}
-                label='Password Baru'
-                type='password'
-                placeholder='Minimal 8 karakter'
-                required
-                icon={<Icon icon='mdi:lock-outline' />}
-              />
-            )}
-          />
-
-          <form.Field
-            name='confirmPassword'
-            children={(field) => (
+          <form.Field name='confirmPassword'>
+            {(field) => (
               <InputField
                 field={field}
                 label='Konfirmasi Password'
                 type='password'
                 placeholder='Ulangi password'
                 required
-                icon={<Icon icon='mdi:lock-check-outline' />}
+                icon={<ShieldCheck size={16} />}
               />
             )}
-          />
+          </form.Field>
 
           <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
             {([canSubmit, isSubmitting]) => (
@@ -184,18 +142,15 @@ export default function ActivateForm() {
           <Text size='2' color='gray'>
             Sudah pernah melakukan aktivasi?
           </Text>
-
           <Link href='/auth/login' weight='medium'>
             Login
           </Link>
         </Flex>
       </FormCard>
 
-      {/* MODAL */}
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Content maxWidth='400px'>
           <Dialog.Title>Data Siswa</Dialog.Title>
-
           {nisData && (
             <Flex direction='column' gap='2' mt='3'>
               <Text>Nama: {nisData.name}</Text>
@@ -203,7 +158,6 @@ export default function ActivateForm() {
               <Text>Status: {nisData.status}</Text>
             </Flex>
           )}
-
           <Flex justify='end' mt='4'>
             <Dialog.Close>
               <Button>Close</Button>

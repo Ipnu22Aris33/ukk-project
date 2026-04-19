@@ -9,7 +9,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { uploadImage } from '@/lib/upload/uploadClient';
 import { bookFormSchema, BookFormInput } from '@/lib/schema/book';
 import { FileField } from '@/components/features/forms/FileField';
-import { BarcodeIcon, BookIcon, Building, CalendarIcon, LayersPlus, PenBoxIcon, Boxes } from 'lucide-react';
+import { BarcodeIcon, BookIcon, Building, CalendarIcon, LayersPlus, PenBoxIcon, PackageCheck, Tag } from 'lucide-react';
 
 interface BookFormProps {
   mode: 'create' | 'edit';
@@ -47,6 +47,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
       author: initialData.author ?? '',
       publisher: initialData.publisher ?? '',
       totalStock: initialData.totalStock ?? 1,
+      availableStock: initialData.availableStock ?? initialData.totalStock ?? 1,
       year: initialData.year ?? new Date().getFullYear(),
       isbn: initialData.isbn ?? '',
       categoryId: initialData.categoryId ?? 0,
@@ -95,7 +96,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
             <InputField
               field={field}
               label='Title'
-              icon={<BookIcon/>}
+              icon={<BookIcon size={16} />}
               required
               error={getFieldError(field)}
               placeholder='Enter book title...'
@@ -108,7 +109,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
             <InputField
               field={field}
               label='Author'
-              icon={<PenBoxIcon/>}
+              icon={<PenBoxIcon size={16} />}
               required
               error={getFieldError(field)}
               placeholder='Enter author name...'
@@ -121,7 +122,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
             <InputField
               field={field}
               label='Publisher'
-              icon={<Building/>}
+              icon={<Building size={16} />}
               required
               error={getFieldError(field)}
               placeholder='Enter publisher name...'
@@ -131,13 +132,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
 
         <form.Field name='isbn'>
           {(field) => (
-            <InputField
-              field={field}
-              label='ISBN'
-              icon={<BarcodeIcon/>}
-              error={getFieldError(field)}
-              placeholder='Enter ISBN number...'
-            />
+            <InputField field={field} label='ISBN' icon={<BarcodeIcon size={16} />} error={getFieldError(field)} placeholder='Enter ISBN number...' />
           )}
         </form.Field>
 
@@ -147,7 +142,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
               field={field}
               type='number'
               label='Year'
-              icon={<CalendarIcon/>}
+              icon={<CalendarIcon size={16} />}
               required
               error={getFieldError(field)}
               placeholder='Enter publication year...'
@@ -161,10 +156,24 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
               field={field}
               type='number'
               label='Total Stock'
-              icon={<LayersPlus/>}
+              icon={<LayersPlus size={16} />}
               required
               error={getFieldError(field)}
               placeholder='Total physical books...'
+            />
+          )}
+        </form.Field>
+
+        <form.Field name='availableStock'>
+          {(field) => (
+            <InputField
+              field={field}
+              type='number'
+              label='Available Stock'
+              icon={<PackageCheck size={16} />}
+              required
+              error={getFieldError(field)}
+              placeholder='Books available on shelf...'
             />
           )}
         </form.Field>
@@ -179,7 +188,7 @@ export function BookForm({ mode, initialData = {}, onSubmit, isSubmitting = fals
               searchable
               search={categorySearch}
               onSearchChange={setCategorySearch}
-              icon={<Boxes/>}
+              icon={<Tag size={16} />}
               required
               error={getFieldError(field)}
             />

@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { Flex, Button } from '@radix-ui/themes';
 import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
@@ -9,7 +8,7 @@ import { useState } from 'react';
 import { useMembers } from '@/hooks/useMembers';
 import { useBooks } from '@/hooks/useBooks';
 import { loanFormSchema, LoanInput } from '@/lib/schema/loan';
-import { Book, CalendarClock, ListChecks, NotepadText, User2, LayersPlus } from 'lucide-react';
+import { BookOpen, CalendarClock, CalendarCheck, ListChecks, NotepadText, User2, Hash } from 'lucide-react';
 
 interface LoanFormProps {
   initialData?: Partial<LoanInput>;
@@ -20,39 +19,15 @@ interface LoanFormProps {
   onClose?: () => void;
 }
 
-// Helper untuk format date ke string YYYY-MM-DD agar bisa dibaca input date
-const toISODate = (date: Date | string | undefined) => {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toISOString().split('T')[0];
-};
-
-export function LoanForm({ 
-  initialData = {}, 
-  onSubmit, 
-  isSubmitting = false, 
-  submitLabel = 'Save Loan', 
-  isUpdate = false, 
-  onClose 
-}: LoanFormProps) {
-  const router = useRouter();
+export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, submitLabel = 'Save Loan', isUpdate = false, onClose }: LoanFormProps) {
   const [memberSearch, setMemberSearch] = useState('');
   const [bookSearch, setBookSearch] = useState('');
 
   const members = useMembers();
   const books = useBooks();
 
-  const memberList = members.list({
-    page: 1,
-    limit: 100,
-    search: memberSearch,
-  });
-
-  const bookList = books.list({
-    page: 1,
-    limit: 100,
-    search: bookSearch,
-  });
+  const memberList = members.list({ page: 1, limit: 100, search: memberSearch });
+  const bookList = books.list({ page: 1, limit: 100, search: bookSearch });
 
   const memberOptions = (memberList.data?.data || []).map((member) => ({
     value: member.id,
@@ -61,7 +36,6 @@ export function LoanForm({
 
   const bookOptions = (bookList.data?.data || []).map((book) => ({
     value: book.id,
-    // 🔥 SESUAIKAN: Menampilkan availableStock, bukan stock lama
     label: `${book.title} - ${book.author} (Avail: ${book.availableStock})`,
   }));
 
@@ -85,14 +59,6 @@ export function LoanForm({
 
   const getFieldError = (field: any) => field.state.meta.errors?.[0]?.message;
 
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-    } else {
-      router.back();
-    }
-  };
-
   return (
     <Form.Root
       onSubmit={(e) => {
@@ -113,7 +79,7 @@ export function LoanForm({
               searchable
               search={memberSearch}
               onSearchChange={setMemberSearch}
-              icon={<User2/>}
+              icon={<User2 size={16} />}
               error={getFieldError(field)}
             />
           )}
@@ -130,7 +96,7 @@ export function LoanForm({
               searchable
               search={bookSearch}
               onSearchChange={setBookSearch}
-              icon={<Book />}
+              icon={<BookOpen size={16} />}
               error={getFieldError(field)}
             />
           )}
@@ -144,36 +110,22 @@ export function LoanForm({
               type='number'
               placeholder='Enter quantity...'
               required
-              icon={<LayersPlus />}
+              icon={<Hash size={16} />}
               error={getFieldError(field)}
             />
           )}
         </form.Field>
 
-        <Flex gap="4">
+        <Flex gap='4'>
           <form.Field name='loanDate'>
             {(field) => (
-              <InputField
-                field={field}
-                label='Loan Date'
-                type='date'
-                required
-                icon={<CalendarClock/>}
-                error={getFieldError(field)}
-              />
+              <InputField field={field} label='Loan Date' type='date' required icon={<CalendarClock size={16} />} error={getFieldError(field)} />
             )}
           </form.Field>
 
           <form.Field name='dueDate'>
             {(field) => (
-              <InputField
-                field={field}
-                label='Due Date'
-                type='date'
-                required
-                icon={<CalendarClock/>}
-                error={getFieldError(field)}
-              />
+              <InputField field={field} label='Due Date' type='date' required icon={<CalendarCheck size={16} />} error={getFieldError(field)} />
             )}
           </form.Field>
         </Flex>
@@ -192,7 +144,7 @@ export function LoanForm({
                 ]}
                 placeholder='Select status...'
                 required
-                icon={<ListChecks/>}
+                icon={<ListChecks size={16} />}
                 error={getFieldError(field)}
               />
             )}
@@ -205,20 +157,20 @@ export function LoanForm({
               field={field}
               label='Notes'
               placeholder='Enter any notes...'
-              icon={<NotepadText />}
+              icon={<NotepadText size={16} />}
               error={getFieldError(field)}
               rows={3}
             />
           )}
         </form.Field>
 
-        <form.Subscribe selector={(state) => [state.canSubmit]}>
-          {([canSubmit]) => (
+        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+          {([canSubmit, isSubmitting]) => (
             <Flex gap='3' mt='4' justify='end'>
-              <Button variant='soft' color='gray' onClick={handleClose} type='button' disabled={isSubmitting}>
+              <Button variant='soft' color='gray' onClick={onClose} type='button' disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type='submit' variant='solid' disabled={!canSubmit || isSubmitting}>
+              <Button type='submit' variant='solid' disabled={!canSubmit || isSubmitting} loading={isSubmitting}>
                 {isSubmitting ? 'Saving...' : submitLabel}
               </Button>
             </Flex>

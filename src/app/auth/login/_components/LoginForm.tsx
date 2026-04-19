@@ -4,10 +4,10 @@ import { useForm } from '@tanstack/react-form';
 import * as Form from '@radix-ui/react-form';
 import { FormCard, FormActions, InputField } from '@/components/features/forms';
 import { Text, Flex, Link } from '@radix-ui/themes';
-import { Icon } from '@iconify/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { loginSchema } from '@/lib/schema/auth';
+import { Mail, Lock } from 'lucide-react';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -43,7 +43,6 @@ export default function LoginForm() {
           form.handleSubmit();
         }}
       >
-        {/* IDENTIFIER */}
         <form.Field
           name='identifier'
           validators={{
@@ -60,12 +59,11 @@ export default function LoginForm() {
               type='text'
               placeholder='Masukkan email atau username Anda'
               required
-              icon={<Icon icon='mdi:email' />}
+              icon={<Mail size={16} />}
             />
           )}
         </form.Field>
 
-        {/* PASSWORD */}
         <form.Field
           name='password'
           validators={{
@@ -77,14 +75,7 @@ export default function LoginForm() {
           }}
         >
           {(field) => (
-            <InputField
-              field={field}
-              label='Password'
-              type='password'
-              placeholder='Masukkan password Anda'
-              required
-              icon={<Icon icon='mdi:lock-outline' />}
-            />
+            <InputField field={field} label='Password' type='password' placeholder='Masukkan password Anda' required icon={<Lock size={16} />} />
           )}
         </form.Field>
 
@@ -95,12 +86,10 @@ export default function LoginForm() {
         </form.Subscribe>
       </Form.Root>
 
-      {/* FOOTER */}
       <Flex align='center' justify='center' gap='1' mt='5' pt='5' style={{ borderTop: '1px solid var(--gray-6)' }}>
         <Text size='2' color='gray'>
           Belum melakukan aktivasi?
         </Text>
-
         <Link href='/auth/activate' size='2' weight='medium'>
           Aktivasi
         </Link>

@@ -1,8 +1,8 @@
 'use client';
 
 import { Dialog, DataList, Flex, Button, Text } from '@radix-ui/themes';
-import { Icon } from '@iconify/react';
 import type { ReturnResponse } from '@/lib/schema/return';
+import { Banknote } from 'lucide-react';
 
 interface PayFineDialogProps {
   returnData: ReturnResponse;
@@ -60,7 +60,7 @@ export function PayFineDialog({ returnData, open, onClose, onConfirm, isLoading 
             Cancel
           </Button>
           <Button color='green' onClick={onConfirm} loading={isLoading}>
-            <Icon icon='mdi:cash-check' />
+            <Banknote/>
             Confirm Payment
           </Button>
         </Flex>
