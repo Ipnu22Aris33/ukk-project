@@ -78,7 +78,7 @@ export function MemberTable() {
   const panelTitle = mode === 'add' ? 'Add New Member' : mode === 'edit' ? 'Edit Member' : mode === 'view' ? 'Member Details' : '';
 
   return (
-    <Box position='relative' minHeight='100vh'>
+    <Box>
       <Container size='4' py='6'>
         <Flex justify='between' align='center' mb='6'>
           <Heading size='8'>Members Management</Heading>

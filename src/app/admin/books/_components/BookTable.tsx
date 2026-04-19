@@ -1,105 +1,26 @@
 'use client';
 
-import { ColDataTable, DataTable, RowAction } from '@/components/features/datatable';
+import { useState } from 'react';
+import { Container, Heading, Flex, Box } from '@radix-ui/themes';
+import { DataTable } from '@/components/features/datatable';
 import { Panel } from '@/components/ui/Panel';
 import { useBooks } from '@/hooks/useBooks';
 import { usePanel } from '@/hooks/usePanel';
-import { Container, Heading, Flex, Box, Button, DataList, AlertDialog } from '@radix-ui/themes';
-import { useState } from 'react';
 import type { BookResponse } from '@/lib/schema/book';
-import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { BookForm } from './BookForm';
-import Image from 'next/image';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
-
-/* =========================
-   VIEW CONTENT
-========================= */
-
-function ViewBookContent({ book, onClose }: { book: BookResponse; onClose: () => void }) {
-  return (
-    <>
-      <DataList.Root>
-        <DataList.Item>
-          <DataList.Label>Cover</DataList.Label>
-          <DataList.Value>
-            {book.coverUrl ? (
-              <Image
-                src={book.coverUrl}
-                alt={book.title}
-                width={120}
-                height={160}
-                style={{
-                  objectFit: 'cover',
-                  borderRadius: 8,
-                }}
-              />
-            ) : (
-              'No cover'
-            )}
-          </DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Title</DataList.Label>
-          <DataList.Value>{book.title}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Author</DataList.Label>
-          <DataList.Value>{book.author}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Category</DataList.Label>
-          <DataList.Value>{book.category.name}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Publisher</DataList.Label>
-          <DataList.Value>{book.publisher}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>ISBN</DataList.Label>
-          <DataList.Value>{book.isbn}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Year</DataList.Label>
-          <DataList.Value>{book.year}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Stock</DataList.Label>
-          <DataList.Value>{book.totalStock}</DataList.Value>
-        </DataList.Item>
-
-        <DataList.Item>
-          <DataList.Label>Slug</DataList.Label>
-          <DataList.Value>{book.slug}</DataList.Value>
-        </DataList.Item>
-      </DataList.Root>
-
-      <Button mt='4' variant='soft' onClick={onClose}>
-        Close
-      </Button>
-    </>
-  );
-}
-
-/* =========================
-   MAIN COMPONENT
-========================= */
+import { bookColumns } from './Columns';
+import { getRowActions } from './RowActions';
+import { ViewBookContent } from './ViewBookContent';
+import { DeleteBookDialog } from './DeleteBookDialog';
 
 export function BookTable() {
   const { mode, selected, open, close } = usePanel<BookResponse>();
-  
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [deleteTarget, setDeleteTarget] = useState<BookResponse | null>(null);
-  
+
   const books = useBooks();
   const { data, isLoading, refetch } = books.list({
     page,
@@ -107,41 +28,14 @@ export function BookTable() {
     limit,
   });
 
-  const columns: ColDataTable<BookResponse>[] = [
-    { accessorKey: 'title', header: 'Title' },
-    { accessorKey: 'author', header: 'Author' },
-    { accessorKey: 'category.name', header: 'Category' },
-    { accessorKey: 'totalStock', header: 'Total Stock' },
-    { accessorKey: 'availableStock', header: 'Available Stock' },
-    { accessorKey: 'reservedStock', header: 'Reserved Stock' },
-    { accessorKey: 'loanedStock', header: 'Loaned Stock' },
-    { accessorKey: 'slug', header: 'Slug' },
-  ];
+  const rowActions = getRowActions(open, setDeleteTarget);
 
-  const rowActions: () => RowAction<BookResponse>[] = () => [
-    {
-      key: 'view',
-      label: 'View Details',
-      icon: <Eye />,
-      color: 'blue',
-      onClick: (row) => open('view', row),
-    },
-    {
-      key: 'edit',
-      label: 'Edit Book',
-      icon: <Pencil/>,
-      color: 'green',
-      onClick: (row) => open('edit', row),
-    },
-    {
-      key: 'delete',
-      label: 'Delete Book',
-      icon: <Trash2/>,
-      color: 'red',
-      onClick: (row) => setDeleteTarget(row),
-    },
-  ];
-
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    await books.remove.mutateAsync(deleteTarget.id);
+    setDeleteTarget(null);
+    refetch();
+  };
 
   const renderPanelContent = () => {
     if (mode === 'add') {
@@ -181,7 +75,6 @@ export function BookTable() {
               id: selected.id,
               data: formData,
             });
-
             close();
             refetch();
           }}
@@ -199,16 +92,15 @@ export function BookTable() {
   const panelTitle = mode === 'add' ? 'Add New Book' : mode === 'edit' ? 'Edit Book' : mode === 'view' ? 'Book Details' : '';
 
   return (
-    <Box position='relative' minHeight='100vh'>
+    <Box>
       <Container size='4' py='6'>
-
         <Flex justify='between' align='center' mb='6'>
           <Heading size='8'>Books Management</Heading>
         </Flex>
 
         <DataTable
           data={data?.data ?? []}
-          columns={columns}
+          columns={bookColumns}
           meta={data?.meta}
           isLoading={isLoading}
           onRefresh={refetch}
@@ -231,41 +123,7 @@ export function BookTable() {
         {renderPanelContent()}
       </Panel>
 
-      <AlertDialog.Root
-        open={!!deleteTarget}
-        onOpenChange={(openState) => {
-          if (!openState) setDeleteTarget(null);
-        }}
-      >
-        <AlertDialog.Content maxWidth='450px'>
-          <AlertDialog.Title>Delete Book</AlertDialog.Title>
-          <AlertDialog.Description size='2'>
-            Are you sure you want to delete <strong>{deleteTarget?.title}</strong>? This action cannot be undone.
-          </AlertDialog.Description>
-
-          <Flex gap='3' mt='4' justify='end'>
-            <AlertDialog.Cancel>
-              <Button variant='soft' color='gray'>
-                Cancel
-              </Button>
-            </AlertDialog.Cancel>
-
-            <AlertDialog.Action>
-              <Button
-                color='red'
-                onClick={async () => {
-                  if (!deleteTarget) return;
-                  await books.remove.mutateAsync(deleteTarget.id);
-                  setDeleteTarget(null);
-                  refetch();
-                }}
-              >
-                Delete
-              </Button>
-            </AlertDialog.Action>
-          </Flex>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
+      <DeleteBookDialog deleteTarget={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDeleteConfirm} />
     </Box>
   );
 }
