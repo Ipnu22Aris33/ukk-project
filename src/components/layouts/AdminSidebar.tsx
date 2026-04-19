@@ -441,13 +441,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
               minWidth: '200px',
             }}
           >
-            <DropdownMenu.Item>
+            {/* <DropdownMenu.Item>
               <Flex align='center' gap='2'>
                 <User size={14} />
                 <Text size='2'>My Profile</Text>
               </Flex>
             </DropdownMenu.Item>
-            <DropdownMenu.Separator />
+            <DropdownMenu.Separator /> */}
             <DropdownMenu.Item color='red' onClick={() => handleLogout()}>
               <Flex align='center' gap='2'>
                 <LogOut size={14} />

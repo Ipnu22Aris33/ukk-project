@@ -211,7 +211,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                     </Flex>
                   </Box>
 
-                  <Box py='1'>
+                  {/* <Box py='1'>
                     <DropdownMenu.Item>
                       <PersonIcon /> Profil Saya
                     </DropdownMenu.Item>
@@ -220,7 +220,7 @@ export const UserHeader = ({ schoolName, userName }: UserHeaderProps) => {
                     </DropdownMenu.Item>
                   </Box>
 
-                  <DropdownMenu.Separator />
+                  <DropdownMenu.Separator /> */}
 
                   <DropdownMenu.Item color='red' onClick={handleLogout}>
                     <ExitIcon /> Keluar
