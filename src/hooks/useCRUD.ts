@@ -108,7 +108,7 @@ export function useCRUD<TPayload extends Record<string, any> = any, TListRespons
     details: () => [resourceName, 'detail'] as const,
     detail: (id: string) => [resourceName, 'detail', id] as const,
     by: (field: string, value: string) => [resourceName, 'by', field, value] as const,
-    byPath: (segments: string[]) => [resourceName, 'path', ...segments] as const,
+    byPath: (segments: unknown[], params?: Record<string, any>) => [resourceName, 'path', segments, params] as const,
   };
 
   function useList(params: ListParams = {}) {
@@ -176,14 +176,28 @@ export function useCRUD<TPayload extends Record<string, any> = any, TListRespons
     });
   }
 
-  function useGetByPath(segments: (string | null | undefined)[], enabled = true) {
+  function useGetByPath(segments: (string | null | undefined)[], params?: Record<string, any>, enabled = true) {
     const resolvedSegments = segments.filter(Boolean) as string[];
-    const path = `${baseApi}/${resolvedSegments.join('/')}`;
     const allFilled = segments.every(Boolean);
 
     return useQuery<ApiResponse<TSingleResponse>, HttpError>({
-      queryKey: keys.byPath(resolvedSegments),
-      queryFn: () => fetchApi<TSingleResponse>(path, { showToast: false }),
+      queryKey: keys.byPath(resolvedSegments, params),
+      queryFn: () => {
+        const qs = new URLSearchParams();
+
+        if (params) {
+          Object.entries(params).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') {
+              qs.append(k, String(v));
+            }
+          });
+        }
+
+        const queryString = qs.toString();
+        const path = `${baseApi}/${resolvedSegments.join('/')}${queryString ? `?${queryString}` : ''}`;
+
+        return fetchApi<TSingleResponse>(path, { showToast: false });
+      },
       enabled: allFilled && enabled,
       staleTime,
       gcTime,
@@ -249,7 +263,7 @@ export function useCRUD<TPayload extends Record<string, any> = any, TListRespons
     list: () => qc.invalidateQueries({ queryKey: keys.lists() }),
     one: (id: string) => qc.invalidateQueries({ queryKey: keys.detail(id) }),
     by: (field: string, value: string) => qc.invalidateQueries({ queryKey: keys.by(field, value) }),
-    byPath: (segments: string[]) => qc.invalidateQueries({ queryKey: keys.byPath(segments) }),
+    byPath: (segments: string[], params?: Record<string, any>) => qc.invalidateQueries({ queryKey: keys.byPath(segments, params) }),
   };
 
   const custom = useMutation<ApiResponse, HttpError, { id: string | number; action: string; method?: 'POST' | 'PATCH' | 'PUT'; body?: any }>({

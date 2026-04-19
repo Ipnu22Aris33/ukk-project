@@ -67,7 +67,6 @@ const menuItems: MenuItems[] = [
     ],
   },
   { id: 'members', label: 'Anggota', icon: <Users size={20} />, href: '/admin/members' },
-  { id: 'reports', label: 'Laporan', icon: <BookMarked size={20} />, href: '/admin/reports' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, onCloseMobile }) => {

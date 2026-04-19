@@ -6,7 +6,6 @@ import { useLoans } from '@/hooks/useLoans';
 import { usePanel } from '@/hooks/usePanel';
 import { DataTable } from '@/components/features/datatable';
 import { Panel } from '@/components/ui/Panel';
-import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { LoanForm } from './LoanForm';
 import { ReturnFormDialog } from './ReturnFormDialog';
 import { loanColumns } from './Columns';

@@ -1,20 +1,22 @@
 'use client';
 
 import { Text, Card, Flex, Badge, Box, Tooltip, IconButton, Spinner } from '@radix-ui/themes';
-import { Check, X, Info } from 'lucide-react';
+import { Check, X, Info, BookMarked } from 'lucide-react';
+import { useMembers } from '@/hooks/useMembers';
 import { useReservations } from '@/hooks/useReservation';
 
 export function MemberReservations({ code }: { code: string }) {
+  const members = useMembers();
   const reservations = useReservations();
 
-  const { data, isLoading: isListLoading } = reservations.getBy('members', code);
+  const { data, isLoading: isListLoading } = members.getByPath(['code', code, 'reservations'], { status: 'pending' });
 
   const { mutate: performAction, isPending: isUpdating } = reservations.custom;
 
   const raw = data?.data;
   const reservationList = Array.isArray(raw) ? raw : raw ? [raw] : [];
 
-  const handleAction = (id: string | number, action: 'approve' | 'reject') => {
+  const handleAction = (id: string | number, action: 'picked-up' | 'reject') => {
     performAction(
       {
         id,
@@ -42,13 +44,14 @@ export function MemberReservations({ code }: { code: string }) {
 
   if (!reservationList.length) {
     return (
-      <Flex p='4' justify='center'>
-        <Card variant='ghost' style={{ border: '1px dashed var(--gray-6)' }}>
-          <Text size='2' color='gray' align='center' as='div'>
+      <Card variant='surface' style={{ border: '1px dashed var(--gray-6)' }}>
+        <Flex direction='column' align='center' gap='2' py='6'>
+          <BookMarked size={28} color='var(--gray-8)' />
+          <Text size='2' color='gray'>
             Tidak ada data reservasi ditemukan.
           </Text>
-        </Card>
-      </Flex>
+        </Flex>
+      </Card>
     );
   }
 
@@ -72,7 +75,6 @@ export function MemberReservations({ code }: { code: string }) {
       {reservationList.map((res) => (
         <Card key={res.id} variant='surface'>
           <Flex align='center' justify='between' gap='3'>
-            {/* Sisi Kiri: Informasi Buku */}
             <Box>
               <Text as='div' size='2' weight='bold' mb='1'>
                 {res.book?.title || 'Judul Tidak Diketahui'}
@@ -92,7 +94,6 @@ export function MemberReservations({ code }: { code: string }) {
               </Flex>
             </Box>
 
-            {/* Sisi Kanan: Tombol Aksi */}
             <Flex gap='2'>
               <Tooltip content='Lihat Detail'>
                 <IconButton size='2' variant='soft' color='gray' highContrast>
@@ -109,7 +110,7 @@ export function MemberReservations({ code }: { code: string }) {
                   </Tooltip>
 
                   <Tooltip content='Setujui (Buku Diambil)'>
-                    <IconButton size='2' variant='solid' color='green' disabled={isUpdating} onClick={() => handleAction(res.id, 'approve')}>
+                    <IconButton size='2' variant='solid' color='green' disabled={isUpdating} onClick={() => handleAction(res.id, 'picked-up')}>
                       <Check size={16} />
                     </IconButton>
                   </Tooltip>

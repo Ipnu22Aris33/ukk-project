@@ -19,7 +19,14 @@ interface LoanFormProps {
   onClose?: () => void;
 }
 
-export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, submitLabel = 'Save Loan', isUpdate = false, onClose }: LoanFormProps) {
+export function AddLoanForm({
+  initialData = {},
+  onSubmit,
+  isSubmitting = false,
+  submitLabel = 'Save Loan',
+  isUpdate = false,
+  onClose,
+}: LoanFormProps) {
   const [memberSearch, setMemberSearch] = useState('');
   const [bookSearch, setBookSearch] = useState('');
 
@@ -28,11 +35,6 @@ export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, sub
 
   const memberList = members.list({ page: 1, limit: 100, search: memberSearch });
   const bookList = books.list({ page: 1, limit: 100, search: bookSearch });
-
-  const memberOptions = (memberList.data?.data || []).map((member) => ({
-    value: member.id,
-    label: `${member.fullName} (${member.memberCode})`,
-  }));
 
   const bookOptions = (bookList.data?.data || []).map((book) => ({
     value: book.id,
@@ -68,23 +70,6 @@ export function LoanForm({ initialData = {}, onSubmit, isSubmitting = false, sub
       }}
     >
       <Flex direction='column' gap='4'>
-        <form.Field name='memberId'>
-          {(field) => (
-            <SelectField
-              field={field}
-              label='Member'
-              options={memberOptions}
-              placeholder='Select a member...'
-              required
-              searchable
-              search={memberSearch}
-              onSearchChange={setMemberSearch}
-              icon={<User2 size={16} />}
-              error={getFieldError(field)}
-            />
-          )}
-        </form.Field>
-
         <form.Field name='bookId'>
           {(field) => (
             <SelectField
