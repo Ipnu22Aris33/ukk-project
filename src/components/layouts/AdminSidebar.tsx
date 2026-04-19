@@ -21,7 +21,7 @@ import {
   User,
   ChevronDown as ChevronDownIconLucide,
 } from 'lucide-react';
-import { MaterialSymbolsLocalLibraryOutline } from '@/components/icons';
+import { LibraryBig } from 'lucide-react';
 
 interface SidebarProps {
   isMobile: boolean;
@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile, sidebarCollapsed, on
           marginBottom: '16px',
         }}
       >
-        <MaterialSymbolsLocalLibraryOutline width={24} height={24} />
+        <LibraryBig size={24}/>
 
         <Box
           style={{
