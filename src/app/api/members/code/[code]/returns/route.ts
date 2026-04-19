@@ -18,31 +18,29 @@ export const GET = handleApi(async ({ req, params }) => {
       condition: 'string',
       fromDate: 'string',
       toDate: 'string',
-      fineStatus: 'string' // PAID / UNPAID
+      fineStatus: 'string',
     },
   });
 
   // 🔥 1. Cari member
   const member = await db.query.members.findFirst({
-    where: (m, { eq, isNull }) => and(eq(m.memberCode, code), isNull(m.deletedAt)),
+    where: (m, { eq, isNull }) =>
+      and(eq(m.memberCode, code), isNull(m.deletedAt)),
   });
 
   if (!member) {
     throw new NotFound('Member tidak ditemukan');
   }
 
-  // 🔥 2. Ambil semua loan milik member
-  const memberLoans = await db.select({ id: loans.id }).from(loans).where(eq(loans.memberId, member.id));
+  // 🔥 2. Ambil loan
+  const loanIds = (
+    await db
+      .select({ id: loans.id })
+      .from(loans)
+      .where(eq(loans.memberId, member.id))
+  ).map((l) => l.id);
 
-  const loanIds = memberLoans.map((l) => l.id);
-
-  // 🔥 3. Kondisi dasar
-  const baseConditions = [isNull(returns.deletedAt)];
-  
-  if (loanIds.length) {
-    baseConditions.push(inArray(returns.loanId, loanIds));
-  } else {
-    // Jika tidak ada loan, return empty result
+  if (!loanIds.length) {
     return ok([], {
       message: `Riwayat return member (${code}) berhasil diambil`,
       meta: {
@@ -54,50 +52,53 @@ export const GET = handleApi(async ({ req, params }) => {
     });
   }
 
-  // 🔥 4. Filter condition (kondisi buku)
-  if (filters.condition) {
-    baseConditions.push(eq(returns.condition, filters.condition));
-  }
+  // 🔥 3. Base conditions
+  const baseConditions = [
+    isNull(returns.deletedAt),
+    inArray(returns.loanId, loanIds),
 
-  // 🔥 5. Filter date range
-  if (filters.fromDate) {
-    baseConditions.push(gte(returns.returnedAt, new Date(filters.fromDate)));
-  }
+    filters.condition && eq(returns.condition, filters.condition),
 
-  if (filters.toDate) {
-    // Set ke end of day untuk toDate
-    const toDateEnd = new Date(filters.toDate);
-    toDateEnd.setHours(23, 59, 59, 999);
-    baseConditions.push(lte(returns.returnedAt, toDateEnd));
-  }
+    filters.fromDate &&
+      gte(returns.returnedAt, new Date(filters.fromDate)),
 
-  // 🔥 6. Filter fineStatus (PAID / UNPAID)
-  let finalWhere = and(...baseConditions);
+    filters.toDate &&
+      lte(
+        returns.returnedAt,
+        (() => {
+          const d = new Date(filters.toDate);
+          d.setHours(23, 59, 59, 999);
+          return d;
+        })()
+      ),
+  ].filter(Boolean);
 
-  if (filters.fineStatus) {
-    const fineStatus = filters.fineStatus;
-    
-    if (fineStatus === 'paid') {
-      // Fine sudah dibayar: fineStatus = 'PAID' AND fineAmount > 0
-      finalWhere = and(
-        finalWhere,
-        sql`${returns.fineStatus} = 'PAID'`,
-        sql`${returns.fineAmount} > 0`
-      );
-    } else if (fineStatus === 'unpaid') {
-      // Fine belum dibayar: fineStatus = 'UNPAID' OR (fineAmount > 0 AND fineStatus IS NULL)
-      finalWhere = and(
-        finalWhere,
-        sql`(${returns.fineStatus} = 'unpaid' OR (${returns.fineAmount} > 0 AND ${returns.fineStatus} IS NULL))`
-      );
-    } else if (fineStatus === 'none') {
-      // Tanpa denda: fineAmount = 0 atau NULL
-      finalWhere = and(
-        finalWhere,
-        sql`(${returns.fineAmount} = 0 OR ${returns.fineAmount} IS NULL)`
-      );
-    }
-  }
+  // 🔥 4. Normalize fineStatus (tanpa mutation)
+  const normalizedFineStatus =
+    typeof filters.fineStatus === 'string'
+      ? filters.fineStatus.toLowerCase()
+      : Array.isArray(filters.fineStatus)
+      ? filters.fineStatus[0]?.toLowerCase()
+      : undefined;
+
+  // 🔥 5. Fine conditions (pure mapping)
+  const fineConditionMap = {
+    paid: and(
+      sql`${returns.fineStatus} = 'paid'`,
+      sql`${returns.fineAmount} > 0`
+    ),
+    unpaid: sql`(${returns.fineStatus} = 'unpaid' OR (${returns.fineAmount} > 0 AND ${returns.fineStatus} IS NULL))`,
+    none: sql`(${returns.fineAmount} = 0 OR ${returns.fineAmount} IS NULL)`,
+  } as const;
+
+  const fineCondition =
+    normalizedFineStatus && fineConditionMap[normalizedFineStatus];
+
+  // 🔥 6. Final where (no let)
+  const finalWhere = and(
+    ...baseConditions,
+    ...(fineCondition ? [fineCondition] : [])
+  );
 
   // 🔥 7. Query paginate
   const result = await paginate({
